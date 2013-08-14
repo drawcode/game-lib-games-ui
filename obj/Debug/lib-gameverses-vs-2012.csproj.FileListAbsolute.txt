@@ -1,7 +1,0 @@
-Y:\drawk-llc\projects\drawlabs\game-lib-gameverses\obj\Debug\lib-gameverses-vs-2012.csprojResolveAssemblyReference.cache
-Y:\drawk-llc\projects\drawlabs\game-lib-gameverses\bin\ReleaseWebPlayer\lib-gameverses.dll
-Y:\drawk-llc\projects\drawlabs\game-lib-gameverses\bin\ReleaseWebPlayer\Boo.Lang.dll
-Y:\drawk-llc\projects\drawlabs\game-lib-gameverses\bin\ReleaseWebPlayer\Photon3Unity3D.dll
-Y:\drawk-llc\projects\drawlabs\game-lib-gameverses\bin\ReleaseWebPlayer\UnityEngine.dll
-Y:\drawk-llc\projects\drawlabs\game-lib-gameverses\bin\ReleaseWebPlayer\Mono.Security.dll
-Y:\drawk-llc\projects\drawlabs\game-lib-gameverses\obj\Debug\lib-gameverses.dll
