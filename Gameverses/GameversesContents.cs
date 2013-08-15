@@ -580,7 +580,7 @@ namespace Gameverses {
 
                         foreach(string url in downloadUrls) {
                             GameMessenger<string>.Broadcast(GameversesContentMessages.ContentItemVerifySuccess, "Content verified, downloading and loading pack." );
-                            CoroutineUtil.Start(Contents.Instance.SceneLoadFromCacheOrDownloadCo(url));
+                            CoroutineUtil.Start(Contents.SceneLoadFromCacheOrDownloadCo(url));
                             break;
                         }
                     }
@@ -636,7 +636,7 @@ namespace Gameverses {
                             GameMessenger<string>.Broadcast(GameversesContentMessages.ContentItemVerifySuccess, "Content verified, downloading and loading pack." );
 
                             //Debug.Log("url:" + url);
-                            //CoroutineUtil.Start(Contents.Instance.SceneLoadFromCacheOrDownloadCo(url));
+                            //CoroutineUtil.Start(Contents.SceneLoadFromCacheOrDownloadCo(url));
                             //WebRequest.Instance.Request(
                         }
                     }
@@ -1226,7 +1226,7 @@ namespace Gameverses {
             if (!absolute) {
                 path = Path.Combine(GameversesContents.Instance.appCacheVersionPath, path);
 
-                //shipPath = Path.Combine(Contents.Instance.appShipCacheVersionPath, path);
+                //shipPath = Path.Combine(Contents.appShipCacheVersionPath, path);
             }
             string pathVersioned = path;
 
