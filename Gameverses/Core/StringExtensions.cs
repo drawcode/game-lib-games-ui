@@ -6,11 +6,11 @@ using UnityEngine;
 public static string pathForBundleResource( string file )
 {
     var path = Application.dataPath.Replace( "Data", "" );
-    return System.IO.Path.Combine( path, file );
+    return PathUtil.Combine( path, file );
 }
 
 public static string pathForDocumentsResource( string file )
 {
-    return System.IO.Path.Combine( Environment.GetFolderPath( Environment.SpecialFolder.Personal ), file );
+    return PathUtil.Combine( Environment.GetFolderPath( Environment.SpecialFolder.Personal ), file );
 }
  */

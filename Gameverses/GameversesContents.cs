@@ -936,15 +936,15 @@ namespace Gameverses {
         }
 
         public void LoadLevelBundle(string pack, int increment) {
-            string pathPack = Path.Combine(appCachePathAllPlatformPacks, pack);
+            string pathPack = PathUtil.Combine(appCachePathAllPlatformPacks, pack);
 
-            //pathPack = Path.Combine(pathPack, ContentConfig.contentCacheScenes);
+            //pathPack = PathUtil.Combine(pathPack, ContentConfig.contentCacheScenes);
 
             //GamePacks.Instance.ChangeCurrentGamePack(pack);
-
+#if !UNITY_WEBPLAYER
             if (Directory.Exists(pathPack)) {
-                string pathUrl = Path.Combine(pathPack, pack + "-" + increment.ToString() + ".unity3d");
-                if (File.Exists(pathUrl)) {
+                string pathUrl = PathUtil.Combine(pathPack, pack + "-" + increment.ToString() + ".unity3d");
+                if (FileSystemUtil.CheckFileExists(pathUrl)) {
                     LoadLevelBundle("file://" + pathUrl);
                 }
                 else {
@@ -956,6 +956,7 @@ namespace Gameverses {
 
                 //Debug.Log("Pack does not exist:" + pathPack);
             }
+#endif
         }
 
         public void LoadLevelBundle(string sceneUrl) {
@@ -1095,6 +1096,7 @@ namespace Gameverses {
         }
 
         public void DirectoryCopy(string sourceDirName, string destDirName, bool copySubDirs, bool versioned) {
+#if !UNITY_WEBPLAYER
             DirectoryInfo dir = new DirectoryInfo(sourceDirName);
             DirectoryInfo[] dirs = dir.GetDirectories();
 
@@ -1115,13 +1117,13 @@ namespace Gameverses {
             foreach (FileInfo file in files) {
                 if (file.Extension != ".meta"
                     && file.Extension != ".DS_Store") {
-                    string temppath = Path.Combine(destDirName, file.Name);
+                    string temppath = PathUtil.Combine(destDirName, file.Name);
 
                     if (versioned) {
                         temppath = GetFullPathVersioned(file.FullName, temppath);
                     }
 
-                    if (!File.Exists(temppath) || Application.isEditor) {
+                    if (!FileSystemUtil.CheckFileExists(temppath) || Application.isEditor) {
 
                         //LogUtil.Log("copying ship file: " + file.FullName);
                         //LogUtil.Log("copying ship file to cache: " + temppath);
@@ -1135,12 +1137,13 @@ namespace Gameverses {
 
             if (copySubDirs) {
                 foreach (DirectoryInfo subdir in dirs) {
-                    string temppath = Path.Combine(destDirName, subdir.Name);
+                    string temppath = PathUtil.Combine(destDirName, subdir.Name);
 
                     //LogUtil.Log("Copying Directory: " + temppath);
                     DirectoryCopy(subdir.FullName, temppath, copySubDirs, versioned);
                 }
             }
+#endif
         }
 
         public List<string> GetPackPathsNonVersioned() {
@@ -1167,8 +1170,9 @@ namespace Gameverses {
                 //Debug.Log("Loading packPathsNONVersioned: " + appCachePathPacks);
 
                 if (!string.IsNullOrEmpty(appCachePathPacks)) {
+#if !UNITY_WEBPLAYER
                     foreach (string path in Directory.GetDirectories(appCachePathPacks)) {
-                        string pathToAdd = Path.Combine(appCachePathPacks, path);
+                        string pathToAdd = PathUtil.Combine(appCachePathPacks, path);
                         if (!string.IsNullOrEmpty(pathToAdd)) {
                             if (!packPaths.Contains(pathToAdd)) {
                                 packPaths.Add(pathToAdd);
@@ -1177,6 +1181,7 @@ namespace Gameverses {
                             }
                         }
                     }
+#endif
                 }
             }
 
@@ -1185,8 +1190,9 @@ namespace Gameverses {
                 //Debug.Log("Loading packPathsVersionedShared: " + appCachePathSharedPacks);
 
                 if (!string.IsNullOrEmpty(appCachePathSharedPacks)) {
+#if !UNITY_WEBPLAYER
                     foreach (string path in Directory.GetDirectories(appCachePathSharedPacks)) {
-                        string pathToAdd = Path.Combine(appCachePathSharedPacks, path);
+                        string pathToAdd = PathUtil.Combine(appCachePathSharedPacks, path);
                         if (!string.IsNullOrEmpty(pathToAdd)) {
                             if (!packPathsVersionedShared.Contains(pathToAdd)) {
                                 packPathsVersionedShared.Add(pathToAdd);
@@ -1195,6 +1201,7 @@ namespace Gameverses {
                             }
                         }
                     }
+#endif
                 }
             }
 
@@ -1202,8 +1209,9 @@ namespace Gameverses {
 
                 //Debug.Log("Loading packPathsVersioned: " + appCachePathAllPlatformPacks);
                 if (!string.IsNullOrEmpty(appCachePathAllPlatformPacks)) {
+#if !UNITY_WEBPLAYER
                     foreach (string path in Directory.GetDirectories(appCachePathAllPlatformPacks)) {
-                        string pathToAdd = Path.Combine(appCachePathAllPlatformPacks, path);
+                        string pathToAdd = PathUtil.Combine(appCachePathAllPlatformPacks, path);
                         if (!string.IsNullOrEmpty(pathToAdd)) {
                             if (!packPathsVersioned.Contains(pathToAdd)) {
                                 packPathsVersioned.Add(pathToAdd);
@@ -1212,6 +1220,7 @@ namespace Gameverses {
                             }
                         }
                     }
+#endif
                 }
             }
         }
@@ -1221,12 +1230,12 @@ namespace Gameverses {
             string pathPart = path;
 
             string pathToCopy = "";
-            pathToCopy = Path.Combine(GameversesContents.Instance.appShipCacheVersionPath, pathPart);
+            pathToCopy = PathUtil.Combine(GameversesContents.Instance.appShipCacheVersionPath, pathPart);
 
             if (!absolute) {
-                path = Path.Combine(GameversesContents.Instance.appCacheVersionPath, path);
+                path = PathUtil.Combine(GameversesContents.Instance.appCacheVersionPath, path);
 
-                //shipPath = Path.Combine(Contents.appShipCacheVersionPath, path);
+                //shipPath = PathUtil.Combine(Contents.appShipCacheVersionPath, path);
             }
             string pathVersioned = path;
 
@@ -1237,11 +1246,11 @@ namespace Gameverses {
             ////Debug.Log("LoadDataFromPersistent:path:" + path);
             ////Debug.Log("LoadDataFromPersistent:pathVersioned:" + pathVersioned );
 
-            if (!File.Exists(pathVersioned) && !absolute) {
+            if (!FileSystemUtil.CheckFileExists(pathVersioned) && !absolute) {
 
                 // copy from streaming assets
 
-                if (File.Exists(pathToCopy)) {
+                if (FileSystemUtil.CheckFileExists(pathToCopy)) {
                     FileSystemUtil.CopyFile(pathToCopy, pathVersioned);
                 }
                 else {
@@ -1261,35 +1270,36 @@ namespace Gameverses {
             // //Debug.Log("persistenceFolder: " + persistenceFolder);
             // //Debug.Log("streamingAssetsFolder: " + streamingAssetsFolder);
 
-            string pathRoot = Path.Combine(persistenceFolder, currentRootAppCode);
-            string pathShipRoot = Path.Combine(streamingAssetsFolder, currentRootAppCode);
-
+            string pathRoot = PathUtil.Combine(persistenceFolder, currentRootAppCode);
+            string pathShipRoot = PathUtil.Combine(streamingAssetsFolder, currentRootAppCode);
+#if !UNITY_WEBPLAYER
             if (!Directory.Exists(pathRoot)) {
                 Directory.CreateDirectory(pathRoot);
             }
-
-            string pathRootAppend = Path.Combine(pathRoot, currentAppCode);
-            string pathShipRootAppend = Path.Combine(pathShipRoot, currentAppCode);
-
+#endif
+            string pathRootAppend = PathUtil.Combine(pathRoot, currentAppCode);
+            string pathShipRootAppend = PathUtil.Combine(pathShipRoot, currentAppCode);
+#if !UNITY_WEBPLAYER
             if (!Directory.Exists(pathRootAppend)) {
                 Directory.CreateDirectory(pathRootAppend);
             }
+#endif
 
             appCachePath = pathRootAppend;
             appShipCachePath = pathShipRootAppend;
 
-            appCacheVersionPath = Path.Combine(appCachePath, GameversesContents.Instance.currentVersion);
-            appShipCacheVersionPath = Path.Combine(appShipCachePath, GameversesContentConfig.contentCacheVersion);
+            appCacheVersionPath = PathUtil.Combine(appCachePath, GameversesContents.Instance.currentVersion);
+            appShipCacheVersionPath = PathUtil.Combine(appShipCachePath, GameversesContentConfig.contentCacheVersion);
 
-            appCachePathAll = Path.Combine(appCachePath, GameversesContentConfig.contentCacheAll);
-            appShipCachePathAll = Path.Combine(appShipCachePath, GameversesContentConfig.contentCacheAll);
-            appCachePathAllShared = Path.Combine(appCachePathAll, GameversesContentConfig.contentCacheShared);
-            appCachePathAllSharedTrackers = Path.Combine(appCachePathAllShared, GameversesContentConfig.contentCacheTrackers);
-            appCachePathAllSharedUserData = Path.Combine(appCachePathAllShared, GameversesContentConfig.contentCacheUserData);
+            appCachePathAll = PathUtil.Combine(appCachePath, GameversesContentConfig.contentCacheAll);
+            appShipCachePathAll = PathUtil.Combine(appShipCachePath, GameversesContentConfig.contentCacheAll);
+            appCachePathAllShared = PathUtil.Combine(appCachePathAll, GameversesContentConfig.contentCacheShared);
+            appCachePathAllSharedTrackers = PathUtil.Combine(appCachePathAllShared, GameversesContentConfig.contentCacheTrackers);
+            appCachePathAllSharedUserData = PathUtil.Combine(appCachePathAllShared, GameversesContentConfig.contentCacheUserData);
 
-            appCachePathAllPlatform = Path.Combine(appCachePathAll, GetCurrentPlatformCode());
-            appCachePathAllPlatformPacks = Path.Combine(appCachePathAllPlatform, GameversesContentConfig.contentCachePacks);
-            appCachePathAllPlatformData = Path.Combine(appCachePathAllPlatform, GameversesContentConfig.contentCacheData);
+            appCachePathAllPlatform = PathUtil.Combine(appCachePathAll, GetCurrentPlatformCode());
+            appCachePathAllPlatformPacks = PathUtil.Combine(appCachePathAllPlatform, GameversesContentConfig.contentCachePacks);
+            appCachePathAllPlatformData = PathUtil.Combine(appCachePathAllPlatform, GameversesContentConfig.contentCacheData);
 
             ////Debug.Log("appCachePath: " + appCachePath);
             ////Debug.Log("appShipCachePath: " + appShipCachePath);
@@ -1299,7 +1309,8 @@ namespace Gameverses {
 
             ////Debug.Log("appCachePathAll: " + appCachePathAll);
             ////Debug.Log("appShipCachePathAll: " + appShipCachePathAll);
-
+						
+#if !UNITY_WEBPLAYER
             if (!Directory.Exists(appCachePath)) {
                 Directory.CreateDirectory(appCachePath);
             }
@@ -1311,22 +1322,24 @@ namespace Gameverses {
             if (!Directory.Exists(appShipCachePathAll)) {
                 Directory.CreateDirectory(appShipCachePathAll);
             }
+#endif
 
-            appCachePlatformPath = Path.Combine(appCacheVersionPath, GetCurrentPlatformCode());
-            appShipCachePlatformPath = Path.Combine(appShipCacheVersionPath, GetCurrentPlatformCode());
-
+            appCachePlatformPath = PathUtil.Combine(appCacheVersionPath, GetCurrentPlatformCode());
+            appShipCachePlatformPath = PathUtil.Combine(appShipCacheVersionPath, GetCurrentPlatformCode());
+#if !UNITY_WEBPLAYER
             if (!Directory.Exists(appCachePlatformPath)) {
                 Directory.CreateDirectory(appCachePlatformPath);
             }
+#endif
 
-            appCachePathData = Path.Combine(appCacheVersionPath, GameversesContentConfig.contentCacheData);
-            appCachePathShared = Path.Combine(appCacheVersionPath, GameversesContentConfig.contentCacheShared);
-            appCachePathSharedPacks = Path.Combine(appCachePathShared, GameversesContentConfig.contentCachePacks);
-            appCachePathSharedTrackers = Path.Combine(appCachePathShared, GameversesContentConfig.contentCacheTrackers);
-            appCachePathPacks = Path.Combine(appCachePlatformPath, GameversesContentConfig.contentCachePacks);
+            appCachePathData = PathUtil.Combine(appCacheVersionPath, GameversesContentConfig.contentCacheData);
+            appCachePathShared = PathUtil.Combine(appCacheVersionPath, GameversesContentConfig.contentCacheShared);
+            appCachePathSharedPacks = PathUtil.Combine(appCachePathShared, GameversesContentConfig.contentCachePacks);
+            appCachePathSharedTrackers = PathUtil.Combine(appCachePathShared, GameversesContentConfig.contentCacheTrackers);
+            appCachePathPacks = PathUtil.Combine(appCachePlatformPath, GameversesContentConfig.contentCachePacks);
 
             //appCachePathAllPlatformPacks
-
+#if !UNITY_WEBPLAYER
             if (!Directory.Exists(appCachePathShared)) {
                 Directory.CreateDirectory(appCachePathShared);
             }
@@ -1334,9 +1347,10 @@ namespace Gameverses {
             if (!Directory.Exists(appCachePathData)) {
                 Directory.CreateDirectory(appCachePathData);
             }
+#endif
 
-            appShipCachePathData = Path.Combine(appShipCacheVersionPath, GameversesContentConfig.contentCacheData);
-            appShipCachePathShared = Path.Combine(appShipCacheVersionPath, GameversesContentConfig.contentCacheShared);
+            appShipCachePathData = PathUtil.Combine(appShipCacheVersionPath, GameversesContentConfig.contentCacheData);
+            appShipCachePathShared = PathUtil.Combine(appShipCacheVersionPath, GameversesContentConfig.contentCacheShared);
 
             DirectoryCopy(appShipCachePlatformPath, appCachePlatformPath, true, true);
 
@@ -1352,7 +1366,7 @@ namespace Gameverses {
         }
 
         public string GetFullPathVersioned(string hashPath, string pathToVersion) {
-            if (File.Exists(hashPath)) {
+            if (FileSystemUtil.CheckFileExists(hashPath)) {
                 string fileHash = "";//CryptoUtil.CalculateMD5HashFromFile(hashPath);
                 return GetFileVersioned(pathToVersion, fileHash);
             }
@@ -1378,7 +1392,7 @@ namespace Gameverses {
                     string appVersion = currentVersion.Replace(".", "-");
                     string appIncrement = currentIncrement.ToString();
 
-                    fileVersioned = Path.Combine(arttpathrest, filepartbare + "-" + appVersion + "-" + appIncrement + "-" + hash + "." + ext);
+                    fileVersioned = PathUtil.Combine(arttpathrest, filepartbare + "-" + appVersion + "-" + appIncrement + "-" + hash + "." + ext);
                 }
             }
 
