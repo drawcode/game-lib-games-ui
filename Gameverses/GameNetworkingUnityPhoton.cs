@@ -53,7 +53,7 @@ namespace Gameverses {
         public string networkObjectsContainerName = "GameversesNetworkContainers";
         public GameObject networkObjectsContainer;
 
-        private Transform localTransform;
+        public Transform localTransform;
         private List<GameNetworkingPlayerInfo> playerList;
 
         public string currentPlayerName = "default";

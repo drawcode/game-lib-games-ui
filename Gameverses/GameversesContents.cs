@@ -498,7 +498,7 @@ namespace Gameverses {
         private void HandleDownloadableContentInfoCallback(ServiceUtil.ResponseObject response) {
             response = HandleResponseObject(response);
 
-            bool serverError = false;
+           // bool serverError = false;
 
             if (response.validResponse) {
                 LogUtil.Log("SUCCESSFUL DOWNLOAD");
@@ -555,7 +555,7 @@ namespace Gameverses {
         private void HandleDownloadableContentSetSyncCallback(ServiceUtil.ResponseObject response) {
             response = HandleResponseObject(response);
 
-            bool serverError = false;
+           // bool serverError = false;
 
             /*
             if(response.validResponse) {
@@ -809,7 +809,7 @@ namespace Gameverses {
 
             //string url = GetDownloadContentItemUrl(game, buildVersion, platform, pack);
 
-            string lastPackUrlValue = GetLastPackState(pack);
+            ///string lastPackUrlValue = GetLastPackState(pack);
 
             //if(Caching.IsVersionCached(lastPackUrlValue, version)
             //	&& !string.IsNullOrEmpty(lastPackUrlValue)) {
@@ -864,7 +864,7 @@ namespace Gameverses {
             //LogUtil.Log("SceneLoadFromCacheOrDownloadCo: sceneName:" + sceneName);
             //LogUtil.Log("SceneLoadFromCacheOrDownloadCo: version:" + version);
 
-            GameversesContentItem contentItem = new GameversesContentItem();
+            //GameversesContentItem contentItem = new GameversesContentItem();
 
             //contentItem.uid = sceneName; // hash this
             //contentItem.name = sceneName;

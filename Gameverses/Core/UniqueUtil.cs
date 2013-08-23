@@ -9,9 +9,9 @@ namespace Gameverses {
     public class UniqueUtil {
         private static volatile UniqueUtil instance;
         private static System.Object syncRoot = new System.Object();
-        private int randomSeed = 1;
+        //private int randomSeed = 1;
 
-        private string DATA_KEY = "unique-util";
+        public static string DATA_KEY = "unique-util";
 
         public static UniqueUtil Instance {
             get {
