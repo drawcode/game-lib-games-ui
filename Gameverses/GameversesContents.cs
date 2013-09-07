@@ -637,7 +637,7 @@ namespace Gameverses {
 
                             //Debug.Log("url:" + url);
                             //CoroutineUtil.Start(Contents.SceneLoadFromCacheOrDownloadCo(url));
-                            //WebRequest.Instance.Request(
+                            //WebRequests.Instance.Request(
                         }
                     }
                     else {
@@ -662,7 +662,7 @@ namespace Gameverses {
             */
         }
 
-        //public WebRequest.ResponseObject HandleResponseObjectAssetBundle(WebRequest.ResponseObject responseObject) {
+        //public WebRequests.ResponseObject HandleResponseObjectAssetBundle(WebRequests.ResponseObject responseObject) {
         //}
 
         public ServiceUtil.ResponseObject HandleResponseObject(ServiceUtil.ResponseObject responseObject) {
