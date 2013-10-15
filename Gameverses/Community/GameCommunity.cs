@@ -779,7 +779,7 @@ public class GameCommunity {
 		LogUtil.Log("GameCommunityAchievementData:appContentState:", appContentState);
 		
 		GameCommunityAchievementData achievementData = new GameCommunityAchievementData();
-		string appState = AppContentStates.Instance.GetById(appContentState).appStates[0];
+		//string appState = AppContentStates.Instance.GetById(appContentState).appStates[0];
 		
         foreach(GameAchievement achievement in GameAchievements.Instance.GetListByPackByAppContentState(appPackCode, appContentState)) {
 					
