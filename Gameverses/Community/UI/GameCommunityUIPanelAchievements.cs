@@ -7,9 +7,9 @@ using Engine.Data.Json;
 using Engine.Events;
 using Engine.Networking;
 
-public class GameCommunityUIPanelAchievements : MonoBehaviour {
+public class GameCommunityUIPanelAchievements : UIAppPanelBaseList {
 	
-	public GameObject listGridRoot;
+	
     public GameObject listItemPrefab;
 	
 	public UILabel labelPoints;
@@ -29,23 +29,25 @@ public class GameCommunityUIPanelAchievements : MonoBehaviour {
         Instance = this;
 	}
 	
-	void OnEnable() {
+	public override void OnEnable() {
+        base.OnEnable();
 		Messenger.AddListener(GameCommunityPlatformMessages.gameCommunityReady, OnGameCommunityReady);
 	}
 	
-	void OnDisable() {
-		Messenger.RemoveListener(GameCommunityPlatformMessages.gameCommunityReady, OnGameCommunityReady);
+	public override void OnDisable() {
+        base.OnDisable();
+        Messenger.RemoveListener(GameCommunityPlatformMessages.gameCommunityReady, OnGameCommunityReady);
 	}
 	
 	void OnGameCommunityReady() {
 		Init();	
 	}	
 	
-	public void Start() {
+	public override void Start() {
 		
 	}
 	
-	public void Init() {
+	public override void Init() {
 		currentAchievements = new List<GameAchievement>();
 		LoadData();
 	}

@@ -8,7 +8,7 @@ using Engine.Data.Json;
 using Engine.Events;
 using Engine.Networking;
 
-public class GameCommunityUIPanelUserState : MonoBehaviour {
+public class GameCommunityUIPanelUserState : UIAppPanelBaseList {
 	
 	// switches between login button and facebook network info
 	
@@ -37,14 +37,15 @@ public class GameCommunityUIPanelUserState : MonoBehaviour {
 		
         Instance = this;			
 	}
-	void OnEnable() {
+
+    public override void OnEnable() {
 		Messenger<string>.AddListener(ButtonEvents.EVENT_BUTTON_CLICK, OnButtonClickEventHandler);
 		
 		Messenger.AddListener(GameCommunityPlatformMessages.gameCommunityReady, OnGameCommunityReady);
 		Messenger<GameCommunityNetworkUser>.AddListener(GameCommunityPlatformMessages.gameCommunityLoggedIn, OnProfileLoggedIn);
 	}
 	
-	void OnDisable() {
+	public override void OnDisable() {
 		Messenger<string>.RemoveListener(ButtonEvents.EVENT_BUTTON_CLICK, OnButtonClickEventHandler);
 		
 		Messenger.RemoveListener(GameCommunityPlatformMessages.gameCommunityReady, OnGameCommunityReady);
@@ -58,11 +59,11 @@ public class GameCommunityUIPanelUserState : MonoBehaviour {
 	}	
 
 
-	void Init() {
+	public override void Init() {
 		UpdateLoginState();
 	}
 		
-	void Start() {		
+	public override void Start() {
 		if(notLoggedInObject != null) {
 			notLoggedInObject.gameObject.Hide();
 		}

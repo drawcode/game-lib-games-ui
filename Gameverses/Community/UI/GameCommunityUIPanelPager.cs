@@ -8,7 +8,7 @@ using Engine.Data.Json;
 using Engine.Events;
 using Engine.Networking;
 
-public class GameCommunityUIPanelPager : MonoBehaviour {
+public class GameCommunityUIPanelPager : UIAppPanelBaseList {
 	
 	// displays pager for next/previous and pages/totals
 	
@@ -51,14 +51,15 @@ public class GameCommunityUIPanelPager : MonoBehaviour {
 		
         Instance = this;			
 	}
-	void OnEnable() {
+
+    public override void OnEnable() {
 		Messenger<string>.AddListener(ButtonEvents.EVENT_BUTTON_CLICK, OnButtonClickEventHandler);
 		
 		Messenger.AddListener(GameCommunityPlatformMessages.gameCommunityReady, OnGameCommunityReady);
 		Messenger<GameCommunityNetworkUser>.AddListener(GameCommunityPlatformMessages.gameCommunityLoggedIn, OnProfileLoggedIn);
 	}
 	
-	void OnDisable() {
+	public override void OnDisable() {
 		Messenger<string>.RemoveListener(ButtonEvents.EVENT_BUTTON_CLICK, OnButtonClickEventHandler);
 		
 		Messenger.RemoveListener(GameCommunityPlatformMessages.gameCommunityReady, OnGameCommunityReady);
@@ -71,11 +72,11 @@ public class GameCommunityUIPanelPager : MonoBehaviour {
 		Init();	
 	}	
 		
-	void Init() {
+	public override void Init() {
 		UpdateState();
 	}
 		
-	void Start() {		
+	public override void Start() {
 		HideObjects();		
 	}
 	

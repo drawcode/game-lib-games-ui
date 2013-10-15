@@ -7,9 +7,9 @@ using Engine.Data.Json;
 using Engine.Events;
 using Engine.Networking;
 
-public class GameCommunityUIPanelLogin : MonoBehaviour {
+public class GameCommunityUIPanelLogin : UIAppPanelBaseList {
 	
-	public GameObject listGridRoot;
+	
     public GameObject listItemPrefabLeaderboard;
     public GameObject listItemPrefabLoading;
 	
@@ -47,7 +47,7 @@ public class GameCommunityUIPanelLogin : MonoBehaviour {
 		HideLoggedInButtons();
 	}
 	
-	void OnEnable() {
+	public override void OnEnable() {
 		
 		Messenger<string>.AddListener(ButtonEvents.EVENT_BUTTON_CLICK, OnButtonClickEventHandler);
 		
@@ -66,7 +66,7 @@ public class GameCommunityUIPanelLogin : MonoBehaviour {
 			OnGameCommunityLoginDefer);		
 	}
 	
-	void OnDisable() {
+	public override void OnDisable() {
 		
 		Messenger<string>.RemoveListener(ButtonEvents.EVENT_BUTTON_CLICK, OnButtonClickEventHandler);
 		
@@ -242,11 +242,11 @@ public class GameCommunityUIPanelLogin : MonoBehaviour {
 		GameCommunity.ProcessTrackers();
 	}
 	
-	public void Start() {		
+	public override void Start() {
 		Reset(false);
 	}
 	
-	public void Init() {
+	public override void Init() {
 	}
 	
 	public void Reset() {

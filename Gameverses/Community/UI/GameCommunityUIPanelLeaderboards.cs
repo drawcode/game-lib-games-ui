@@ -7,9 +7,9 @@ using Engine.Data.Json;
 using Engine.Events;
 using Engine.Networking;
 
-public class GameCommunityUIPanelLeaderboards : MonoBehaviour {
+public class GameCommunityUIPanelLeaderboards : UIAppPanelBaseList {
 	
-	public GameObject listGridRoot;
+	
     public GameObject listItemPrefab;
 	
 	public GameCommunityLeaderboardData leaderboardDataFull = null;
@@ -28,7 +28,10 @@ public class GameCommunityUIPanelLeaderboards : MonoBehaviour {
         Instance = this;
 	}
 	
-	void OnEnable() {
+	public override void OnEnable() {
+
+        base.OnEnable();
+
 		Messenger.AddListener(
 			GameCommunityPlatformMessages.gameCommunityReady, 
 			OnGameCommunityReady);
@@ -42,7 +45,10 @@ public class GameCommunityUIPanelLeaderboards : MonoBehaviour {
 			OnGameCommunityLeaderboardFriends);
 	}
 	
-	void OnDisable() {
+	public override void OnDisable() {
+
+        base.OnDisable();
+
 		Messenger.RemoveListener(
 			GameCommunityPlatformMessages.gameCommunityReady, 
 			OnGameCommunityReady);		
@@ -73,11 +79,11 @@ public class GameCommunityUIPanelLeaderboards : MonoBehaviour {
 	
 	}
 	
-	public void Start() {		
+	public override void Start() {
 		Reset();
 	}
 	
-	public void Init() {
+	public override void Init() {
 		LoadData();
 	}
 	

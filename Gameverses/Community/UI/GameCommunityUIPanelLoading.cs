@@ -7,7 +7,7 @@ using Engine.Data.Json;
 using Engine.Events;
 using Engine.Networking;
 
-public class GameCommunityUIPanelLoading : MonoBehaviour {
+public class GameCommunityUIPanelLoading : UIAppPanelBaseList {
 		
 	public UILabel labelTitle;
 	public UILabel labelStatus;
@@ -29,7 +29,7 @@ public class GameCommunityUIPanelLoading : MonoBehaviour {
         Instance = this;
 	}
 	
-	void OnEnable() {
+	public override void OnEnable() {
 		
 		Messenger<string>.AddListener(ButtonEvents.EVENT_BUTTON_CLICK, OnButtonClickEventHandler);
 		
@@ -48,7 +48,7 @@ public class GameCommunityUIPanelLoading : MonoBehaviour {
 			OnGameCommunityLoginDefer);		
 	}
 	
-	void OnDisable() {
+	public override void OnDisable() {
 		
 		Messenger<string>.RemoveListener(ButtonEvents.EVENT_BUTTON_CLICK, OnButtonClickEventHandler);
 		
@@ -133,11 +133,11 @@ public class GameCommunityUIPanelLoading : MonoBehaviour {
 		container.Hide();
 	}
 	
-	public void Start() {		
+	public override void Start() {
 		Reset();
 	}
 	
-	public void Init() {
+	public override void Init() {
 		
 	}
 	

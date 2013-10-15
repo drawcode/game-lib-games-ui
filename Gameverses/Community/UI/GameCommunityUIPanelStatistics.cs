@@ -7,9 +7,9 @@ using Engine.Data.Json;
 using Engine.Events;
 using Engine.Networking;
 
-public class GameCommunityUIPanelStatistics : MonoBehaviour {
+public class GameCommunityUIPanelStatistics : UIAppPanelBaseList {
 	
-	public GameObject listGridRoot;
+	
     public GameObject listItemPrefab;
 	
 	public List<GameStatistic> currentStatistics = null;
@@ -27,11 +27,11 @@ public class GameCommunityUIPanelStatistics : MonoBehaviour {
         Instance = this;
 	}
 	
-	void OnEnable() {
+	public override void OnEnable() {
 		Messenger.AddListener(GameCommunityPlatformMessages.gameCommunityReady, OnGameCommunityReady);
 	}
 	
-	void OnDisable() {
+	public override void OnDisable() {
 		Messenger.RemoveListener(GameCommunityPlatformMessages.gameCommunityReady, OnGameCommunityReady);
 	}
 	
@@ -39,11 +39,11 @@ public class GameCommunityUIPanelStatistics : MonoBehaviour {
 		Init();	
 	}
 	
-	public void Start() {
+	public override void Start() {
 		
 	}
 	
-	public void Init() {
+	public override void Init() {
 		currentStatistics = new List<GameStatistic>();
 		LoadData();
 	}
