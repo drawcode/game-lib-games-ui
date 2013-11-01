@@ -936,12 +936,12 @@ namespace Gameverses {
         }
 
         public void LoadLevelBundle(string pack, int increment) {
+#if !UNITY_WEBPLAYER
             string pathPack = PathUtil.Combine(appCachePathAllPlatformPacks, pack);
 
             //pathPack = PathUtil.Combine(pathPack, ContentConfig.contentCacheScenes);
 
             //GamePacks.Instance.ChangeCurrentGamePack(pack);
-#if !UNITY_WEBPLAYER
             if (Directory.Exists(pathPack)) {
                 string pathUrl = PathUtil.Combine(pathPack, pack + "-" + increment.ToString() + ".unity3d");
                 if (FileSystemUtil.CheckFileExists(pathUrl)) {
