@@ -128,34 +128,34 @@ public class GameCommunityPlatformState
 		SystemPrefUtil.SetLocalSettingString(keyRPG, jsonStringRPG);
 		SystemPrefUtil.Save();
 #else
-		if(!string.IsNullOrEmpty(Contents.appCachePathAllSharedUserData)) {
+		if(!string.IsNullOrEmpty(ContentPaths.appCachePathAllSharedUserData)) {
 			// general profile
 			string persistentProfilePath = Path.Combine(
-				Contents.appCachePathAllSharedUserData,
+				ContentPaths.appCachePathAllSharedUserData,
 				key + ".json"); 
 			FileSystemUtil.WriteString(persistentProfilePath, jsonString);
 			
 			// achievements
 			string persistentProfilePathAchievement = Path.Combine(
-				Contents.appCachePathAllSharedUserData,
+				ContentPaths.appCachePathAllSharedUserData,
 				keyAchievement + ".json"); 
 			FileSystemUtil.WriteString(persistentProfilePathAchievement, jsonStringAchievement);
 			
 			// statistics
 			string persistentProfilePathStatistic = Path.Combine(
-				Contents.appCachePathAllSharedUserData,
+				ContentPaths.appCachePathAllSharedUserData,
 				keyStatistic + ".json"); 
 			FileSystemUtil.WriteString(persistentProfilePathStatistic, jsonStringStatistic);
 			
 			// trackers
 			string persistentProfilePathTracker = Path.Combine(
-				Contents.appCachePathAllSharedUserData,
+				ContentPaths.appCachePathAllSharedUserData,
 				keyTracker + ".json"); 
 			FileSystemUtil.WriteString(persistentProfilePathTracker, jsonStringTracker);
 			
 			// rpg
 			string persistentProfilePathRPG = Path.Combine(
-				Contents.appCachePathAllSharedUserData,
+				ContentPaths.appCachePathAllSharedUserData,
 				keyRPG + ".json"); 
 			FileSystemUtil.WriteString(persistentProfilePathRPG, jsonStringRPG);
 						
@@ -200,31 +200,31 @@ public class GameCommunityPlatformState
 #else
 		// general profile
 		string persistentProfilePath = Path.Combine(
-			Contents.appCachePathAllSharedUserData,
+			ContentPaths.appCachePathAllSharedUserData,
 			key + ".json"); 
 		data = FileSystemUtil.ReadString(persistentProfilePath);
 		
 		// achievements
 		string persistentProfilePathAchievement = Path.Combine(
-			Contents.appCachePathAllSharedUserData,
+			ContentPaths.appCachePathAllSharedUserData,
 			keyAchievement + ".json"); 
 		dataAchievement = FileSystemUtil.ReadString(persistentProfilePathAchievement);
 		
 		// statistics
 		string persistentProfilePathStatistic = Path.Combine(
-			Contents.appCachePathAllSharedUserData,
+			ContentPaths.appCachePathAllSharedUserData,
 			keyStatistic + ".json"); 
 		dataStatistic = FileSystemUtil.ReadString(persistentProfilePathStatistic);
 		
 		// trackers
 		string persistentProfilePathTracker = Path.Combine(
-			Contents.appCachePathAllSharedUserData,
+			ContentPaths.appCachePathAllSharedUserData,
 			keyTracker + ".json"); 
 		dataTracker = FileSystemUtil.ReadString(persistentProfilePathTracker);
 		
 		// rpg
 		string persistentProfilePathRPG = Path.Combine(
-			Contents.appCachePathAllSharedUserData,
+			ContentPaths.appCachePathAllSharedUserData,
 			keyRPG + ".json"); 
 		dataRPG = FileSystemUtil.ReadString(persistentProfilePathRPG);
 		
@@ -276,7 +276,7 @@ public class GameCommunityPlatformState
 						
 			string originalProfileUser = profile.username.ToLower();
 			
-			if(originalProfileUser == profile.GetDefaultPlayer().ToLower()
+			if(originalProfileUser.ToLower() == "player" // == profile.GetDefaultPlayer().ToLower()
 			   || keepExisting) {
 				// Keep all progress from default player if they decide to log into gamecenter
 				// Has cheating problems but can be resolved after bug.

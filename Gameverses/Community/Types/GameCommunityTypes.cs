@@ -366,11 +366,11 @@ public class GameCommunityTrackerReports : DataObject {
 	}
 	
 	public void Save() {
-		SaveData(Contents.appCachePathAllSharedUserData, key, trackerReports);
+		SaveData(ContentPaths.appCachePathAllSharedUserData, key, trackerReports);
 	}
 	
 	public void Load() {
-		trackerReports = LoadData<List<GameCommunityTrackerReport>>(Contents.appCachePathAllSharedUserData, key);
+		trackerReports = LoadData<List<GameCommunityTrackerReport>>(ContentPaths.appCachePathAllSharedUserData, key);
 		currentTrackerReport = new GameCommunityTrackerReport();
 		SetTrackerReport(currentTrackerReport);
 	}

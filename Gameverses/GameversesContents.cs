@@ -1235,7 +1235,7 @@ namespace Gameverses {
             if (!absolute) {
                 path = PathUtil.Combine(GameversesContents.Instance.appCacheVersionPath, path);
 
-                //shipPath = PathUtil.Combine(Contents.appShipCacheVersionPath, path);
+                //shipPath = PathUtil.Combine(ContentPaths.appShipCacheVersionPath, path);
             }
             string pathVersioned = path;
 
