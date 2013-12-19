@@ -13,7 +13,7 @@ namespace Gameverses {
     }
 
     /*
-    public class GameversesProfile : DataObject {
+    public class GameversesProfile : DataObjectItem {
         public string GetKey(string username) {
             return GameversesKeys.Profile
                 + "-"  + System.Uri.EscapeUriString(username).ToString();

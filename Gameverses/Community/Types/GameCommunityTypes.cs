@@ -19,7 +19,7 @@ public class GameCommunityStatisticCodes {
 }
 
 
-public class GameCommunityLeaderboardData : DataObject {
+public class GameCommunityLeaderboardData : DataObjectItem {
 	public string network = "";
 	public string appNamespace = "";
 	public string appId = "";
@@ -188,7 +188,7 @@ public class GameCommunityStatisticItem {
 	public string type = "";
 }
 
-public class GameCommunityStatisticData : DataObject {
+public class GameCommunityStatisticData : DataObjectItem {
 	public List<GameCommunityStatisticItem> statistics = new List<GameCommunityStatisticItem>();
 }
 
@@ -202,7 +202,7 @@ public class GameCommunityAchievementItem {
 	public string type = "";
 }
 
-public class GameCommunityAchievementData : DataObject {
+public class GameCommunityAchievementData : DataObjectItem {
 	public List<GameCommunityAchievementItem> achievements = new List<GameCommunityAchievementItem>();
 }
 
@@ -294,7 +294,7 @@ public class GameCommunityPlatformMessages {
 	public static string gameCommunityLoginDefer = "game-community-login-defer";
 }
 
-public class GameCommunitySyncDataResponse : DataObject {
+public class GameCommunitySyncDataResponse : DataObjectItem {
 	public string message = "";
 	public string data = "";
 		
@@ -309,7 +309,7 @@ public class GameCommunitySyncDataResponse : DataObject {
 	}
 }
 
-public class GameCommunityMessageResult : DataObject {
+public class GameCommunityMessageResult : DataObjectItem {
 	public string title = "";
 	public string message = "";
 	public string data = "";
@@ -331,7 +331,7 @@ public class GameCommunityMessageResult : DataObject {
 
 // TRACKING
 
-public class GameCommunityTrackerReports : DataObject {
+public class GameCommunityTrackerReports : DataObjectItem {
 	public List<GameCommunityTrackerReport> trackerReports = new List<GameCommunityTrackerReport>();
 	
 	public GameCommunityTrackerReport currentTrackerReport;
@@ -387,7 +387,7 @@ public class GameCommunityTrackerReports : DataObject {
 	}
 }
 
-public class GameCommunityTrackerReport : DataObject {
+public class GameCommunityTrackerReport : DataObjectItem {
 	public List<GameCommunityTrackerView> trackerViews;
 	public List<GameCommunityTrackerEvent> trackerEvents;
 	

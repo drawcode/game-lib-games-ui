@@ -237,7 +237,7 @@ public class GameCommunityPlatformState
 #endif
 		if(!string.IsNullOrEmpty(data)) {
 			profile = JsonMapper.ToObject<GameProfile>(data);
-			profile.loginCount++;
+			profile.login_count++;
 			profile.SyncAccessPermissions();
 		}
 		

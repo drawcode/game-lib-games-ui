@@ -45,7 +45,7 @@ namespace Gameverses {
         }
     }
 
-    public class GameversesContentItemAccess : DataObject {
+    public class GameversesContentItemAccess : DataObjectItem {
         public bool globalItem = true;
         public string code = "";
         public string profileId = "";
@@ -55,7 +55,7 @@ namespace Gameverses {
         public string productCode = "";
     }
 
-    public class GameversesContentItemAccessDictionary : DataObject {
+    public class GameversesContentItemAccessDictionary : DataObjectItem {
 
         public Dictionary<string, GameversesContentItemAccess> accessItems
             = new Dictionary<string, GameversesContentItemAccess>();
