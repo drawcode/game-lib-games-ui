@@ -10,6 +10,8 @@ using Photon.SocketServer;
 using Photon.SocketServer.Security;
 using UnityEngine;
 
+using Engine.Data.Json;
+
 namespace Gameverses {
 
     public class GameNetworkingUnityPhoton : MonoBehaviour {

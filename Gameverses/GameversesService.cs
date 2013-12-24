@@ -2,6 +2,8 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 
+using Engine.Data.Json;
+
 namespace Gameverses {
 
     public class GameversesServiceMessages {
@@ -439,7 +441,7 @@ namespace Gameverses {
             GameversesProfile profile = new GameversesProfile();
             if (!string.IsNullOrEmpty(data)) {
                 try {
-                    profile = Gameverses.JsonMapper.ToObject<GameversesProfile>(data);
+                    profile = JsonMapper.ToObject<GameversesProfile>(data);
                 }
                 catch (Exception e) {
                     LogUtil.Log("ERROR:" + e);
@@ -452,7 +454,7 @@ namespace Gameverses {
             GameversesGameListResponse response = new GameversesGameListResponse();
             if (!string.IsNullOrEmpty(data)) {
                 try {
-                    response = Gameverses.JsonMapper.ToObject<GameversesGameListResponse>(data);
+                    response = JsonMapper.ToObject<GameversesGameListResponse>(data);
                 }
                 catch (Exception e) {
                     LogUtil.Log("ERROR:" + e);
@@ -465,7 +467,7 @@ namespace Gameverses {
             GameversesGameSessionListResponse response = new GameversesGameSessionListResponse();
             if (!string.IsNullOrEmpty(data)) {
                 try {
-                    response = Gameverses.JsonMapper.ToObject<GameversesGameSessionListResponse>(data);
+                    response = JsonMapper.ToObject<GameversesGameSessionListResponse>(data);
                 }
                 catch (Exception e) {
                     LogUtil.Log("ERROR:" + e);
@@ -478,7 +480,7 @@ namespace Gameverses {
             GameversesGameSessionResponse response = new GameversesGameSessionResponse();
             if (!string.IsNullOrEmpty(data)) {
                 try {
-                    response = Gameverses.JsonMapper.ToObject<GameversesGameSessionResponse>(data);
+                    response = JsonMapper.ToObject<GameversesGameSessionResponse>(data);
                 }
                 catch (Exception e) {
                     LogUtil.Log("ERROR:" + e);
@@ -493,7 +495,7 @@ namespace Gameverses {
             GameversesGameSessionData gameSessionData = new GameversesGameSessionData();
             if (!string.IsNullOrEmpty(data)) {
                 try {
-                    gameSessionData = Gameverses.JsonMapper.ToObject<GameversesGameSessionData>(data);
+                    gameSessionData = JsonMapper.ToObject<GameversesGameSessionData>(data);
                 }
                 catch (Exception e) {
                     LogUtil.Log("ERROR:" + e);

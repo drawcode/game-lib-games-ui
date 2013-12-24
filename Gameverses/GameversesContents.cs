@@ -9,6 +9,7 @@ using System.IO;
 #endif
 
 using UnityEngine;
+using Engine.Data.Json;
 
 namespace Gameverses {
 
