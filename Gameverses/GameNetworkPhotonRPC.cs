@@ -2,27 +2,25 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using Gameverses;
-using Gameverses.Photon;
+
 using UnityEngine;
 
 namespace Gameverses {
-
     public class GameNetworkPhotonRPC : MonoBehaviour {
         public string uuid = "";
-        public Gameverses.Photon.PhotonView photonView;
-
+        public PhotonView photonView;
         public int viewID = 0;
 
         private void Update() {
             if (viewID == 0) {
                 if (photonView != null) {
-                    viewID = photonView.viewID.ID;
+                    viewID = photonView.viewID;//.ID;
                 }
             }
         }
 
         private void Awake() {
-            photonView = gameObject.GetComponent<Gameverses.Photon.PhotonView>();
+            photonView = gameObject.GetComponent<PhotonView>();
             uuid = UniqueUtil.Instance.currentUniqueId;
         }
 
@@ -31,9 +29,10 @@ namespace Gameverses {
         }
 
         [RPC]
-        public void SpawnOnNetwork(Vector3 pos,
+        public void SpawnOnNetwork(
+            Vector3 pos,
             Quaternion rot,
-            PhotonViewID id1,
+            int id1,
             string playerName,
             string playerType,
             string uuid,
@@ -60,7 +59,7 @@ namespace Gameverses {
         [RPC]
         public void ActionOnNetworkView(
             PhotonPlayer np,
-            PhotonViewID id1,
+            int id1,
             Vector3 pos,
             Quaternion rot,
             string actionMessage,

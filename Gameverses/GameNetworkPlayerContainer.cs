@@ -1,7 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using Gameverses.Photon;
+
 using UnityEngine;
 
 namespace Gameverses {
@@ -106,15 +106,15 @@ namespace Gameverses {
 		}
 #else
 
-        public void AddNetworkView(PhotonViewID idl, string uniqueId) {
+        public void AddNetworkView(int idl, string uniqueId) {
             networkViewObject = gameObject.AddComponent<PhotonView>();
             networkViewObject.synchronization = ViewSynchronization.ReliableDeltaCompressed;
             networkViewObject.viewID = idl;
             uuid = uniqueId;
 
-            LogUtil.Log("Creating network container view:idl.ID:" + idl.ID);
-            LogUtil.Log("Creating network container view:idl.isMine:" + idl.isMine);
-            LogUtil.Log("Creating network container view:idl.owner:" + idl.owner);
+            LogUtil.Log("Creating network container view:idl.ID:" + idl);
+           // LogUtil.Log("Creating network container view:idl.isMine:" + idl.isMine);
+            //LogUtil.Log("Creating network container view:idl.owner:" + idl.owner);
             LogUtil.Log("Creating network container:uuid:" + uuid);
 
             GameMessenger<string>.Broadcast(GameNetworkPlayerMessages.PlayerAdded, uniqueId);

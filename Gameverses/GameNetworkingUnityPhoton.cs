@@ -5,7 +5,7 @@ using ExitGames;
 using ExitGames.Client;
 using ExitGames.Client.Photon;
 using ExitGames.Client.Photon.Lite;
-using Gameverses.Photon;
+
 using Photon.SocketServer;
 using Photon.SocketServer.Security;
 using UnityEngine;
@@ -34,7 +34,7 @@ namespace Gameverses {
         public HostData[] hostDataMasterServer;
         public HostData hostDataGameSession;
 
-        public Gameverses.Photon.PhotonView photonView;
+        public PhotonView photonView;
 
         private float currentTimeBlock = 0.0f;
         private float currentTimeBlockDelayed = 0.0f;
@@ -116,7 +116,7 @@ namespace Gameverses {
                     foreach (Gameverses.GameNetworkPhotonRPC rpcContainer in ObjectUtil.FindObjects<Gameverses.GameNetworkPhotonRPC>()) {
                         if (rpcContainer.uuid.ToLower() == UniqueUtil.Instance.currentUniqueId.ToLower()) {
                             photonView = rpcContainer.photonView;
-                            LogUtil.Log("FindNetworkView::photonView:" + photonView.viewID.ID);
+                            LogUtil.Log("FindNetworkView::photonView:" + photonView.viewID);//.ID);
                         }
                     }
                 }
@@ -364,7 +364,7 @@ namespace Gameverses {
 
                 LogUtil.Log("ServerStartedExisting:  isServer:" + PhotonNetwork.isMasterClient);
 
-                PhotonViewID id1 = PhotonNetwork.AllocateViewID();
+                int id1 = PhotonNetwork.AllocateViewID();
 
                 //SetPhotonPlayer(PhotonNetwork.player, UniqueUtil.Instance.currentUniqueId, currentPlayerName, GameNetworkingPlayerTypeMessages.PlayerTypeHero);
                 photonView.RPC("SetPhotonPlayer", PhotonTargets.AllBuffered, PhotonNetwork.player, UniqueUtil.Instance.currentUniqueId, currentPlayerName, GameNetworkingPlayerTypeMessages.PlayerTypeHero);
@@ -398,7 +398,7 @@ namespace Gameverses {
 
                 playerList = new List<GameNetworkingPlayerInfo>();
 
-                PhotonViewID id1 = PhotonNetwork.AllocateViewID();
+                int id1 = PhotonNetwork.AllocateViewID();
                 photonView.RPC("SetPhotonPlayer", PhotonTargets.AllBuffered, PhotonNetwork.player, UniqueUtil.Instance.currentUniqueId, currentPlayerName, GameNetworkingPlayerTypeMessages.PlayerTypeHero);
 
                 photonView.RPC("SpawnOnNetwork",
@@ -634,7 +634,7 @@ namespace Gameverses {
             return newPlayerList;
         }
 
-        public void SetPhotonViewIDs(GameObject go, PhotonViewID id1) {
+        public void SetPhotonViewIDs(GameObject go, int id1) {
             Component[] nViews = go.GetComponents<PhotonView>();
             (nViews[0] as PhotonView).viewID = id1;
 
@@ -655,7 +655,7 @@ namespace Gameverses {
 
         public void SpawnOnNetwork(Vector3 pos,
             Quaternion rot,
-            PhotonViewID id1,
+                                   int id1,
             string playerName,
             string playerType,
             string uuid,
@@ -733,7 +733,7 @@ namespace Gameverses {
 
         public void ActionOnNetworkView(
             PhotonPlayer np,
-            PhotonViewID id1,
+            object id1,
             Vector3 pos,
             Quaternion rot,
             string actionMessage,
