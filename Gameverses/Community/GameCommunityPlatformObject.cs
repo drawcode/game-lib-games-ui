@@ -22,7 +22,7 @@ using Engine.Networking;
 
 public class GameCommunityPlatformObject : MonoBehaviour {
 	
-	public string note = "See GameCommunityConfig for settings...";
+	public string note = "See AppConfigs for settings...";
 	
 	[NonSerialized]
 	public GameCommunityPlatformGlobal platformGlobal;

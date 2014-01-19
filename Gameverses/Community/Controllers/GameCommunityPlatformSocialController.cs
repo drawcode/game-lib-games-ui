@@ -303,8 +303,8 @@ public class GameCommunityPlatformSocialController : MonoBehaviour {
 		else {
 			
 			GameCommunityPlatformController.SendResultMessage(
-				GameCommunityConfig.stringTwitterDisabledTitle , 
-				GameCommunityConfig.stringTwitterDisabledMessage);
+				AppConfigs.stringTwitterDisabledTitle , 
+				AppConfigs.stringTwitterDisabledMessage);
 		}
 	}
 	
@@ -335,7 +335,7 @@ public class GameCommunityPlatformSocialController : MonoBehaviour {
 		displayPendingUploadAnimation();
 		
 		Facebook.instance.postImage( 
-			bytes, GameCommunityConfig.stringFacebookPostMessage, onFacebookUploadComplete );		
+			bytes, AppConfigs.stringFacebookPostMessage, onFacebookUploadComplete );		
 	}
 
 	void onFacebookUploadComplete( string error, object result ) {		
@@ -344,13 +344,13 @@ public class GameCommunityPlatformSocialController : MonoBehaviour {
 			//Debug.LogError( error );
 						
 			GameCommunityPlatformController.SendResultMessage(
-				GameCommunityConfig.stringFacebookUploadErrorTitle, 
-				GameCommunityConfig.stringFacebookUploadErrorMessage + error);
+				AppConfigs.stringFacebookUploadErrorTitle, 
+				AppConfigs.stringFacebookUploadErrorMessage + error);
 		}
 		else {			
 			GameCommunityPlatformController.SendResultMessage(
-				GameCommunityConfig.stringFacebookUploadSuccessTitle , 
-				GameCommunityConfig.stringFacebookUploadSuccessMessage);
+				AppConfigs.stringFacebookUploadSuccessTitle , 
+				AppConfigs.stringFacebookUploadSuccessMessage);
 		}
 	}
 	
@@ -360,17 +360,17 @@ public class GameCommunityPlatformSocialController : MonoBehaviour {
 	
 	void uploadPhotoToTwitter(string filePathToUpload) {
 		SocialNetworks.ShowComposerTwitter(
-			GameCommunityConfig.stringTwitterPostMessage, filePathToUpload );
+			AppConfigs.stringTwitterPostMessage, filePathToUpload );
 	}
 
 	void displayPendingSaveAnimation() {
 		GameCommunityPlatformController.SendResultMessage(
-			"SAVING", GameCommunityConfig.stringPendingCreatingScreenshot );
+			"SAVING", AppConfigs.stringPendingCreatingScreenshot );
 	}
 
 	void displayPendingUploadAnimation() {
 		GameCommunityPlatformController.SendResultMessage(
-			"UPLOADING", GameCommunityConfig.stringPendingUploadingPost );
+			"UPLOADING", AppConfigs.stringPendingUploadingPost );
 
 #if UNITY_EDITOR
 		StartCoroutine(waitAndDisplayAlert());
@@ -391,7 +391,7 @@ public class GameCommunityPlatformSocialController : MonoBehaviour {
 	}
 	
 	public void saveImageToLibraryDefault() {
-		string name = GameCommunityConfig.stringSavedPhotoTitleDefault;	
+		string name = AppConfigs.stringSavedPhotoTitleDefault;	
 		string filePath = Path.Combine(Application.persistentDataPath, "screenshot.png");
 		saveImageToLibrary(name, filePath);
 	}
@@ -410,7 +410,7 @@ public class GameCommunityPlatformSocialController : MonoBehaviour {
 #endif	
 		
 		GameCommunityPlatformController.SendResultMessage(
-			GameCommunityConfig.stringLibraryPhotoSavedTitle, 
-			GameCommunityConfig.stringLibraryPhotoSavedMessage );
+			AppConfigs.stringLibraryPhotoSavedTitle, 
+			AppConfigs.stringLibraryPhotoSavedMessage );
 	}
 }

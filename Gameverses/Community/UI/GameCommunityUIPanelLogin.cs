@@ -198,7 +198,7 @@ public class GameCommunityUIPanelLogin : UIAppPanelBaseList {
 		}	
 		else if(buttonName == buttonLoginPanelLike.name) {
 			
-			GameCommunity.LikeUrl(GameCommunityConfig.socialFacebookBrandPage);
+			GameCommunity.LikeUrl(AppConfigs.socialFacebookBrandPage);
 			
 		}	
 		else if(buttonName == buttonLoginPanelClose.name) {

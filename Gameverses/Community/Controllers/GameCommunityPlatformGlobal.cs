@@ -140,8 +140,8 @@ public class GameCommunityPlatformGlobal : MonoBehaviour
 		
 		// Wire up Testflight
 		
-		TestFlight.isEnabled = GameCommunityConfig.trackingTestFlightEnable;
-		TestFlight.TakeOff(GameCommunityConfig.trackingTestFlightTeamToken);
+		TestFlight.isEnabled = AppConfigs.trackingTestFlightEnable;
+		TestFlight.TakeOff(AppConfigs.trackingTestFlightTeamToken);
 	}
 		
 	public void InitState() {				

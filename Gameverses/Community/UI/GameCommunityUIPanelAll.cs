@@ -164,9 +164,9 @@ public class GameCommunityUIPanelAll : UIAppPanelBaseList {
 		else if(buttonName == buttonOnline.name) {
 						
 			Platforms.ShowWebView(
-				GameCommunityConfig.appGameDisplayName 
+				AppConfigs.appGameDisplayName 
 				+ " Online Leaderboards + Competitions", 
-				GameCommunityConfig.appUrlWeb
+				AppConfigs.appUrlWeb
 				);
 			
 			GameCommunity.TrackGameView("Game Community Online", "online-community");

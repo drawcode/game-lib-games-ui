@@ -427,13 +427,13 @@ public class GameCommunity {
 		if(highScore > currentScore) {
 			
 			GameCommunityPlatformTrackingController.SetSyncStatistic(
-				GameCommunityConfig.socialStatisticForFacebook,
+				AppConfigs.socialStatisticForFacebook,
 				(float)currentScore);
 		}
 		
 		if(highScore > 0 ) {
 			SetStatisticValue(
-				GameCommunityConfig.socialStatisticForFacebook,
+				AppConfigs.socialStatisticForFacebook,
 				highScore);
 		}
 		
@@ -455,13 +455,13 @@ public class GameCommunity {
 		if(points > currentScore) {
 			
 			GameCommunityPlatformTrackingController.SetSyncStatistic(
-				GameCommunityConfig.socialStatisticForFacebook,
+				AppConfigs.socialStatisticForFacebook,
 				(float)currentScore);
 		}
 		
 		if(currentScore > 0 ) {
 			SetStatisticValue(
-				GameCommunityConfig.socialStatisticForFacebook,
+				AppConfigs.socialStatisticForFacebook,
 				currentScore);
 		}
 		
@@ -600,7 +600,7 @@ public class GameCommunity {
 
 	public int getHighScore() {
 		return GetStatisticValueInt(
-			GameCommunityConfig.socialStatisticForFacebook);
+			AppConfigs.socialStatisticForFacebook);
 	}
 	
 	public static string GetHighScoreFormatted() {
@@ -612,7 +612,7 @@ public class GameCommunity {
 	
 	public string getHighScoreFormatted() {
 		return GetStatisticValueFormatted(
-			GameCommunityConfig.socialStatisticForFacebook);
+			AppConfigs.socialStatisticForFacebook);
 	}
 	
 	
@@ -627,7 +627,7 @@ public class GameCommunity {
 
 	public int getPoints() {
 		return GetStatisticValueInt(
-			GameCommunityConfig.socialStatisticForFacebook);
+			AppConfigs.socialStatisticForFacebook);
 	}
 	
 	public static string GetPointsFormatted() {
@@ -639,7 +639,7 @@ public class GameCommunity {
 	
 	public string getPointsFormatted() {
 		return GetStatisticValueFormatted(
-			GameCommunityConfig.socialStatisticForFacebook);
+			AppConfigs.socialStatisticForFacebook);
 	}
 	
 	// stats
@@ -678,7 +678,7 @@ public class GameCommunity {
 	}	
 	
   	public static void RequestLeaderboardsDefaultCode(int page, int pageSize, GameLeaderboardType leaderboardType) {
-		RequestLeaderboards(GameCommunityConfig.socialStatisticForFacebook,
+		RequestLeaderboards(AppConfigs.socialStatisticForFacebook,
 			page, pageSize, leaderboardType);
 	}
       
@@ -878,17 +878,17 @@ public class GameCommunity {
 		
 		GameCommunityPlatformState.SaveProfile();
 		
-		if(GameCommunityConfig.featureEnableFacebook) {
+		if(AppConfigs.featureEnableFacebook) {
 			
 			if(isLoggedIn()) {
 			
 				if(GameCommunityPlatformTrackingController.Instance.dataUpdates.achievements.ContainsKey(
-					GameCommunityConfig.socialStatisticForFacebook)) {
+					AppConfigs.socialStatisticForFacebook)) {
 					// Facebook only allows one score so we will only send the 'high-score' stat
 					// that is a state high to low.
 				
 					double statValue = GameProfileStatistics.Current.GetStatisticValue( 
-						GameCommunityConfig.socialStatisticForFacebook);
+						AppConfigs.socialStatisticForFacebook);
 				
 					if(statValue > 0) {
 						SendScoreFacebook((int)statValue);
@@ -897,7 +897,7 @@ public class GameCommunity {
 			}
 		}
 		
-		if(GameCommunityConfig.featureEnableCustomLeaderboards) {
+		if(AppConfigs.featureEnableCustomLeaderboards) {
 			SendSyncCustom();
 		}
 		
@@ -917,11 +917,11 @@ public class GameCommunity {
 			return;
 		}
 		
-		syncData.gameId = GameCommunityConfig.socialGameCommunityAppId;
+		syncData.gameId = AppConfigs.socialGameCommunityAppId;
 		syncData.profileId = GameProfiles.Current.uuid;
 		
 		// TODO: gamecenter, check others
-		syncData.networkUser.appId = GameCommunityConfig.socialGameCommunityAppId;
+		syncData.networkUser.appId = AppConfigs.socialGameCommunityAppId;
 		syncData.networkUser.authCode = GameProfiles.Current.GetSocialNetworkAuthTokenUser();
 		syncData.networkUser.fullName = GameProfiles.Current.GetSocialNetworkName();
 		syncData.networkUser.key = GameProfiles.Current.GetSocialNetworkName();
@@ -1015,7 +1015,7 @@ public class GameCommunity {
 	// views
 	
 	public static void TrackGameView(string title, string code) {
-		TrackView("Game: " + title, GameCommunityConfig.appUrlShortCode + "/" + code);
+		TrackView("Game: " + title, AppConfigs.appUrlShortCode + "/" + code);
 	}
 	
 	public static void TrackGameEvent(string action, string label, int val) {

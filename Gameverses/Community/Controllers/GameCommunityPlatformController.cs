@@ -339,7 +339,7 @@ public class GameCommunityPlatformController : MonoBehaviour {
 	}
 		
 	public void likeThisApp() {
-		string urlToLike = GameCommunityConfig.socialFacebookLikeDefaultUrl;
+		string urlToLike = AppConfigs.socialFacebookLikeDefaultUrl;
 		likeUrl(urlToLike);
 	}
 	
@@ -362,7 +362,7 @@ public class GameCommunityPlatformController : MonoBehaviour {
 				likeActionClicked = false;
 				GameCommunityPlatformSocialController.LikeUrl(urlToLike);
 				
-				GameCommunityUIPanelLoading.ShowGameCommunityLoading("THANK YOU", GameCommunityConfig.appGameDisplayName + " successfully liked!");
+				GameCommunityUIPanelLoading.ShowGameCommunityLoading("THANK YOU", AppConfigs.appGameDisplayName + " successfully liked!");
 				
 				Invoke("HideLikeThanks", 4f);
 			}
@@ -379,9 +379,9 @@ public class GameCommunityPlatformController : MonoBehaviour {
 	
 	public void LeaderboardsShowOnline() {
 		Platforms.ShowWebView(
-			GameCommunityConfig.appGameDisplayName 
+			AppConfigs.appGameDisplayName 
 			+ " Online Leaderboards + Competitions", 
-			GameCommunityConfig.appUrlWeb
+			AppConfigs.appUrlWeb
 			);
 		
 		GameCommunity.TrackGameView("Game Community Online", "online-community");

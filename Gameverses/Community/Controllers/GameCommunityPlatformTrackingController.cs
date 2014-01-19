@@ -85,8 +85,8 @@ public class GameCommunityPlatformTrackingController : MonoBehaviour {
 			
 			if(Context.Current.hasNetworkAccess) {
 			
-				string[] accountIds = GameCommunityConfig.trackingGoogleAccountIds;
-				string[] domains = GameCommunityConfig.trackingGoogleAccountDomains;
+				string[] accountIds = AppConfigs.trackingGoogleAccountIds;
+				string[] domains = AppConfigs.trackingGoogleAccountDomains;
 				
 				string lastDomain = "";
 				

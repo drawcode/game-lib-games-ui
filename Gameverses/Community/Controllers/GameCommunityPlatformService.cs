@@ -30,7 +30,7 @@ public class SearchFilterLeaderboard : SearchFilter {
 
 public class GameCommunityPlatformService {
 	
-	public static string apiUrl = GameCommunityConfig.apiUrlWeb;
+	public static string apiUrl = AppConfigs.apiUrlWeb;
 	public static string apiPathGames = "games";
 	public static string apiPathGame = "game";
 	public static string apiPathGameLeaderboards = "leaderboards";
@@ -58,7 +58,7 @@ public class GameCommunityPlatformService {
 	
 	public static string GetGameApiRoute(string action) {
 		string apiPath = Path.Combine(apiUrl, apiPathGame);
-		apiPath = Path.Combine(apiPath, GameCommunityConfig.socialGameCommunityAppCode);
+		apiPath = Path.Combine(apiPath, AppConfigs.socialGameCommunityAppCode);
 		apiPath = Path.Combine(apiPath, action);
 		if(!apiPath.EndsWith("/")){
 			apiPath += "/";
@@ -110,7 +110,7 @@ public class GameCommunityPlatformService {
 		Dictionary<string, object> data = new Dictionary<string, object>();
 				
 		string profileId = GameProfiles.Current.uuid;
-		string auth = GameCommunityConfig.socialGameCommunityAppAuth;
+		string auth = AppConfigs.socialGameCommunityAppAuth;
 		
 		data.Add("profileId", profileId);
 		data.Add("auth", auth);
@@ -158,7 +158,7 @@ public class GameCommunityPlatformService {
 		Dictionary<string, object> data = new Dictionary<string, object>();
 				
 		string profileId = GameProfiles.Current.uuid;
-		string auth = GameCommunityConfig.socialGameCommunityAppAuth;
+		string auth = AppConfigs.socialGameCommunityAppAuth;
 		
 		data.Add("profileId", profileId);
 		data.Add("auth", auth);
@@ -306,7 +306,7 @@ public class GameCommunityPlatformService {
 		Dictionary<string, object> data = new Dictionary<string, object>();
 				
 		string profileId = GameProfiles.Current.uuid;
-		string auth = GameCommunityConfig.socialGameCommunityAppAuth;
+		string auth = AppConfigs.socialGameCommunityAppAuth;
 		
 		data.Add("profileId", profileId);
 		data.Add("auth", auth);

@@ -1,6 +1,6 @@
 using System;
 
-public static class GameCommunityConfig {
+public static class BaseAppConfigs {
 	
 	public static string appUrlShortCode = "vidari-app";
 	public static string appUrlScheme = "vidariapp";
