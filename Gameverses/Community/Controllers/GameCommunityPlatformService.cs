@@ -193,7 +193,7 @@ public class GameCommunityPlatformService {
 		}
 	}
 	
-	public static string testLeaderboardResult = "{\"data\":[{\"user\":{\"name\":\"Draw Code\",\"id\":\"1351861467\"},\"score\":240,\"application\":{\"name\":\"PopAR Game Community\",\"namespace\":\"popartoyscommunity\",\"id\":\"135612503258930\"}},{\"user\":{\"name\":\"Draw Labs\",\"id\":\"1494687700\"},\"score\":23,\"application\":{\"name\":\"PopAR Game Community\",\"namespace\":\"popartoyscommunity\",\"id\":\"135612503258930\"}}]}";
+	public static string testLeaderboardResult = "{\"data\":[{\"user\":{\"name\":\"Draw Code\",\"id\":\"1351861467\"},\"score\":240,\"application\":{\"name\":\"drawlabs Game Community\",\"namespace\":\"drawlabstoyscommunity\",\"id\":\"135612503258930\"}},{\"user\":{\"name\":\"Draw Labs\",\"id\":\"1494687700\"},\"score\":23,\"application\":{\"name\":\"drawlabs Game Community\",\"namespace\":\"drawlabstoyscommunity\",\"id\":\"135612503258930\"}}]}";
 	
 	public static void ParseTestLeaderboard(string responseText) {
 		GameCommunityLeaderboardData leaderboardData = ParseLeaderboard(responseText);
@@ -348,7 +348,7 @@ public class GameCommunityPlatformService {
 
 	}	
 	
-	public static string testSyncDataResult = "{\"data\":[{\"user\":{\"name\":\"Draw Code\",\"id\":\"1351861467\"},\"score\":240,\"application\":{\"name\":\"PopAR Game Community\",\"namespace\":\"popartoyscommunity\",\"id\":\"135612503258930\"}},{\"user\":{\"name\":\"Draw Labs\",\"id\":\"1494687700\"},\"score\":23,\"application\":{\"name\":\"PopAR Game Community\",\"namespace\":\"popartoyscommunity\",\"id\":\"135612503258930\"}}]}";
+	public static string testSyncDataResult = "{\"data\":[{\"user\":{\"name\":\"Draw Code\",\"id\":\"1351861467\"},\"score\":240,\"application\":{\"name\":\"drawlabs Game Community\",\"namespace\":\"drawlabstoyscommunity\",\"id\":\"135612503258930\"}},{\"user\":{\"name\":\"Draw Labs\",\"id\":\"1494687700\"},\"score\":23,\"application\":{\"name\":\"drawlabs Game Community\",\"namespace\":\"drawlabstoyscommunity\",\"id\":\"135612503258930\"}}]}";
 	
 	public static void ParseTestSync(string responseText) {
 		

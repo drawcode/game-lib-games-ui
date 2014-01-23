@@ -2,12 +2,12 @@ using System;
 
 public static class BaseAppConfigs {
 	
-	public static string appUrlShortCode = "vidari-app";
-	public static string appUrlScheme = "vidariapp";
-	public static string apiUrlWeb = "http://gamecommunity.vidari.com/api/v1/";
-	public static string appUrlWeb = "http://gamecommunity.vidari.com/game/vidari-app/";
-	public static string appBundleId = "com.leadingfusion.vidariapp";
-	public static string appGameDisplayName = "Vidari";
+	public static string appUrlShortCode = "template-app";
+	public static string appUrlScheme = "templateapp";
+	public static string apiUrlWeb = "http://gamecommunity.template.com/api/v1/";
+	public static string appUrlWeb = "http://gamecommunity.template.com/game/template-app/";
+	public static string appBundleId = "com.drawlabs.templateapp";
+	public static string appGameDisplayName = "template";
 	
 	public static string trackingTestFlightTeamToken = "a2fffce2-0b31-4f8e-bda5-9cb64b1d0d14";
 	public static bool trackingTestFlightEnable = true;	
@@ -20,17 +20,17 @@ public static class BaseAppConfigs {
 		"UA-39331816-2"};
 	
 	public static string[] trackingGoogleAccountDomains = new string[] {
-		"gamecommunity.vidari.com",
-		"gamecommunity.vidari.com/game/vidari-app/?webapp=1",
-		"gamecommunity.vidari.com/game/vidari-app/?app=1"
+		"gamecommunity.template.com",
+		"gamecommunity.template.com/game/template-app/?webapp=1",
+		"gamecommunity.template.com/game/template-app/?app=1"
 	};
 	
 	public static string socialFacebookAppId = "581122718566925";
 	public static string socialFacebookSecret = "970f306f98da889e82810bf2f9572ede"; // needed for scores/leaderboards if not using 
 											   // the server hosted leaderboards but only facebook
 	
-	public static string socialFacebookBrandPage = "https://www.facebook.com/leadingfusion/";
-	public static string socialFacebookLikeDefaultUrl = "http://apps.facebook.com/vidariapp/";
+	public static string socialFacebookBrandPage = "https://www.facebook.com/drawlabs/";
+	public static string socialFacebookLikeDefaultUrl = "http://apps.facebook.com/templateapp/";
 	public static string[] socialFacebookPermissionsRead = new string[] { 
 		SocialNetworksFacebookPermissions.read_user_games_activity , 
 		SocialNetworksFacebookPermissions.read_friends_games_activity, 
@@ -62,23 +62,23 @@ public static class BaseAppConfigs {
 	public static string socialTwitterSecret = "vS44vIUqvnxcdUL1ablS9gB6tolbdxDVESw9knuUUg";
 	
 	public static string socialGameCommunityAppId = "63a15c20-294f-11e1-9314-0800200c9a66";
-	public static string socialGameCommunityAppCode = "vidari-app";
+	public static string socialGameCommunityAppCode = "template-app";
 	public static string socialGameCommunityAppAuth = "vS44vIUqvnxcdUL1ablS9gB6tolbdxDVESw9knuUUg";
 	
 	// ## Network Messages
 	
 	[NonSerialized]
-	public static string stringSavedPhotoTitleDefault = "Vidari Photo";
+	public static string stringSavedPhotoTitleDefault = "template Photo";
 	
 	[NonSerialized]
-	public static string stringTwitterPostMessage = "Vidari! vidari.com";
+	public static string stringTwitterPostMessage = "template! template.com";
 	[NonSerialized]
 	public static string stringTwitterDisabledTitle = "Twitter Disabled";
 	[NonSerialized]
 	public static string stringTwitterDisabledMessage = "Twitter is not configured on this device. Open the Settings App and enter your Twitter username and password to enable this feature.";
 	
 	[NonSerialized]
-	public static string stringFacebookPostMessage = "I viewed some augmented reality in the Vidari App! vidari.com";	
+	public static string stringFacebookPostMessage = "I viewed some augmented reality in the template App! template.com";	
 	[NonSerialized]
 	public static string stringFacebookUploadErrorTitle = "An error occurred.";
 	[NonSerialized]
@@ -109,7 +109,7 @@ public static class BaseAppConfigs {
 	
 	// leaderboards/sync thirdparty
 	
-	public static bool featureEnableCustomLeaderboards = true; // popar/custom
+	public static bool featureEnableCustomLeaderboards = true; // drawlabs/custom
 	public static bool featureEnableFacebookLeaderboards = true;
 	public static bool featureEnableGameCenterLeaderboards = false;	// ios
 	public static bool featureEnableGameCircleLeaderboards = false;   // amazon
