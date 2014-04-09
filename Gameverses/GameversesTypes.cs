@@ -39,7 +39,7 @@ namespace Gameverses {
         }
 
         public virtual void Reset() {
-            uuid = UniqueUtil.CreateUUID4();
+            uuid = UniqueUtil.Instance.CreateUUID4();
             date_modified = DateTime.Now;
             date_created = DateTime.Now;
             active = true;

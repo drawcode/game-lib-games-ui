@@ -351,7 +351,7 @@ namespace Gameverses {
 
                 LogUtil.Log("currentPlayer.externalPort: " + currentPlayer.ID.ToString());
 
-                string sessionId = UniqueUtil.CreateUUID4();
+                string sessionId = UniqueUtil.Instance.CreateUUID4();
 
                 GameversesGameAPI.Instance.SetupNetworkGameSession(sessionId, currentPlayer, currentHostData);
 
@@ -655,16 +655,18 @@ namespace Gameverses {
 
         public void SpawnOnNetwork(Vector3 pos,
             Quaternion rot,
-                                   int id1,
+            int id1,
             string playerName,
             string playerType,
             string uuid,
             bool amOwner,
             PhotonPlayer np) {
+
             if (playerType == "enemy") {
+            
             }
 
-            Gameverses.LogUtil.Log("GameNetworking: SpawnOnNetwork: uuid:" + uuid + " playerName:" + playerName + " playerType:" + playerType + " id1:" + id1);
+            LogUtil.Log("GameNetworking: SpawnOnNetwork: uuid:" + uuid + " playerName:" + playerName + " playerType:" + playerType + " id1:" + id1);
 
             GameNetworkPlayerContainer playerContainer = (Instantiate(Resources.Load("Prefabs/GameNetworkPlayerObject"), Vector3.zero, Quaternion.identity) as GameObject).GetComponent<GameNetworkPlayerContainer>();
             playerContainer.gameObject.transform.parent = networkObjectsContainer.transform;
@@ -711,7 +713,7 @@ namespace Gameverses {
             else if (action.type == GameNetworkingPlayerTypeMessages.PlayerTypeProjectile) {
             }
 
-            Gameverses.LogUtil.Log("GameNetworking: ActionOnNetwork: uuid:" + action.uuid + " code:" + action.code + " uuidOwner:" + action.uuidOwner + " type:" + action.type);
+            LogUtil.Log("GameNetworking: ActionOnNetwork: uuid:" + action.uuid + " code:" + action.code + " uuidOwner:" + action.uuidOwner + " type:" + action.type);
 
             GameMessenger<GameNetworkingAction, Vector3, Vector3>.Broadcast(GameNetworkingMessages.ActionEvent, action, pos, direction);
 
@@ -750,7 +752,7 @@ namespace Gameverses {
             else if (action.type == GameNetworkingPlayerTypeMessages.PlayerTypeProjectile) {
             }
 
-            //Gameverses.LogUtil.Log("GameNetworking: ActionOnNetwork: uuid:" + action.uuid  + " code:" + action.code + " uuidOwner:" + action.uuidOwner + " type:" + action.type);
+            //LogUtil.Log("GameNetworking: ActionOnNetwork: uuid:" + action.uuid  + " code:" + action.code + " uuidOwner:" + action.uuidOwner + " type:" + action.type);
 
             /*
             GameNetworkPlayerContainer playerContainer = (Instantiate(Resources.Load("Prefabs/GameNetworkPlayerObject"), Vector3.zero, Quaternion.identity) as GameObject).GetComponent<GameNetworkPlayerContainer>();
@@ -769,7 +771,7 @@ namespace Gameverses {
         }
 
         public void SetPhotonPlayer(PhotonPlayer networkPlayer, string uuid, string username, string type) {
-            Gameverses.LogUtil.Log("GameNetworking: SetPhotonPlayer: uuid:" + uuid + " username:" + username + " type:" + type);
+            LogUtil.Log("GameNetworking: SetPhotonPlayer: uuid:" + uuid + " username:" + username + " type:" + type);
 
             if (playerList == null) {
                 playerList = new List<GameNetworkingPlayerInfo>();
@@ -777,7 +779,7 @@ namespace Gameverses {
 
             GameNetworkingPlayerInfo currentPlayer = GetPlayer(networkPlayer);
 
-            Gameverses.LogUtil.Log("GameNetworking: SetPhotonPlayer: uuid:" + uuid + " username:" + username + " type:" + type);
+            LogUtil.Log("GameNetworking: SetPhotonPlayer: uuid:" + uuid + " username:" + username + " type:" + type);
 
             bool found = false;
 
@@ -788,7 +790,7 @@ namespace Gameverses {
                 found = true;
             }
 
-            Gameverses.LogUtil.Log("GameNetworking: SetPhotonPlayer: currentPlayer:" + currentPlayer.name);
+            LogUtil.Log("GameNetworking: SetPhotonPlayer: currentPlayer:" + currentPlayer.name);
 
             currentPlayer.networkPlayer = networkPlayer;
             currentPlayer.name = username;
@@ -805,7 +807,7 @@ namespace Gameverses {
 
             playerList.Add(currentPlayer);
 
-            Gameverses.LogUtil.Log("GameNetworking: SetPhotonPlayer: UPDATED: username:" + username + " type:" + type);
+            LogUtil.Log("GameNetworking: SetPhotonPlayer: UPDATED: username:" + username + " type:" + type);
 
             FindOrCreateNetworkObjectsContainer();
         }
@@ -817,24 +819,24 @@ namespace Gameverses {
 
         public void UpdatePlayerAttributeSync(PhotonPlayer networkPlayer, string key, string keyValue) {
             GameNetworkingPlayerInfo currentPlayer = GetPlayer(networkPlayer);
-            Gameverses.LogUtil.Log("GameversesGameAPI: UpdatePlayerAttribute: key:" + key + " keyValue: " + keyValue);
+            LogUtil.Log("GameversesGameAPI: UpdatePlayerAttribute: key:" + key + " keyValue: " + keyValue);
 
             if (currentPlayer != null) {
-                Gameverses.LogUtil.Log("GameversesGameAPI: UpdatePlayerAttribute: Player already exists! Updating...");
+                LogUtil.Log("GameversesGameAPI: UpdatePlayerAttribute: Player already exists! Updating...");
 
                 if (currentPlayer.attributes.ContainsKey(key)) {
                     currentPlayer.attributes[key] = keyValue;
-                    Gameverses.LogUtil.Log("GameversesGameAPI: UpdatePlayerAttribute: contained key:" + key + " keyValue: " + keyValue);
+                    LogUtil.Log("GameversesGameAPI: UpdatePlayerAttribute: contained key:" + key + " keyValue: " + keyValue);
                 }
                 else {
                     currentPlayer.attributes.Add(key, keyValue);
-                    Gameverses.LogUtil.Log("GameversesGameAPI: UpdatePlayerAttribute: add key:" + key + " keyValue: " + keyValue);
+                    LogUtil.Log("GameversesGameAPI: UpdatePlayerAttribute: add key:" + key + " keyValue: " + keyValue);
                 }
 
                 SetPlayerAttributes(networkPlayer, currentPlayer);
             }
             else {
-                Gameverses.LogUtil.Log("GameversesGameAPI: UpdatePlayerAttribute: Player doesn't exist! Adding...");
+                LogUtil.Log("GameversesGameAPI: UpdatePlayerAttribute: Player doesn't exist! Adding...");
                 GameNetworkingPlayerInfo np = new GameNetworkingPlayerInfo();
                 np.networkPlayer = networkPlayer;
 
@@ -855,13 +857,13 @@ namespace Gameverses {
 
         public void SetPlayerTransform(PhotonPlayer networkPlayer, Transform pTransform) {
             if (!pTransform) {
-                Gameverses.LogUtil.LogError("GameversesGameAPI: SetPlayersTransform has a NULL playerTransform!");
+                LogUtil.LogError("GameversesGameAPI: SetPlayersTransform has a NULL playerTransform!");
             }
 
             GameNetworkingPlayerInfo thePlayer = GetPlayer(networkPlayer);
 
             if (thePlayer == null) {
-                Gameverses.LogUtil.LogError("GameversesGameAPI: SetPlayersPlayerTransform: No player found!");
+                LogUtil.LogError("GameversesGameAPI: SetPlayersPlayerTransform: No player found!");
             }
 
             thePlayer.transform = pTransform;

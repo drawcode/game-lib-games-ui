@@ -10,6 +10,7 @@ using System.IO;
 
 using UnityEngine;
 using Engine.Data.Json;
+using Engine.Networking;
 
 namespace Gameverses {
 
@@ -440,7 +441,7 @@ namespace Gameverses {
         // ----------------------------------------------------------------------------------
         // HANDLERS
 
-        private void HandleDownloadAssetBundleCallback(ServiceUtil.ResponseObject response) {
+        private void HandleDownloadAssetBundleCallback(WebRequests.ResponseObject response) {
             response = HandleResponseObject(response);
 
             if (response.validResponse) {
@@ -496,7 +497,7 @@ namespace Gameverses {
             //}
         }
 
-        private void HandleDownloadableContentInfoCallback(ServiceUtil.ResponseObject response) {
+        private void HandleDownloadableContentInfoCallback(WebRequests.ResponseObject response) {
             response = HandleResponseObject(response);
 
            // bool serverError = false;
@@ -553,7 +554,7 @@ namespace Gameverses {
 
         //HandleDownloadableContentSetSyncCallback
 
-        private void HandleDownloadableContentSetSyncCallback(ServiceUtil.ResponseObject response) {
+        private void HandleDownloadableContentSetSyncCallback(WebRequests.ResponseObject response) {
             response = HandleResponseObject(response);
 
            // bool serverError = false;
@@ -607,7 +608,7 @@ namespace Gameverses {
             */
         }
 
-        private void HandleDownloadableFileCallback(ServiceUtil.ResponseObject response) {
+        private void HandleDownloadableFileCallback(WebRequests.ResponseObject response) {
             /*
             response = HandleResponseObject(response);
 
@@ -666,7 +667,7 @@ namespace Gameverses {
         //public WebRequests.ResponseObject HandleResponseObjectAssetBundle(WebRequests.ResponseObject responseObject) {
         //}
 
-        public ServiceUtil.ResponseObject HandleResponseObject(ServiceUtil.ResponseObject responseObject) {
+        public WebRequests.ResponseObject HandleResponseObject(WebRequests.ResponseObject responseObject) {
             bool serverError = false;
 
             // Manages common response object parsing to get to object
@@ -743,7 +744,7 @@ namespace Gameverses {
 
             //glob.ShowLoadingIndicator();
 
-            Dictionary<string, string> data = new Dictionary<string, string>();
+            Dictionary<string, object> data = new Dictionary<string, object>();
             string udid = UniqueUtil.Instance.currentUniqueId;
 
             data.Add("device_id", udid);
@@ -753,7 +754,7 @@ namespace Gameverses {
             downloadInProgress = true;
 
             string url = GetDownloadContentItemUrl(game, version, platform, pack);
-            ServiceUtil.instance.Request(ServiceUtil.RequestType.HTTP_POST, url, data, HandleDownloadableContentInfoCallback);
+            WebRequests.Instance.Request(WebRequests.RequestType.HTTP_POST, url, data, HandleDownloadableContentInfoCallback);
             contentItemStatus = new GameversesContentItemStatus();
 
             GameMessenger<string>.Broadcast(GameversesContentMessages.ContentItemVerifyStarted, "Verifying content access...");
@@ -763,7 +764,7 @@ namespace Gameverses {
             downloadInProgress = true;
 
             string url = GetContentSetUrl(game, version, platform);
-            ServiceUtil.instance.Request(ServiceUtil.RequestType.HTTP_GET, url, HandleDownloadableContentSetSyncCallback);
+            WebRequests.Instance.Request(WebRequests.RequestType.HTTP_GET, url, HandleDownloadableContentSetSyncCallback);
 
             GameMessenger<string>.Broadcast(GameversesContentMessages.ContentSetDownloadStarted, "Getting downloadable content access...");
         }
@@ -771,7 +772,7 @@ namespace Gameverses {
         public void RequestDownloadableFile(string url) {
             downloadInProgress = true;
 
-            ServiceUtil.instance.Request(ServiceUtil.RequestType.HTTP_GET, url, HandleDownloadableFileCallback);
+            WebRequests.Instance.Request(WebRequests.RequestType.HTTP_GET, url, HandleDownloadableFileCallback);
 
             GameMessenger<string>.Broadcast(GameversesContentMessages.ContentFileDownloadStarted, "Started downloading..." + url);
         }

@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 
 using Engine.Data.Json;
+using Engine.Networking;
 
 namespace Gameverses {
 
@@ -38,7 +39,7 @@ namespace Gameverses {
         public GameversesProfile currentProfile;
         public GameversesProfileData currentProfileData;
 
-        public delegate void HandleGameProfileCallback(GameversesProfile data, ServiceUtil.ResponseObject responseObject);
+        public delegate void HandleGameProfileCallback(GameversesProfile data, WebRequests.ResponseObject responseObject);
 
         public HandleGameProfileCallback callbackGameProfile;
 
@@ -53,31 +54,31 @@ namespace Gameverses {
         public GameversesGameSession currentGameSession;
         public GameversesGameSessionData currentGameSessionData;
 
-        public delegate void HandleGameListCallback(List<GameversesGame> data, ServiceUtil.ResponseObject responseObject);
+        public delegate void HandleGameListCallback(List<GameversesGame> data, WebRequests.ResponseObject responseObject);
 
         public HandleGameListCallback callbackGameList;
 
-        public delegate void HandleGameSessionListCallback(List<GameversesGameSession> data, ServiceUtil.ResponseObject responseObject);
+        public delegate void HandleGameSessionListCallback(List<GameversesGameSession> data, WebRequests.ResponseObject responseObject);
 
         public HandleGameSessionListCallback callbackGameSessionList;
 
-        public delegate void HandleGameSessionCallback(GameversesGameSession data, ServiceUtil.ResponseObject responseObject);
+        public delegate void HandleGameSessionCallback(GameversesGameSession data, WebRequests.ResponseObject responseObject);
 
         public HandleGameSessionCallback callbackGameSession;
 
-        public delegate void HandleGameSessionDataCallback(GameversesGameSessionData data, ServiceUtil.ResponseObject responseObject);
+        public delegate void HandleGameSessionDataCallback(GameversesGameSessionData data, WebRequests.ResponseObject responseObject);
 
         public HandleGameSessionDataCallback callbackGameSessionData;
 
-        public delegate void HandleGameSessionSetCallback(GameversesGameSession data, ServiceUtil.ResponseObject responseObject);
+        public delegate void HandleGameSessionSetCallback(GameversesGameSession data, WebRequests.ResponseObject responseObject);
 
         public HandleGameSessionSetCallback callbackGameSessionSet;
 
-        public delegate void HandleGameSessionDataSetCallback(GameversesGameSessionData data, ServiceUtil.ResponseObject responseObject);
+        public delegate void HandleGameSessionDataSetCallback(GameversesGameSessionData data, WebRequests.ResponseObject responseObject);
 
         public HandleGameSessionDataSetCallback callbackGameSessionDataSet;
 
-        public delegate void HandleGameSessionStateCallback(GameversesGameSession data, ServiceUtil.ResponseObject responseObject);
+        public delegate void HandleGameSessionStateCallback(GameversesGameSession data, WebRequests.ResponseObject responseObject);
 
         public HandleGameSessionStateCallback callbackGameSessionState;
 
@@ -110,7 +111,7 @@ namespace Gameverses {
             GameversesConfig.apiGameFullPath = GameversesConfig.apiPath + GameversesConfig.apiGamePath + "/" + GameversesConfig.apiGame + "/";
         }
 
-        public ServiceUtil.ResponseObject HandleResponseObject(ServiceUtil.ResponseObject responseObject) {
+        public WebRequests.ResponseObject HandleResponseObject(WebRequests.ResponseObject responseObject) {
 
             // Manages common response object parsing to get to object
 
@@ -202,7 +203,7 @@ namespace Gameverses {
             RequestGameList(HandleGameList);
         }
 
-        public void HandleGameList(List<GameversesGame> gameList, ServiceUtil.ResponseObject responseObject) {
+        public void HandleGameList(List<GameversesGame> gameList, WebRequests.ResponseObject responseObject) {
             if (responseObject.validResponse) {
 
                 // messenger
@@ -227,11 +228,11 @@ namespace Gameverses {
             LogUtil.Log("callback:" + callback);
             callbackGameList = callback;
 
-            ServiceUtil.HandleResponseObjectCallback callbackServiceUtil = BaseHandleResponseGameList;
-            ServiceUtil.instance.Request(url, callbackServiceUtil);
+            WebRequests.HandleResponseObjectCallback callbackWebRequests = BaseHandleResponseGameList;
+            WebRequests.Instance.Request(url, callbackWebRequests);
         }
 
-        public void BaseHandleResponseGameList(ServiceUtil.ResponseObject responseObject) {
+        public void BaseHandleResponseGameList(WebRequests.ResponseObject responseObject) {
             responseObject = HandleResponseObject(responseObject);
 
             if (responseObject.validResponse) {
@@ -256,7 +257,7 @@ namespace Gameverses {
             RequestGameSessionList(HandleGameSessionList);
         }
 
-        public void HandleGameSessionList(List<GameversesGameSession> gameSessionList, ServiceUtil.ResponseObject responseObject) {
+        public void HandleGameSessionList(List<GameversesGameSession> gameSessionList, WebRequests.ResponseObject responseObject) {
             if (responseObject.validResponse) {
 
                 // messenger
@@ -282,11 +283,11 @@ namespace Gameverses {
             LogUtil.Log("callback:" + callback);
             callbackGameSessionList = callback;
 
-            ServiceUtil.HandleResponseObjectCallback callbackServiceUtil = BaseHandleResponseGameSessionList;
-            ServiceUtil.instance.Request(url, callbackServiceUtil);
+            WebRequests.HandleResponseObjectCallback callbackWebRequests = BaseHandleResponseGameSessionList;
+            WebRequests.Instance.Request(url, callbackWebRequests);
         }
 
-        public void BaseHandleResponseGameSessionList(ServiceUtil.ResponseObject responseObject) {
+        public void BaseHandleResponseGameSessionList(WebRequests.ResponseObject responseObject) {
             responseObject = HandleResponseObject(responseObject);
 
             if (responseObject.validResponse) {
@@ -311,7 +312,7 @@ namespace Gameverses {
             PostGameSession(gameSession, HandleGameSessionSet);
         }
 
-        public void HandleGameSessionSet(GameversesGameSession gameSession, ServiceUtil.ResponseObject responseObject) {
+        public void HandleGameSessionSet(GameversesGameSession gameSession, WebRequests.ResponseObject responseObject) {
             if (responseObject.validResponse) {
 
                 // messenger
@@ -337,7 +338,7 @@ namespace Gameverses {
 
             LogUtil.Log("PostGameSession::dataValue:" + dataValue);
 
-            Dictionary<string, string> paramHash = new Dictionary<string, string>();
+            Dictionary<string, object> paramHash = new Dictionary<string, object>();
 
             //paramHash.Add("data", System.Uri.EscapeDataString(dataValue));
             paramHash.Add("data", dataValue);
@@ -347,11 +348,11 @@ namespace Gameverses {
             LogUtil.Log("callback:" + callback);
             callbackGameSessionSet = callback;
 
-            ServiceUtil.HandleResponseObjectCallback callbackServiceUtil = BaseHandleResponseGameSessionSet;
-            ServiceUtil.instance.Request(ServiceUtil.RequestType.HTTP_POST, url, paramHash, callbackServiceUtil);
+            WebRequests.HandleResponseObjectCallback callbackWebRequests = BaseHandleResponseGameSessionSet;
+            WebRequests.Instance.Request(WebRequests.RequestType.HTTP_POST, url, paramHash, callbackWebRequests);
         }
 
-        public void BaseHandleResponseGameSessionSet(ServiceUtil.ResponseObject responseObject) {
+        public void BaseHandleResponseGameSessionSet(WebRequests.ResponseObject responseObject) {
             responseObject = HandleResponseObject(responseObject);
 
             if (responseObject.validResponse) {
@@ -376,7 +377,7 @@ namespace Gameverses {
             PostGameSessionState(gameSession, HandleGameSessionState);
         }
 
-        public void HandleGameSessionState(GameversesGameSession gameSession, ServiceUtil.ResponseObject responseObject) {
+        public void HandleGameSessionState(GameversesGameSession gameSession, WebRequests.ResponseObject responseObject) {
             if (responseObject.validResponse) {
                 LogUtil.Log("HandleGameSessionState::success");
                 currentGameSession = gameSession;
@@ -403,7 +404,7 @@ namespace Gameverses {
 
             LogUtil.Log("PostGameSession::dataValue:" + dataValue);
 
-            Dictionary<string, string> paramHash = new Dictionary<string, string>();
+            Dictionary<string, object> paramHash = new Dictionary<string, object>();
 
             //paramHash.Add("data", System.Uri.EscapeDataString(dataValue));
             paramHash.Add("data", dataValue);
@@ -413,11 +414,11 @@ namespace Gameverses {
             LogUtil.Log("callback:" + callback);
             callbackGameSessionState = callback;
 
-            ServiceUtil.HandleResponseObjectCallback callbackServiceUtil = BaseHandleResponseGameSessionState;
-            ServiceUtil.instance.Request(ServiceUtil.RequestType.HTTP_POST, url, paramHash, callbackServiceUtil);
+            WebRequests.HandleResponseObjectCallback callbackWebRequests = BaseHandleResponseGameSessionState;
+            WebRequests.Instance.Request(WebRequests.RequestType.HTTP_POST, url, paramHash, callbackWebRequests);
         }
 
-        public void BaseHandleResponseGameSessionState(ServiceUtil.ResponseObject responseObject) {
+        public void BaseHandleResponseGameSessionState(WebRequests.ResponseObject responseObject) {
             responseObject = HandleResponseObject(responseObject);
 
             if (responseObject.validResponse) {

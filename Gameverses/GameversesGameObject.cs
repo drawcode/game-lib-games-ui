@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using Gameverses;
 
 using UnityEngine;
+using Engine.Networking;
 
 namespace Gameverses {
 
@@ -11,7 +12,7 @@ namespace Gameverses {
         public GameversesGameAPI gameverses;
         public GameversesService gameversesService;
         public GameNetworking gameNetworking;
-        public ServiceUtil serviceUtil;
+        public WebRequests requests;
 
 #if NETWORK_UNITY
 		public NetworkView networkViewObject;
@@ -21,7 +22,7 @@ namespace Gameverses {
 #endif
 
         private void Start() {
-            serviceUtil = gameObject.AddComponent<ServiceUtil>();
+            requests = gameObject.AddComponent<WebRequests>();
 #if NETWORK_UNITY
 			networkViewObject = gameObject.AddComponent<NetworkView>();
 			networkViewObject.stateSynchronization = NetworkStateSynchronization.Unreliable;
