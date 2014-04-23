@@ -690,9 +690,14 @@ namespace Gameverses {
 
             Debug.Log("SpawnOnNetwork:" + prefabPath);
 
+            Debug.Log("SpawnOnNetwork:networkObjectsContainer:EXISTS:" + networkObjectsContainer != null);
+
             GameNetworkPlayerContainer playerContainer = 
                 (Instantiate(Resources.Load(prefabPath), 
                              Vector3.zero, Quaternion.identity) as GameObject).GetComponent<GameNetworkPlayerContainer>();
+                        
+            Debug.Log("SpawnOnNetwork:playerContainer:EXISTS:" + playerContainer != null);
+
             playerContainer.gameObject.transform.parent = networkObjectsContainer.transform;
             playerContainer.uuid = uuid;
             playerContainer.name = uuid;
