@@ -19,7 +19,7 @@ namespace Gameverses {
 
         public int maxConnections = 4;
 
-        public bool autoStartServing = true;
+        public bool autoStartServing = false;
         public bool hasTestedNAT = false;
         public bool testedUseNat = false;
         public bool lookForGameSession = false;
@@ -268,8 +268,9 @@ namespace Gameverses {
         public void ConnectToServer() {
             if (!isConnected) {
                 LogUtil.Log("ConnectToServer: ");
-
-                PhotonNetwork.Connect(masterserveriPAddressOrDns, masterServerPort, "Master", "1.0");
+                
+                PhotonNetwork.ConnectUsingSettings("1");
+                ////PhotonNetwork.Connect(masterserveriPAddressOrDns, masterServerPort, "Master", "1.0");
             }
         }
 
@@ -280,7 +281,8 @@ namespace Gameverses {
             if (autoStartServing) {
                 connectingAsClient = false;
                 if (PhotonNetwork.connected) {
-                    JoinRoom(UniqueUtil.Instance.currentUniqueId);
+                    string room = UniqueUtil.Instance.currentUniqueId;
+                    JoinRoom(room);
                 }
             }
         }
@@ -474,10 +476,11 @@ namespace Gameverses {
         private void JoinRoom(string roomName) {
             LogUtil.Log("JoinRoom:" + roomName);//network_external_ip
             if (!string.IsNullOrEmpty(roomName)) {
-                roomToJoin = roomName;
+                //roomToJoin = roomName;
+                roomToJoin = "planet-426";
                 ConnectToServer();
                 if (isConnected) {
-                    PhotonNetwork.JoinRoom(roomName);
+                    PhotonNetwork.JoinRoom(roomToJoin);
                 }
             }
         }
@@ -485,21 +488,36 @@ namespace Gameverses {
         private void CreateRoom() {
             string uuid = UniqueUtil.Instance.currentUniqueId;
             LogUtil.Log("PhotonNetwork:CreateRoom:" + uuid);
+            
+            uuid = "planet-426";
             PhotonNetwork.CreateRoom(uuid, true, true, 4);
         }
 
         private void OnConnectedToPhoton() {
+        }
+
+        private void HandleConnectedAndReady() {
+            
             string uuid = UniqueUtil.Instance.currentUniqueId;
             LogUtil.Log("PhotonNetwork:OnConnectedToPhoton:" + uuid);
-
+            
             //ServerStart();
-
+            
             if (!connectingAsClient) {
                 CreateRoom();
             }
             else {
                 JoinRoom(roomToJoin);
             }
+            
+        }
+
+        private void OnJoinedLobby() {
+            HandleConnectedAndReady();
+        }
+
+        private void OnConnectedToMaster() {
+            HandleConnectedAndReady();
         }
 
         public void SetGameSessionComplete() {
@@ -668,7 +686,13 @@ namespace Gameverses {
 
             LogUtil.Log("GameNetworking: SpawnOnNetwork: uuid:" + uuid + " playerName:" + playerName + " playerType:" + playerType + " id1:" + id1);
 
-            GameNetworkPlayerContainer playerContainer = (Instantiate(Resources.Load("Prefabs/GameNetworkPlayerObject"), Vector3.zero, Quaternion.identity) as GameObject).GetComponent<GameNetworkPlayerContainer>();
+            string prefabPath = System.IO.Path.Combine(ContentPaths.appCacheVersionSharedPrefabNetwork, "GameNetworkPlayerObject");
+
+            Debug.Log("SpawnOnNetwork:" + prefabPath);
+
+            GameNetworkPlayerContainer playerContainer = 
+                (Instantiate(Resources.Load(prefabPath), 
+                             Vector3.zero, Quaternion.identity) as GameObject).GetComponent<GameNetworkPlayerContainer>();
             playerContainer.gameObject.transform.parent = networkObjectsContainer.transform;
             playerContainer.uuid = uuid;
             playerContainer.name = uuid;

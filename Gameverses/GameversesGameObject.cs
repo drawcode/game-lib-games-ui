@@ -31,7 +31,7 @@ namespace Gameverses {
 
             //rpcObject = PhotonNetwork.Instantiate("GameNetworkPhotonRPC", Vector3.zero, Quaternion.identity, 0);
             //networkViewObject = rpcObject.GetComponent<PhotonView>();
-            ////networkViewObject.viewID = PhotonNetwork.AllocateViewID();
+            //networkViewObject.viewID = PhotonNetwork.AllocateViewID();
             //networkViewObject.synchronization = ViewSynchronization.ReliableDeltaCompressed;
             gameNetworking = gameObject.AddComponent<GameNetworking>();
 
@@ -51,16 +51,19 @@ namespace Gameverses {
 
         public void SetupNetworkView() {
             if (rpcObject == null) {
-                rpcObject = PhotonNetwork.Instantiate("GameNetworkPhotonRPC", Vector3.zero, Quaternion.identity, 0);
+                rpcObject = PhotonNetwork.Instantiate(
+                    System.IO.Path.Combine(ContentPaths.appCacheVersionSharedPrefabNetwork, "GameNetworkPhotonRPC")
+                    , Vector3.zero, Quaternion.identity, 0);
                 networkViewObject = rpcObject.GetComponent<PhotonView>();
-                if (rpcObject != null) {
-                    GameNetworkPhotonRPC rpc = rpcObject.GetComponent<GameNetworkPhotonRPC>();
-                    rpc.uuid = UniqueUtil.Instance.currentUniqueId;
-                }
+
 
                 //networkViewObject.viewID = PhotonNetwork.AllocateViewID();
                 //networkViewObject.synchronization = ViewSynchronization.ReliableDeltaCompressed;
                 //DontDestroyOnLoad(rpcObject);
+            }
+            if (rpcObject != null) {
+                GameNetworkPhotonRPC rpc = rpcObject.GetComponent<GameNetworkPhotonRPC>();
+                rpc.uuid = UniqueUtil.Instance.currentUniqueId;
             }
         }
     }
