@@ -42,6 +42,8 @@ namespace Gameverses {
 
         public string localDeviceId = "";
 
+        public bool useCloudMasterServer = true;
+
         public string masterserverGameName = "defaultgame";
         public int defaultServerPort = 50666;
         public int connectTimeoutValue = 30;
@@ -65,6 +67,7 @@ namespace Gameverses {
         public bool connectingAsClient = false;
 
         private string roomToJoin = "";
+        private string roomToCreate = "";
 
         public bool isSessionFilled {
             get {
@@ -104,7 +107,10 @@ namespace Gameverses {
             // check for friends
             // else start server
 
-            ConnectToServer();
+            //if(!isConnected && !isConnecting) {
+
+            //    ConnectToServer();
+            //}
         }
 
         private void FindNetworkView() {
@@ -265,12 +271,22 @@ namespace Gameverses {
         // ##################################################################################################
         // SERVER
 
+        public void CheckConnected() {
+            if(!isConnected) {
+            
+            }
+        }
+
         public void ConnectToServer() {
             if (!isConnected) {
                 LogUtil.Log("ConnectToServer: ");
-                
-                PhotonNetwork.ConnectUsingSettings("1");
-                ////PhotonNetwork.Connect(masterserveriPAddressOrDns, masterServerPort, "Master", "1.0");
+
+                if(useCloudMasterServer) {
+                    PhotonNetwork.ConnectUsingSettings("1");
+                } 
+                else {
+                    PhotonNetwork.Connect(masterserveriPAddressOrDns, masterServerPort, "Master", "1.0");
+                }
             }
         }
 
@@ -292,9 +308,19 @@ namespace Gameverses {
 
         //OnJoinedRoom
 
+        string lastRoomTry = "";
+
         private void OnPhotonCreateRoomFailed() {
             LogUtil.Log("OnPhotonCreateRoomFailed: ");
-            ServerStart();
+            
+            if(useCloudMasterServer) {                
+                if(lastRoomTry != roomToJoin) {
+                    CreateRoom();
+                }
+            }
+            else {
+                ServerStart();
+            }
         }
 
         private void OnPhotonSerializeView(PhotonStream stream, PhotonMessageInfo info) {
@@ -465,7 +491,7 @@ namespace Gameverses {
             argType.type = typeof(String);
             GameMessenger<GameNetworkingType>.Broadcast(GameNetworkingMessages.DisconnectedFromServer, argType);
 
-            if (!connectingAsClient) {
+            if (!connectingAsClient && !useCloudMasterServer) {
                 ServerStart();
             }
             else {
@@ -485,12 +511,23 @@ namespace Gameverses {
             }
         }
 
-        private void CreateRoom() {
-            string uuid = UniqueUtil.Instance.currentUniqueId;
-            LogUtil.Log("PhotonNetwork:CreateRoom:" + uuid);
+        private void CreateRoom(string name) {
+            LogUtil.Log("PhotonNetwork:CreateRoom:" + name);            
+            roomToCreate = name;
             
-            uuid = "planet-426";
-            PhotonNetwork.CreateRoom(uuid, true, true, 4);
+            if(useCloudMasterServer) {
+                lastRoomTry = name;
+                JoinRoom(name);  
+            }
+            else {
+                PhotonNetwork.CreateRoom(name, true, true, 4);
+            }
+        }
+
+        private void CreateRoom() {
+            string roomToCreate = UniqueUtil.Instance.currentUniqueId;
+            roomToCreate = "planet-426";
+            CreateRoom(roomToCreate);
         }
 
         private void OnConnectedToPhoton() {
