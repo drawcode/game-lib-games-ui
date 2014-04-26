@@ -159,17 +159,30 @@ namespace Gameverses {
             // check for invite
             // check for friends
             // else start server
-#if NETWORK_PHOTON
-
-            //GameNetworkingUnityPhoton.Instance.ServerStart();
-#elif NETWORK_UNITY
-
-				//GameNetworkingUnity.Instance.ServerStart();
-#endif
         }
 
         // ##################################################################################################
         // PROPERTIES
+
+        
+        public static bool networkConnected {
+            get {
+                if(Instance != null) {
+                    return Instance.isConnected;
+                }
+                return false;
+            }
+        }
+
+        public static bool networkRunning {
+            get {
+                if(Instance != null) {
+                    return Instance.isNetworkRunning;
+                }
+                return false;
+            }
+        }
+
 
         public bool isNetworkRunning {
             get {
@@ -315,6 +328,14 @@ namespace Gameverses {
         // ##################################################################################################
         // SERVER
 
+        public void StartSession() {
+            #if NETWORK_PHOTON
+            GameNetworkingUnityPhoton.Instance.ServerStart();
+            #elif NETWORK_UNITY
+            GameNetworkingUnity.Instance.ServerStart();
+            #endif
+        }
+
         public void ServerStart() {
 #if NETWORK_PHOTON
             GameNetworkingUnityPhoton.Instance.ServerStart();
@@ -344,12 +365,94 @@ namespace Gameverses {
 #endif
         }
 
+        public void ConnectNetwork() {
+            #if NETWORK_PHOTON
+            
+            Debug.Log("GameNetworking:ConnectNetwork:GameNetworkingUnityPhoton");
+            GameNetworkingUnityPhoton.Instance.ConnectNetwork();
+            #elif NETWORK_UNITY
+            Debug.Log("GameNetworking:ConnectNetwork:GameNetworkingUnity");
+            GameNetworkingUnity.Instance.ConnectNetwork();
+            #endif
+        }
+
+        public static void Connect() {
+            Debug.Log("GameNetworking:Connect:" + true);
+            Debug.Log("GameNetworking:Connect:networkConnected:" + networkConnected);
+            if(networkConnected) {
+                return;
+            }
+            if(Instance != null) {
+                Instance.ConnectNetwork();
+            }
+            Debug.Log("GameNetworking:Connect:networkConnected:" + networkConnected);
+        }
+        
+        public static void Join(string name) {
+            Debug.Log("GameNetworking:Join:" + true);
+            if(Instance != null) {
+                Instance.join(name);
+            }
+            Debug.Log("GameNetworking:Join:networkConnected:" + networkConnected);
+        }
+
+        public void join(string name) {
+            #if NETWORK_PHOTON
+            GameNetworkingUnityPhoton.Instance.Join(name);
+            #elif NETWORK_UNITY
+            ////GameNetworkingUnity.Instance.ConnectNetwork(hostData);
+            #endif
+        }
+
+        public static void Create(string name) {
+            Debug.Log("GameNetworking:Create:" + true);
+            if(Instance != null) {
+                Instance.create(name);
+            }
+            Debug.Log("GameNetworking:Create:networkConnected:" + networkConnected);
+        }
+        
+        public void create(string name) {
+            #if NETWORK_PHOTON
+            GameNetworkingUnityPhoton.Instance.Create(name);
+            #elif NETWORK_UNITY
+            ////GameNetworkingUnity.Instance.ConnectNetwork(hostData);
+            #endif
+        }
+        
+        public static void Leave() {
+            Debug.Log("GameNetworking:Leave:" + true);
+            if(Instance != null) {
+                Instance.leave();
+            }
+            Debug.Log("GameNetworking:Create:networkConnected:" + networkConnected);
+        }
+        
+        public void leave() {
+            #if NETWORK_PHOTON
+            GameNetworkingUnityPhoton.Instance.Leave();
+            #elif NETWORK_UNITY
+            ////GameNetworkingUnity.Instance.ConnectNetwork();
+            #endif
+        }
+
         public void ConnectNetwork(HostData hostData) {
 #if NETWORK_PHOTON
             GameNetworkingUnityPhoton.Instance.ConnectNetwork(hostData);
 #elif NETWORK_UNITY
 			GameNetworkingUnity.Instance.ConnectNetwork(hostData);
 #endif
+        }        
+        
+        public static void Disconnect() {
+            Debug.Log("GameNetworking:Disconnect:networkConnected:" + networkConnected);
+            if(!networkConnected) {
+                return;
+            }
+            if(Instance != null) {
+                Instance.DisconnectNetwork();
+            }
+            Debug.Log("GameNetworking:Disconnect:networkConnected:" + networkConnected);
         }
 
         public void DisconnectNetwork() {

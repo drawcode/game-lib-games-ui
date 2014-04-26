@@ -52,7 +52,7 @@ namespace Gameverses {
 #else
         public PhotonView networkViewObject;
 #endif
-        public string uuid = "";
+        public string uniqueId = "";
 
         public GameNetworkAniStates currentAnimation = GameNetworkAniStates.idle;
         public GameNetworkAniStates lastAnimation = GameNetworkAniStates.idle;
@@ -106,16 +106,21 @@ namespace Gameverses {
 		}
 #else
 
-        public void AddNetworkView(int idl, string uniqueId) {
-            networkViewObject = gameObject.AddComponent<PhotonView>();
+        public void AddNetworkView(int idl, string uid) {
+            if(networkViewObject == null) {
+                networkViewObject = gameObject.AddComponent<PhotonView>();
+            }
+            else {
+                networkViewObject = gameObject.GetComponent<PhotonView>();
+            }
             networkViewObject.synchronization = ViewSynchronization.ReliableDeltaCompressed;
             networkViewObject.viewID = idl;
-            uuid = uniqueId;
+            uniqueId = uid;
 
             LogUtil.Log("Creating network container view:idl.ID:" + idl);
            // LogUtil.Log("Creating network container view:idl.isMine:" + idl.isMine);
             //LogUtil.Log("Creating network container view:idl.owner:" + idl.owner);
-            LogUtil.Log("Creating network container:uuid:" + uuid);
+            LogUtil.Log("Creating network container:uniqueId:" + uniqueId);
 
             GameMessenger<string>.Broadcast(GameNetworkPlayerMessages.PlayerAdded, uniqueId);
         }
@@ -211,7 +216,7 @@ namespace Gameverses {
 
             // Always send transform (depending on reliability of the network view)
 
-            //Gameverses.LogUtil.Log("OnSerializeNetworkView1:gamePlayer:" + gamePlayer + " uuid:" + uuid);
+            LogUtil.Log("OnSerializeNetworkView1:gamePlayer:" + gamePlayer + " uniqueId:" + uniqueId);
 
             if (!running) {
                 return;
@@ -221,7 +226,7 @@ namespace Gameverses {
                 return;
             }
 
-            //Gameverses.LogUtil.Log("OnSerializeNetworkView:gamePlayer:" + gamePlayer + " uuid:" + uuid);
+            LogUtil.Log("OnSerializeNetworkView:gamePlayer:" + gamePlayer + " uniqueId:" + uniqueId);
 
             if (stream.isWriting) {
                 Vector3 pos = gamePlayer.transform.position;
@@ -302,7 +307,7 @@ namespace Gameverses {
                 return;
             }
 
-            if (gamePlayer == null || uuid == UniqueUtil.Instance.currentUniqueId) {
+            if (gamePlayer == null || uniqueId == UniqueUtil.Instance.currentUniqueId) {
                 return;
             }
 
@@ -334,10 +339,10 @@ namespace Gameverses {
                         gamePlayer.transform.position = Vector3.Lerp(lhs.pos, rhs.pos, t);
                         gamePlayer.transform.rotation = Quaternion.Slerp(lhs.rot, rhs.rot, t);
 
-                        GameMessenger<string, GameNetworkAniStates>.Broadcast(GameNetworkPlayerMessages.PlayerAnimation, uuid, (GameNetworkAniStates)lhs.ani);
-                        GameMessenger<string, float>.Broadcast(GameNetworkPlayerMessages.PlayerInputAxisHorizontal, uuid, lhs.horizontalInput);
-                        GameMessenger<string, float>.Broadcast(GameNetworkPlayerMessages.PlayerInputAxisVertical, uuid, lhs.verticalInput);
-                        GameMessenger<string, float>.Broadcast(GameNetworkPlayerMessages.PlayerSpeed, uuid, lhs.currentSpeed);
+                        GameMessenger<string, GameNetworkAniStates>.Broadcast(GameNetworkPlayerMessages.PlayerAnimation, uniqueId, (GameNetworkAniStates)lhs.ani);
+                        GameMessenger<string, float>.Broadcast(GameNetworkPlayerMessages.PlayerInputAxisHorizontal, uniqueId, lhs.horizontalInput);
+                        GameMessenger<string, float>.Broadcast(GameNetworkPlayerMessages.PlayerInputAxisVertical, uniqueId, lhs.verticalInput);
+                        GameMessenger<string, float>.Broadcast(GameNetworkPlayerMessages.PlayerSpeed, uniqueId, lhs.currentSpeed);
 
                         // Set animation...
 
@@ -354,16 +359,16 @@ namespace Gameverses {
                 gamePlayer.transform.position = latest.pos;
                 gamePlayer.transform.rotation = latest.rot;
 
-                GameMessenger<string, GameNetworkAniStates>.Broadcast(GameNetworkPlayerMessages.PlayerAnimation, uuid, (GameNetworkAniStates)latest.ani);
-                GameMessenger<string, float>.Broadcast(GameNetworkPlayerMessages.PlayerInputAxisHorizontal, uuid, latest.horizontalInput);
-                GameMessenger<string, float>.Broadcast(GameNetworkPlayerMessages.PlayerInputAxisVertical, uuid, latest.verticalInput);
-                GameMessenger<string, float>.Broadcast(GameNetworkPlayerMessages.PlayerSpeed, uuid, latest.currentSpeed);
+                GameMessenger<string, GameNetworkAniStates>.Broadcast(GameNetworkPlayerMessages.PlayerAnimation, uniqueId, (GameNetworkAniStates)latest.ani);
+                GameMessenger<string, float>.Broadcast(GameNetworkPlayerMessages.PlayerInputAxisHorizontal, uniqueId, latest.horizontalInput);
+                GameMessenger<string, float>.Broadcast(GameNetworkPlayerMessages.PlayerInputAxisVertical, uniqueId, latest.verticalInput);
+                GameMessenger<string, float>.Broadcast(GameNetworkPlayerMessages.PlayerSpeed, uniqueId, latest.currentSpeed);
             }
 
             if (lastAnimation != currentAnimation) {
                 lastAnimation = currentAnimation;
 
-                GameMessenger<string, GameNetworkAniStates>.Broadcast(GameNetworkPlayerMessages.PlayerAnimation, uuid, lastAnimation);
+                GameMessenger<string, GameNetworkAniStates>.Broadcast(GameNetworkPlayerMessages.PlayerAnimation, uniqueId, lastAnimation);
 
                 //if(gamePlayer.animation) {
                 //	gamePlayer.animation.CrossFade(System.Enum.GetName(typeof(GameNetworkAniStates), currentAnimation));
