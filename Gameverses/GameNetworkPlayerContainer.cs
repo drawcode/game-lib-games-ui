@@ -58,6 +58,7 @@ namespace Gameverses {
         public GameNetworkAniStates lastAnimation = GameNetworkAniStates.idle;
 
         public GameObject gamePlayer;
+        public GamePlayerController gamePlayerController;
 
         public double interpolationBackTime = 0.1;
         public bool running = false;
@@ -117,12 +118,13 @@ namespace Gameverses {
             networkViewObject.viewID = idl;
             uniqueId = uid;
 
-            LogUtil.Log("Creating network container view:idl.ID:" + idl);
+            LogUtil.Log("GameNetworkPlayerContainer::AddNetworkView:Creating network container view:idl.ID:" + idl);
            // LogUtil.Log("Creating network container view:idl.isMine:" + idl.isMine);
             //LogUtil.Log("Creating network container view:idl.owner:" + idl.owner);
-            LogUtil.Log("Creating network container:uniqueId:" + uniqueId);
+            LogUtil.Log("GameNetworkPlayerContainer::AddNetworkView:Creating network container:uniqueId:" + uniqueId);
 
-            GameMessenger<string>.Broadcast(GameNetworkPlayerMessages.PlayerAdded, uniqueId);
+            GameController.Instance.OnNetworkPlayerContainerAdded(uniqueId);
+            //GameMessenger<string>.Broadcast(GameNetworkPlayerMessages.PlayerAdded, uniqueId);
         }
 
 #endif
@@ -216,17 +218,22 @@ namespace Gameverses {
 
             // Always send transform (depending on reliability of the network view)
 
-            LogUtil.Log("OnSerializeNetworkView1:gamePlayer:" + gamePlayer + " uniqueId:" + uniqueId);
+            //LogUtil.Log("OnSerializeNetworkView1:gamePlayer:" + gamePlayer + " uniqueId:" + uniqueId);
 
             if (!running) {
                 return;
             }
 
             if (gamePlayer == null) {
-                return;
+
+                gamePlayer = GetGamePlayer();
+
+                if(gamePlayer == null) {
+                    return;
+                }
             }
 
-            LogUtil.Log("OnSerializeNetworkView:gamePlayer:" + gamePlayer + " uniqueId:" + uniqueId);
+            //LogUtil.Log("OnSerializeNetworkView:gamePlayer:" + gamePlayer + " uniqueId:" + uniqueId);
 
             if (stream.isWriting) {
                 Vector3 pos = gamePlayer.transform.position;
@@ -292,6 +299,15 @@ namespace Gameverses {
 
 #endif
 
+        public GameObject GetGamePlayer() {
+            gamePlayerController = GameController.GetGamePlayerController(uniqueId);
+            
+            if(gamePlayerController != null) {
+                gamePlayer = gamePlayerController.gameObject;
+            }
+            return gamePlayer;
+        }
+
         // This only runs where the component is enabled, which is only on remote peers (server/clients)
         private void Update() {
             double currentTime = Network.time;
@@ -305,10 +321,19 @@ namespace Gameverses {
 
             if (!running) {
                 return;
-            }
+            }            
 
-            if (gamePlayer == null || uniqueId == UniqueUtil.Instance.currentUniqueId) {
+            if(uniqueId == UniqueUtil.Instance.currentUniqueId) {
                 return;
+            }
+            
+            if (gamePlayer == null) {
+                
+                gamePlayer = GetGamePlayer();
+                
+                if(gamePlayer == null) {
+                    return;
+                }
             }
 
             // Use interpolation

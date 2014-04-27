@@ -7,7 +7,7 @@ using UnityEngine;
 
 namespace Gameverses {
     public class GameNetworkPhotonRPC : MonoBehaviour {
-        public string uuid = "";
+        public string uniqueId = "";
         public PhotonView photonView;
         public int viewID = 0;
 
@@ -20,26 +20,10 @@ namespace Gameverses {
         }
 
         private void Awake() {
-
             photonView = gameObject.GetComponent<PhotonView>();
-            uuid = UniqueUtil.Instance.currentUniqueId;
         }
 
         private void OnLeftRoom() {
-            
-            // destroy container
-
-            GameObject containerNetwork = GameObject.Find("GameversesNetworkContainers");
-            if(containerNetwork != null) {
-                //Destroy(containerNetwork);
-            }
-            
-            //foreach(GameNetworkPlayerContainer container in ObjectUtil.FindObjects<GameNetworkPlayerContainer>()) {
-            //    if(container.uuid == uuid) {
-            //        Destroy(container.gameObject);
-            //    }
-            //}
-
             Destroy(gameObject);
         }
 

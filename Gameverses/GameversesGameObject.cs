@@ -19,6 +19,7 @@ namespace Gameverses {
 #else
         public PhotonView networkViewObject;
         public GameObject rpcObject;
+        public GameNetworkPhotonRPC rpc;
 #endif
 
         private void Start() {
@@ -50,21 +51,43 @@ namespace Gameverses {
         }
 
         public void SetupNetworkView() {
-            if (rpcObject == null) {
-                rpcObject = PhotonNetwork.Instantiate(
-                    System.IO.Path.Combine(ContentPaths.appCacheVersionSharedPrefabNetwork, "GameNetworkPhotonRPC")
-                    , Vector3.zero, Quaternion.identity, 0);
-                networkViewObject = rpcObject.GetComponent<PhotonView>();
+            //if(GameNetworking.Instance.isServer) {
 
+            string uid = UniqueUtil.Instance.currentUniqueId;
+            
+            if (rpcObject == null) {
+                foreach(GameNetworkPhotonRPC rpcItem in ObjectUtil.FindObjects<GameNetworkPhotonRPC>()) {
+                    if(rpcItem.uniqueId == uid && !string.IsNullOrEmpty(uid)) {
+                        rpcObject = rpcItem.gameObject;
+                        if(rpc == null) {
+                            rpc = rpcObject.GetComponent<GameNetworkPhotonRPC>();
+                            rpc.uniqueId = uid;
+                        }
+                    }
+                }
+            }
+
+            if (rpcObject == null) {
+                string path = System.IO.Path.Combine(ContentPaths.appCacheVersionSharedPrefabNetwork, "GameNetworkPhotonRPC");
+
+                rpcObject = PhotonNetwork.Instantiate(path
+                        , Vector3.zero, Quaternion.identity, 0);             
 
                 //networkViewObject.viewID = PhotonNetwork.AllocateViewID();
                 //networkViewObject.synchronization = ViewSynchronization.ReliableDeltaCompressed;
                 //DontDestroyOnLoad(rpcObject);
             }
             if (rpcObject != null) {
-                GameNetworkPhotonRPC rpc = rpcObject.GetComponent<GameNetworkPhotonRPC>();
-                rpc.uuid = UniqueUtil.Instance.currentUniqueId;
+
+                networkViewObject = rpcObject.GetComponent<PhotonView>();   
+
+                if(rpc == null) {
+                    rpc = rpcObject.GetComponent<GameNetworkPhotonRPC>();
+                    rpc.uniqueId = uid;
+                }
+                //rpc.uniqueId = UniqueUtil.Instance.currentUniqueId;
             }
+            //}
         }
     }
 }

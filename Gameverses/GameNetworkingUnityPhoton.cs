@@ -120,7 +120,7 @@ namespace Gameverses {
                     gameversesGameObject.SetupNetworkView();
 
                     foreach (Gameverses.GameNetworkPhotonRPC rpcContainer in ObjectUtil.FindObjects<Gameverses.GameNetworkPhotonRPC>()) {
-                        if (rpcContainer.uuid.ToLower() == UniqueUtil.Instance.currentUniqueId.ToLower()) {
+                        if (rpcContainer.uniqueId.ToLower() == UniqueUtil.Instance.currentUniqueId.ToLower()) {
                             photonView = rpcContainer.photonView;
                             LogUtil.Log("FindNetworkView::photonView:" + photonView.viewID);//.ID);
                         }
