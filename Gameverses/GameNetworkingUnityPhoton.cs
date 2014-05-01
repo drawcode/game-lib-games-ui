@@ -288,7 +288,7 @@ namespace Gameverses {
                 } 
                 else {
                     LogUtil.Log("GameNetworkingUnityPhoton:ConnectToServer:useCloudMasterServer:" + useCloudMasterServer);
-                    PhotonNetwork.Connect(masterserveriPAddressOrDns, masterServerPort, "Master", "1.0");
+                    ////PhotonNetwork.Connect(masterserveriPAddressOrDns, masterServerPort, "Master", "1.0");
                 }
             }
         }
