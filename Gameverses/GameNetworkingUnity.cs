@@ -18,7 +18,7 @@ using Photon.SocketServer.Security;
 #endif
 #if NETWORK_UNITY && !UNITY_FLASH
 namespace Gameverses {
-	public class GameNetworkingUnity : MonoBehaviour {
+	public class GameNetworkingUnity : GameObjectBehavior {
 		public static GameNetworkingUnity Instance;
 
 		public int maxConnections = 4;

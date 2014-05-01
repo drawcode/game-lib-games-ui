@@ -8,7 +8,7 @@ using Engine.Events;
 using Engine.Networking;
 
 
-public class GameCommunityPlatformSocialController : MonoBehaviour {
+public class GameCommunityPlatformSocialController : GameObjectBehavior {
 	
 	public static GameCommunityPlatformSocialController Instance;
 	

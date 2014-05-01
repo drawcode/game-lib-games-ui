@@ -5,7 +5,7 @@ using System.Collections.Generic;
 namespace Gameverses {
 
     // config
-
+    /*
     public class GameversesConfig {
         public static string currentContentUrlRoot = "http://v3.gameverses.com/";
         public static string currentContentUrlCDN = "http://s3.amazonaws.com/";
@@ -24,6 +24,7 @@ namespace Gameverses {
         public static string currentContentPackCode = "drawlabs-game-1-pack-1";
         public static string currentContentPlatformCode = "ios";
     }
+    */
 
     // base
 

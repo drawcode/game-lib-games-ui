@@ -4,7 +4,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 
-public class GameCommunityPlatformUIController : MonoBehaviour {
+public class GameCommunityPlatformUIController : GameObjectBehavior {
 	
 	public static GameCommunityPlatformUIController Instance;	
 		    

@@ -107,7 +107,7 @@ public class GameCommunityPlatformBasicSceneAppViewerUIButtonNames {
 	public static string ButtonMain = "ButtonMain";
 }
 
-public class GameCommunityPlatformBasicScene : MonoBehaviour {
+public class GameCommunityPlatformBasicScene : GameObjectBehavior {
 	
 	public static GameCommunityPlatformBasicScene Instance;	
 		    

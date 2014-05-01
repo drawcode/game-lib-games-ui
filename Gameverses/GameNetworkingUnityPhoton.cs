@@ -14,7 +14,7 @@ using Engine.Data.Json;
 
 namespace Gameverses {
 
-    public class GameNetworkingUnityPhoton : MonoBehaviour {
+    public class GameNetworkingUnityPhoton : GameObjectBehavior {
         public static GameNetworkingUnityPhoton Instance;
 
         public int maxConnections = 4;
@@ -1225,7 +1225,7 @@ OnPhotonRandomJoinFailed,
 OnConnectedToMaster,
 
 /// <summary>
-/// Called every network 'update' if this MonoBehaviour is being observed by a PhotonView.
+/// Called every network 'update' if this GameObjectBehavior is being observed by a PhotonView.
 /// Example: void OnPhotonSerializeView(PhotonStream stream, PhotonMessageInfo info){ ... }
 /// </summary>
 OnPhotonSerializeView,

@@ -8,7 +8,7 @@ using System.IO;
 
 using Engine.Events;
 
-public class GameCommunityPlatformController : MonoBehaviour {
+public class GameCommunityPlatformController : GameObjectBehavior {
 	
 	public static GameCommunityPlatformController Instance;
 	

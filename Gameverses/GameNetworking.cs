@@ -103,7 +103,7 @@ namespace Gameverses {
         }
     }
 
-    public class GameNetworking : MonoBehaviour {
+    public class GameNetworking : GameObjectBehavior {
         public static GameNetworking Instance;
 
         public HostData currentHostData;

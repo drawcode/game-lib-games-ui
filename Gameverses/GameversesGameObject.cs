@@ -8,7 +8,7 @@ using Engine.Networking;
 
 namespace Gameverses {
 
-    public class GameversesGameObject : MonoBehaviour {
+    public class GameversesGameObject : GameObjectBehavior {
         public GameversesGameAPI gameverses;
         public GameversesService gameversesService;
         public GameNetworking gameNetworking;

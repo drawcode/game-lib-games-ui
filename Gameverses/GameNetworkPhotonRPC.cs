@@ -6,7 +6,7 @@ using Gameverses;
 using UnityEngine;
 
 namespace Gameverses {
-    public class GameNetworkPhotonRPC : MonoBehaviour {
+    public class GameNetworkPhotonRPC : GameObjectBehavior {
         public string uniqueId = "";
         public PhotonView photonView;
         public int viewID = 0;

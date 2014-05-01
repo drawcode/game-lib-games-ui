@@ -8,7 +8,7 @@ using UnityEngine;
 using Engine.Events;
 using Engine.Networking;
 
-public class GameCommunityPlatformGlobal : MonoBehaviour
+public class GameCommunityPlatformGlobal : GameObjectBehavior
 {
 	public static GameCommunityPlatformGlobal Instance;
 	
@@ -171,7 +171,7 @@ public class GameCommunityPlatformGlobal : MonoBehaviour
 		if(GameNetworks.gameNetworkiOSAppleGameCenterEnabled) {
 #if UNITY_IPHONE			
 			gameNetworks = gameObject.AddComponent<GameNetworks>();			
-			gameNetworks.loadNetwork(GameNetworkType.IOS_GAME_CENTER);
+			gameNetworks.loadNetwork(GameNetworkType.gameNetworkAppleGameCenter);
 #endif
 		}
 	}

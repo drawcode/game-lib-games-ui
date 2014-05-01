@@ -19,7 +19,7 @@ using Photon.SocketServer.Security;
 
 #if NETWORK_PHOTON_CUSTOM
 namespace Gameverses {
-	public class GameNetworkingPhoton : MonoBehaviour, IPhotonPeerListener  {
+	public class GameNetworkingPhoton : GameObjectBehavior, IPhotonPeerListener  {
 		public static GameNetworkingPhoton Instance;
 
 		public LitePeer Peer;

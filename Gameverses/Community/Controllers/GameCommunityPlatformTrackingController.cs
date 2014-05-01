@@ -10,7 +10,7 @@ using Engine.Data.Json;
 using Engine.Events;
 using Engine.Networking;
 
-public class GameCommunityPlatformTrackingController : MonoBehaviour {
+public class GameCommunityPlatformTrackingController : GameObjectBehavior {
 	
 	public static GameCommunityPlatformTrackingController Instance;
 	

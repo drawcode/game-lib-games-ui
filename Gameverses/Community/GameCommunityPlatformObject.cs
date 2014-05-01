@@ -20,7 +20,7 @@ using Engine.Networking;
 
 */
 
-public class GameCommunityPlatformObject : MonoBehaviour {
+public class GameCommunityPlatformObject : GameObjectBehavior {
 	
 	public string note = "See AppConfigs for settings...";
 	

@@ -46,7 +46,7 @@ namespace Gameverses {
         jumpland
     }
 
-    public class GameNetworkPlayerContainer : MonoBehaviour {
+    public class GameNetworkPlayerContainer : GameObjectBehavior {
 #if NETWORK_UNITY
 		public NetworkView networkViewObject;
 #else
