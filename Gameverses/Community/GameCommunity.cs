@@ -810,8 +810,8 @@ public class GameCommunity {
 				LogUtil.Log("GetProfileAchievementData:type:", achievement.type);
 			
 				item.completed = completed;
-				item.type = achievement.type;
-				item.points = achievement.points;
+				item.type = achievement.data.type;
+				item.points = achievement.data.points;
 				achievementData.achievements.Add(item);
 			}
         }

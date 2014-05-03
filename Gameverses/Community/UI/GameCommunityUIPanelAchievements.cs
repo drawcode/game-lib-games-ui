@@ -116,7 +116,7 @@ public class GameCommunityUIPanelAchievements : UIAppPanelBaseList {
 				string points = "";
 				
 				if(completed) {
-					int currentPoints = achievement.points;
+					int currentPoints = achievement.data.points;
 					totalPoints += currentPoints;
 					points = currentPoints.ToString();
 					
@@ -130,7 +130,7 @@ public class GameCommunityUIPanelAchievements : UIAppPanelBaseList {
 					}
 				}
 				
-				if (achievement.points > 0 && completed) {
+                if (achievement.data.points > 0 && completed) {
 					points = "+" + points;
 				}
 					
