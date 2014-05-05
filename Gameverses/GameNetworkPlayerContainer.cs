@@ -205,10 +205,10 @@ namespace Gameverses {
 				// Check integrity, lowest numbered state in the buffer is newest and so on
 				for(int i = 0; i < m_TimestampCount - 1; i++) {
 					if(m_BufferedState[i].timestamp < m_BufferedState[i + 1].timestamp)
-						Debug.Log("State inconsistent");
+						LogUtil.Log("State inconsistent");
 				}
 
-				//Debug.Log("stamp: " + info.timestamp + "my time: " + Network.time + "delta: " + (Network.time - info.timestamp));
+				//LogUtil.Log("stamp: " + info.timestamp + "my time: " + Network.time + "delta: " + (Network.time - info.timestamp));
 			}
 		}
 
@@ -290,10 +290,10 @@ namespace Gameverses {
                 // Check integrity, lowest numbered state in the buffer is newest and so on
                 for (int i = 0; i < m_TimestampCount - 1; i++) {
                     if (m_BufferedState[i].timestamp < m_BufferedState[i + 1].timestamp)
-                        Debug.Log("State inconsistent");
+                        LogUtil.Log("State inconsistent");
                 }
 
-                //Debug.Log("stamp: " + info.timestamp + "my time: " + Network.time + "delta: " + (Network.time - info.timestamp));
+                //LogUtil.Log("stamp: " + info.timestamp + "my time: " + Network.time + "delta: " + (Network.time - info.timestamp));
             }
         }
 

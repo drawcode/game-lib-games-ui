@@ -148,7 +148,7 @@ public class GameCommunityUIPanelPager : UIAppPanelBaseList {
 	
 	void OnProfileLoggedIn(GameCommunityNetworkUser user) {	
 		
-		Debug.Log("GameCommunityUIPanelPager: OnProfileLoggedIn: network:" + user.network 
+		LogUtil.Log("GameCommunityUIPanelPager: OnProfileLoggedIn: network:" + user.network 
 			+ " username:" + user.username 
 			+ " name:" + user.name 
 			+ " first_name:" + user.first_name 

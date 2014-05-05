@@ -120,10 +120,10 @@ public class GameCommunityPlatformGlobal : GameObjectBehavior
 		
         // DEBUG TEMP
 
-        //Debug.Log("CHECKING TIPS");
+        //LogUtil.Log("CHECKING TIPS");
         //foreach(AppContentAction action in AppContentActions.Instance.GetAll()) {
         //	if(action.content_tooltips.Count > 0) {
-        //		//Debug.Log("WE GOT TIPS!:" + action.content_tooltips.Count);
+        //		//LogUtil.Log("WE GOT TIPS!:" + action.content_tooltips.Count);
         //	}
         //}
 				

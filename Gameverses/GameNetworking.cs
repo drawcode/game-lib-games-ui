@@ -368,32 +368,32 @@ namespace Gameverses {
         public void ConnectNetwork() {
             #if NETWORK_PHOTON
             
-            Debug.Log("GameNetworking:ConnectNetwork:GameNetworkingUnityPhoton");
+            LogUtil.Log("GameNetworking:ConnectNetwork:GameNetworkingUnityPhoton");
             GameNetworkingUnityPhoton.Instance.ConnectNetwork();
             #elif NETWORK_UNITY
-            Debug.Log("GameNetworking:ConnectNetwork:GameNetworkingUnity");
+            LogUtil.Log("GameNetworking:ConnectNetwork:GameNetworkingUnity");
             GameNetworkingUnity.Instance.ConnectNetwork();
             #endif
         }
 
         public static void Connect() {
-            Debug.Log("GameNetworking:Connect:" + true);
-            Debug.Log("GameNetworking:Connect:networkConnected:" + networkConnected);
+            LogUtil.Log("GameNetworking:Connect:" + true);
+            LogUtil.Log("GameNetworking:Connect:networkConnected:" + networkConnected);
             if(networkConnected) {
                 return;
             }
             if(Instance != null) {
                 Instance.ConnectNetwork();
             }
-            Debug.Log("GameNetworking:Connect:networkConnected:" + networkConnected);
+            LogUtil.Log("GameNetworking:Connect:networkConnected:" + networkConnected);
         }
         
         public static void Join(string name) {
-            Debug.Log("GameNetworking:Join:" + true);
+            LogUtil.Log("GameNetworking:Join:" + true);
             if(Instance != null) {
                 Instance.join(name);
             }
-            Debug.Log("GameNetworking:Join:networkConnected:" + networkConnected);
+            LogUtil.Log("GameNetworking:Join:networkConnected:" + networkConnected);
         }
 
         public void join(string name) {
@@ -405,11 +405,11 @@ namespace Gameverses {
         }
 
         public static void Create(string name) {
-            Debug.Log("GameNetworking:Create:" + true);
+            LogUtil.Log("GameNetworking:Create:" + true);
             if(Instance != null) {
                 Instance.create(name);
             }
-            Debug.Log("GameNetworking:Create:networkConnected:" + networkConnected);
+            LogUtil.Log("GameNetworking:Create:networkConnected:" + networkConnected);
         }
         
         public void create(string name) {
@@ -421,11 +421,11 @@ namespace Gameverses {
         }
         
         public static void Leave() {
-            Debug.Log("GameNetworking:Leave:" + true);
+            LogUtil.Log("GameNetworking:Leave:" + true);
             if(Instance != null) {
                 Instance.leave();
             }
-            Debug.Log("GameNetworking:Create:networkConnected:" + networkConnected);
+            LogUtil.Log("GameNetworking:Create:networkConnected:" + networkConnected);
         }
         
         public void leave() {
@@ -445,14 +445,14 @@ namespace Gameverses {
         }        
         
         public static void Disconnect() {
-            Debug.Log("GameNetworking:Disconnect:networkConnected:" + networkConnected);
+            LogUtil.Log("GameNetworking:Disconnect:networkConnected:" + networkConnected);
             if(!networkConnected) {
                 return;
             }
             if(Instance != null) {
                 Instance.DisconnectNetwork();
             }
-            Debug.Log("GameNetworking:Disconnect:networkConnected:" + networkConnected);
+            LogUtil.Log("GameNetworking:Disconnect:networkConnected:" + networkConnected);
         }
 
         public void DisconnectNetwork() {

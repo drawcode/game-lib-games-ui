@@ -96,7 +96,7 @@ public class GameCommunityPlatformUIController : GameObjectBehavior {
 					yield return www;
 			
 					if(www.error != null){
-						//Debug.Log("Error loading image:" + www.error);
+						//LogUtil.Log("Error loading image:" + www.error);
 					}
 					else {						
 						www.LoadImageIntoTexture(tex);

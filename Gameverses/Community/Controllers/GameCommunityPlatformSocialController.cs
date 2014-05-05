@@ -120,7 +120,7 @@ public class GameCommunityPlatformSocialController : GameObjectBehavior {
 			
 			if(facebookManager == null || facebookEventListener == null) {
 				
-				//Debug.Log("initFacebook:adding:" + facebookManager);
+				//LogUtil.Log("initFacebook:adding:" + facebookManager);
 				
 				facebookManager = socialNetworkFacebookObject.AddComponent<FacebookManager>();
 				facebookEventListener = socialNetworkFacebookObject.AddComponent<FacebookEventListener>();
@@ -144,7 +144,7 @@ public class GameCommunityPlatformSocialController : GameObjectBehavior {
 			
 			if(twitterManager == null) {
 				
-				//Debug.Log("initTwitter:adding:" + twitterManager);
+				//LogUtil.Log("initTwitter:adding:" + twitterManager);
 				
 				twitterManager = socialNetworkTwitterObject.AddComponent<TwitterManager>();
 				#if UNITY_IPHONE
@@ -159,7 +159,7 @@ public class GameCommunityPlatformSocialController : GameObjectBehavior {
 	
 	public void initFacebook() {
 		
-		//Debug.Log("initFacebook:" + facebookManager);
+		//LogUtil.Log("initFacebook:" + facebookManager);
 	
 		FindFacebookManagerObject();
 						
@@ -179,7 +179,7 @@ public class GameCommunityPlatformSocialController : GameObjectBehavior {
 		}
 		FacebookManager.loginSucceededEvent += () =>
 		{
-			//Debug.Log("[CH] Login succeeded! uploading photo....");
+			//LogUtil.Log("[CH] Login succeeded! uploading photo....");
 			uploadPhotoToFacebook();
 		};
 	}
@@ -201,14 +201,14 @@ public class GameCommunityPlatformSocialController : GameObjectBehavior {
 
 		TwitterManager.twitterPost += () =>
 		{
-			//Debug.Log("[CH] Post uploaded!");
+			//LogUtil.Log("[CH] Post uploaded!");
 			GameCommunityPlatformController.SendResultMessage(
 				twitterPostSuccessTitle, twitterPostSuccessMessage);
 		};
 
 		TwitterManager.twitterPostFailed += errorMessage =>
 		{
-			//Debug.Log("[CH] Post error!");
+			//LogUtil.Log("[CH] Post error!");
 			// [CH] Display the ingame gui. At this point in time no gui is displayed.
 			GUIInGame.SetActive(true);
 			alwaysOnController.refreshInterface();
@@ -247,15 +247,15 @@ public class GameCommunityPlatformSocialController : GameObjectBehavior {
 			yield return null;
 		}
 
-		//Debug.Log("screen capture complete!");
+		//LogUtil.Log("screen capture complete!");
 
 		var tex = new Texture2D( Screen.width, Screen.height, TextureFormat.RGB24, false );
 		WWW www = new WWW("file://"+filePath);
-		//Debug.Log("[CH] looking for:"+www.url);
+		//LogUtil.Log("[CH] looking for:"+www.url);
 		yield return www;
 
 		if(www.error != null){
-			//Debug.Log("Cannot load file"+www.error+" Path:"+www.url);
+			//LogUtil.Log("Cannot load file"+www.error+" Path:"+www.url);
 		}
 		www.LoadImageIntoTexture(tex);
 		
@@ -268,7 +268,7 @@ public class GameCommunityPlatformSocialController : GameObjectBehavior {
 			updatePhotoPreview();
 		}
 		else {
-			Debug.Log("Set photoMaterial property with read/write material/texture before taking photo");
+			LogUtil.Log("Set photoMaterial property with read/write material/texture before taking photo");
 		}
 	}
 
@@ -288,7 +288,7 @@ public class GameCommunityPlatformSocialController : GameObjectBehavior {
 			GameCommunity.Login();
 		}
 		else {		
-			//Debug.Log("We have a valid session.");
+			//LogUtil.Log("We have a valid session.");
 			uploadCurrentPhotoToFacebook();
 		}
 	}
@@ -341,7 +341,7 @@ public class GameCommunityPlatformSocialController : GameObjectBehavior {
 	void onFacebookUploadComplete( string error, object result ) {		
 
 		if(error != null) {
-			//Debug.LogError( error );
+			//LogUtil.LogError( error );
 						
 			GameCommunityPlatformController.SendResultMessage(
 				AppConfigs.stringFacebookUploadErrorTitle, 

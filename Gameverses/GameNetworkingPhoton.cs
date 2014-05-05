@@ -188,7 +188,7 @@ namespace Gameverses {
 	        //this.DebugBuffer.AppendLine(message);
 
 	        //if (this.DebugOutputToConsole) {
-	            Debug.Log(message);
+	            LogUtil.Log(message);
 
 	        //}
 	    }

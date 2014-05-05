@@ -95,7 +95,7 @@ public class GameCommunityUIPanelLogin : UIAppPanelBaseList {
 	
 	void OnProfileLoggedIn(GameCommunityNetworkUser user) {
 		
-		Debug.Log("GameCommunityUIPanelLogin: OnProfileLoggedIn: network:" + user.network 
+		LogUtil.Log("GameCommunityUIPanelLogin: OnProfileLoggedIn: network:" + user.network 
 			+ " username:" + user.username 
 			+ " name:" + user.name 
 			+ " first_name:" + user.first_name 
@@ -338,7 +338,7 @@ public class GameCommunityUIPanelLogin : UIAppPanelBaseList {
 				}
 			}
 			catch (Exception e) {
-				Debug.Log(e);
+				LogUtil.Log(e);
 				yield break;
 			}
 	        yield return new WaitForEndOfFrame();

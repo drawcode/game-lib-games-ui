@@ -80,7 +80,7 @@ public class GameCommunityPlatformController : GameObjectBehavior {
 		
 	void OnProfileLoggedIn() {
 		
-		Debug.Log("GameCommunityPlatformController: OnProfileLoggedIn");
+		LogUtil.Log("GameCommunityPlatformController: OnProfileLoggedIn");
 		
 		// If they logged in to like
 		

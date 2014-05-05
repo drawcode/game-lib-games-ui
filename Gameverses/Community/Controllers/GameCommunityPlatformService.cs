@@ -120,8 +120,8 @@ public class GameCommunityPlatformService {
 		data.Add("username", filter.username);
 				
 		string url = GetGameApiRoute(apiPathGameLeaderboard + "/" + filter.statCode);
-		Debug.Log("getLeaderboard profileId:" + profileId);
-		Debug.Log("getLeaderboard auth:" + auth);
+		LogUtil.Log("getLeaderboard profileId:" + profileId);
+		LogUtil.Log("getLeaderboard auth:" + auth);
 				
 		WebRequests.Instance.Request( 
 			WebRequests.RequestType.HTTP_GET, 
@@ -132,7 +132,7 @@ public class GameCommunityPlatformService {
 	
 	void HandleGetLeaderboardCallback(Engine.Networking.WebRequests.ResponseObject response) {
 		string responseText = response.dataValueText;
-		//Debug.Log("HandleGetLeaderboardCallback responseText:" + responseText);
+		//LogUtil.Log("HandleGetLeaderboardCallback responseText:" + responseText);
 		
 		if(string.IsNullOrEmpty(responseText)) {
 			return;
@@ -167,8 +167,8 @@ public class GameCommunityPlatformService {
 		data.Add("username", filter.username);
 				
 		string url = GetGameApiRoute(apiPathGameLeaderboard + "/" + filter.statCode);
-		Debug.Log("getLeaderboard profileId:" + profileId);
-		Debug.Log("getLeaderboard auth:" + auth);
+		LogUtil.Log("getLeaderboard profileId:" + profileId);
+		LogUtil.Log("getLeaderboard auth:" + auth);
 
 		WebRequests.Instance.Request( 
 			WebRequests.RequestType.HTTP_GET, 
@@ -179,7 +179,7 @@ public class GameCommunityPlatformService {
 	
 	void HandleGetLeaderboardUserCallback(Engine.Networking.WebRequests.ResponseObject responseObject) {
 		string responseText = responseObject.dataValueText;
-		//Debug.Log("HandleGetLeaderboardCallback responseText:" + responseText);
+		//LogUtil.Log("HandleGetLeaderboardCallback responseText:" + responseText);
 		
 		if(string.IsNullOrEmpty(responseText)) {
 			return;
@@ -318,9 +318,9 @@ public class GameCommunityPlatformService {
 		data.Add("data", syncDataJson);
 				
 		string url = GetGameApiRoute(apiPathGameSync);
-		Debug.Log("setSyncData profileId:" + profileId);
-		Debug.Log("setSyncData auth:" + auth);
-		Debug.Log("setSyncData syncDataJson:" + syncDataJson);
+		LogUtil.Log("setSyncData profileId:" + profileId);
+		LogUtil.Log("setSyncData auth:" + auth);
+		LogUtil.Log("setSyncData syncDataJson:" + syncDataJson);
 		
 		WebRequests.Instance.Request(
 			WebRequests.RequestType.HTTP_POST, 
@@ -331,13 +331,13 @@ public class GameCommunityPlatformService {
 	
 	void HandleSetSyncCallback(Engine.Networking.WebRequests.ResponseObject response) {
 		string responseText = response.dataValueText;
-		//Debug.Log("HandleSetSyncCallback responseText:" + responseText);
+		//LogUtil.Log("HandleSetSyncCallback responseText:" + responseText);
 		
 		if(string.IsNullOrEmpty(responseText)) {
 			return;
 		}
 		else {
-			Debug.Log(responseText.Replace("\\\"","\""));
+			LogUtil.Log(responseText.Replace("\\\"","\""));
 			
 		}
 		

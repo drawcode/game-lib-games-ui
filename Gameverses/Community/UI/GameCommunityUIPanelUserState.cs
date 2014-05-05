@@ -78,7 +78,7 @@ public class GameCommunityUIPanelUserState : UIAppPanelBaseList {
 	
 	void OnProfileLoggedIn(GameCommunityNetworkUser user) {
 		
-		Debug.Log("GameCommunityUIPanelUserState: OnProfileLoggedIn: network:" + user.network 
+		LogUtil.Log("GameCommunityUIPanelUserState: OnProfileLoggedIn: network:" + user.network 
 			+ " username:" + user.username 
 			+ " name:" + user.name 
 			+ " first_name:" + user.first_name 
