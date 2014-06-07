@@ -67,7 +67,7 @@ namespace Gameverses {
         public bool connectingAsClient = false;
 
         private string roomToJoin = "";
-        private string roomToCreate = "";
+        public string roomToCreate = "";
 
         public bool isSessionFilled {
             get {
@@ -540,7 +540,14 @@ namespace Gameverses {
             //else {
             if (isConnected) {
                 LogUtil.Log("GameNetworkingUnityPhoton:CreateRoom:" + true);   
-                PhotonNetwork.CreateRoom(name, true, true, 4);
+                RoomOptions options = new RoomOptions();
+                options.isOpen = true;
+                options.isVisible = true;
+                options.maxPlayers = 2;
+
+                //TypedLobby lobby = new TypedLobby();
+
+                PhotonNetwork.CreateRoom(name, options, null);
             }
             //}
         }
