@@ -1,3 +1,4 @@
+#define NETWORK_PHOTON_OFF
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -8,9 +9,10 @@ using UnityEngine;
 namespace Gameverses {
     public class GameNetworkPhotonRPC : GameObjectBehavior {
         public string uniqueId = "";
-        public PhotonView photonView;
         public int viewID = 0;
-
+        
+        #if NETWORK_PHOTON
+        public PhotonView photonView;
         private void Update() {
             if (viewID == 0) {
                 if (photonView != null) {
@@ -137,5 +139,7 @@ namespace Gameverses {
         LogUtil.Log("OnJoinedLobby(). Use a GUI to show existing rooms available in PhotonNetwork.GetRoomList().");
     }
          * */
+        
+        #endif
     }
 }

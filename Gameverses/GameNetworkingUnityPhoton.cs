@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+#if NETWORK_PHOTON
 using ExitGames;
 using ExitGames.Client;
 using ExitGames.Client.Photon;
@@ -8,6 +9,8 @@ using ExitGames.Client.Photon.Lite;
 
 using Photon.SocketServer;
 using Photon.SocketServer.Security;
+#endif
+
 using UnityEngine;
 
 using Engine.Data.Json;
@@ -16,6 +19,7 @@ namespace Gameverses {
 
     public class GameNetworkingUnityPhoton : GameObjectBehavior {
         public static GameNetworkingUnityPhoton Instance;
+        #if NETWORK_PHOTON
 
         public int maxConnections = 4;
 
@@ -23,16 +27,15 @@ namespace Gameverses {
         public bool hasTestedNAT = false;
         public bool testedUseNat = false;
         public bool lookForGameSession = false;
-
-        public PhotonPlayer currentPlayer;
-        public NetworkPeerType peerType;
-
+        
         public HostData currentHostData;
         public HostData currentGameSessionHostData;
         public int connectedPlayerCount = 0;
-
+        
         public HostData[] hostDataMasterServer;
         public HostData hostDataGameSession;
+        public PhotonPlayer currentPlayer;
+        public NetworkPeerType peerType;
 
         public PhotonView photonView;
 
@@ -1111,6 +1114,7 @@ namespace Gameverses {
             }
             return attValue;
         }
+        #endif
     }
 }
 

@@ -1,3 +1,4 @@
+#define NETWORK_PHOTON_OFF
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -5,7 +6,6 @@ using System.Collections.Generic;
 using UnityEngine;
 
 namespace Gameverses {
-
     public class GameNetworkPlayerMessages {
         public static string PlayerAdded = "network-container-player-added";
         public static string PlayerRemoved = "network-container-player-removed";
@@ -48,21 +48,17 @@ namespace Gameverses {
 
     public class GameNetworkPlayerContainer : GameObjectBehavior {
 #if NETWORK_UNITY
-		public NetworkView networkViewObject;
-#else
+        public NetworkView networkViewObject;
+#elif NETWORK_PHOTON
         public PhotonView networkViewObject;
 #endif
         public string uniqueId = "";
-
         public GameNetworkAniStates currentAnimation = GameNetworkAniStates.idle;
         public GameNetworkAniStates lastAnimation = GameNetworkAniStates.idle;
-
         public GameObject gamePlayer;
         public GamePlayerController gamePlayerController;
-
         public double interpolationBackTime = 0.1;
         public bool running = false;
-
         public float verticalInputNetwork = 0f;
         public float horizontalInputNetwork = 0f;
         public float currentSpeedNetwork = 0f;
@@ -81,7 +77,7 @@ namespace Gameverses {
         private State[] m_BufferedState = new State[20];
 
         // Keep track of what slots are used
-        private int m_TimestampCount;
+        public int m_TimestampCount;
 
         private void Start() {
 
@@ -90,22 +86,22 @@ namespace Gameverses {
             // Find gamePlayer controller or create one
             //GameObject gamePlayerControllerObject = GameObject.Find("GamePlayerObject");
             //if(gamePlayerControllerObject != null) {
-            //	GamePlayer
+            //  GamePlayer
             //}
         }
 
 #if NETWORK_UNITY
-		public void AddNetworkView(NetworkViewID idl, string uniqueId) {
-			networkViewObject = gameObject.AddComponent<NetworkView>();
-			networkViewObject.stateSynchronization = NetworkStateSynchronization.ReliableDeltaCompressed;
-			networkViewObject.viewID = idl;
-			uuid = uniqueId;
+        public void AddNetworkView(NetworkViewID idl, string uniqueId) {
+            networkViewObject = gameObject.AddComponent<NetworkView>();
+            networkViewObject.stateSynchronization = NetworkStateSynchronization.ReliableDeltaCompressed;
+            networkViewObject.viewID = idl;
+            uuid = uniqueId;
 
-			LogUtil.Log("Creating network container:" + uuid);
+            LogUtil.Log("Creating network container:" + uuid);
 
-			GameMessenger<string>.Broadcast(GameNetworkPlayerMessages.PlayerAdded, uniqueId);
-		}
-#else
+            GameMessenger<string>.Broadcast(GameNetworkPlayerMessages.PlayerAdded, uniqueId);
+        }
+        #elif NETWORK_PHOTON
 
         public void AddNetworkView(int idl, string uid) {
             if(networkViewObject == null) {
@@ -134,85 +130,85 @@ namespace Gameverses {
         }
 
 #if NETWORK_UNITY
-		void OnSerializeNetworkView(BitStream stream, NetworkMessageInfo info) {
+        void OnSerializeNetworkView(BitStream stream, NetworkMessageInfo info) {
 
-			// Always send transform (depending on reliability of the network view)
+            // Always send transform (depending on reliability of the network view)
 
-			//Gameverses.LogUtil.Log("OnSerializeNetworkView1:gamePlayer:" + gamePlayer + " uuid:" + uuid);
+            //Gameverses.LogUtil.Log("OnSerializeNetworkView1:gamePlayer:" + gamePlayer + " uuid:" + uuid);
 
-			if(!running) {
-				return;
-			}
+            if(!running) {
+                return;
+            }
 
-			if(gamePlayer == null) {
-				return;
-			}
+            if(gamePlayer == null) {
+                return;
+            }
 
-			//Gameverses.LogUtil.Log("OnSerializeNetworkView:gamePlayer:" + gamePlayer + " uuid:" + uuid);
+            //Gameverses.LogUtil.Log("OnSerializeNetworkView:gamePlayer:" + gamePlayer + " uuid:" + uuid);
 
-			if(stream.isWriting) {
-				Vector3 pos = gamePlayer.transform.position;
-				Quaternion rot = gamePlayer.transform.rotation;
-				char ani = (char)currentAnimation;
-				float verticalInput = verticalInputNetwork;
-				float horizontalInput = horizontalInputNetwork;
-				float currentSpeed = currentSpeedNetwork;
-				stream.Serialize(ref pos);
-				stream.Serialize(ref rot);
-				stream.Serialize(ref ani);
-				stream.Serialize(ref verticalInput);
-				stream.Serialize(ref horizontalInput);
-				stream.Serialize(ref currentSpeed);
-			}
+            if(stream.isWriting) {
+                Vector3 pos = gamePlayer.transform.position;
+                Quaternion rot = gamePlayer.transform.rotation;
+                char ani = (char)currentAnimation;
+                float verticalInput = verticalInputNetwork;
+                float horizontalInput = horizontalInputNetwork;
+                float currentSpeed = currentSpeedNetwork;
+                stream.Serialize(ref pos);
+                stream.Serialize(ref rot);
+                stream.Serialize(ref ani);
+                stream.Serialize(ref verticalInput);
+                stream.Serialize(ref horizontalInput);
+                stream.Serialize(ref currentSpeed);
+            }
 
-			// When receiving, buffer the information
-			else {
+            // When receiving, buffer the information
+            else {
 
-				// Receive latest state information
-				Vector3 pos = Vector3.zero;
-				Quaternion rot = Quaternion.identity;
-				char ani = (char)0;
-				float verticalInput = 0f;
-				float horizontalInput = 0f;
-				currentAnimation = (GameNetworkAniStates)ani;
-				float currentSpeed = 0f;
-				stream.Serialize(ref pos);
-				stream.Serialize(ref rot);
-				stream.Serialize(ref ani);
-				stream.Serialize(ref verticalInput);
-				stream.Serialize(ref horizontalInput);
-				stream.Serialize(ref currentSpeed);
+                // Receive latest state information
+                Vector3 pos = Vector3.zero;
+                Quaternion rot = Quaternion.identity;
+                char ani = (char)0;
+                float verticalInput = 0f;
+                float horizontalInput = 0f;
+                currentAnimation = (GameNetworkAniStates)ani;
+                float currentSpeed = 0f;
+                stream.Serialize(ref pos);
+                stream.Serialize(ref rot);
+                stream.Serialize(ref ani);
+                stream.Serialize(ref verticalInput);
+                stream.Serialize(ref horizontalInput);
+                stream.Serialize(ref currentSpeed);
 
-				// Shift buffer contents, oldest data erased, 18 becomes 19, ... , 0 becomes 1
-				for(int i = m_BufferedState.Length - 1; i >= 1; i--) {
-					m_BufferedState[i] = m_BufferedState[i - 1];
-				}
+                // Shift buffer contents, oldest data erased, 18 becomes 19, ... , 0 becomes 1
+                for(int i = m_BufferedState.Length - 1; i >= 1; i--) {
+                    m_BufferedState[i] = m_BufferedState[i - 1];
+                }
 
-				// Save currect received state as 0 in the buffer, safe to overwrite after shifting
-				State state;
-				state.timestamp = info.timestamp;
-				state.pos = pos;
-				state.rot = rot;
-				state.ani = ani;
-				state.verticalInput = verticalInput;
-				state.horizontalInput = horizontalInput;
-				state.currentSpeed = currentSpeed;
-				m_BufferedState[0] = state;
+                // Save currect received state as 0 in the buffer, safe to overwrite after shifting
+                State state;
+                state.timestamp = info.timestamp;
+                state.pos = pos;
+                state.rot = rot;
+                state.ani = ani;
+                state.verticalInput = verticalInput;
+                state.horizontalInput = horizontalInput;
+                state.currentSpeed = currentSpeed;
+                m_BufferedState[0] = state;
 
-				// Increment state count but never exceed buffer size
-				m_TimestampCount = Mathf.Min(m_TimestampCount + 1, m_BufferedState.Length);
+                // Increment state count but never exceed buffer size
+                m_TimestampCount = Mathf.Min(m_TimestampCount + 1, m_BufferedState.Length);
 
-				// Check integrity, lowest numbered state in the buffer is newest and so on
-				for(int i = 0; i < m_TimestampCount - 1; i++) {
-					if(m_BufferedState[i].timestamp < m_BufferedState[i + 1].timestamp)
-						LogUtil.Log("State inconsistent");
-				}
+                // Check integrity, lowest numbered state in the buffer is newest and so on
+                for(int i = 0; i < m_TimestampCount - 1; i++) {
+                    if(m_BufferedState[i].timestamp < m_BufferedState[i + 1].timestamp)
+                        LogUtil.Log("State inconsistent");
+                }
 
-				//LogUtil.Log("stamp: " + info.timestamp + "my time: " + Network.time + "delta: " + (Network.time - info.timestamp));
-			}
-		}
+                //LogUtil.Log("stamp: " + info.timestamp + "my time: " + Network.time + "delta: " + (Network.time - info.timestamp));
+            }
+        }
 
-#else
+        #elif NETWORK_PHOTON
 
         private void OnPhotonSerializeView(PhotonStream stream, PhotonMessageInfo info) {
 
@@ -302,7 +298,7 @@ namespace Gameverses {
         public GameObject GetGamePlayer() {
             gamePlayerController = GameController.GetGamePlayerController(uniqueId);
             
-            if(gamePlayerController != null) {
+            if (gamePlayerController != null) {
                 gamePlayer = gamePlayerController.gameObject;
             }
             return gamePlayer;
@@ -323,7 +319,7 @@ namespace Gameverses {
                 return;
             }            
 
-            if(uniqueId == UniqueUtil.Instance.currentUniqueId) {
+            if (uniqueId == UniqueUtil.Instance.currentUniqueId) {
                 return;
             }
             
@@ -331,7 +327,7 @@ namespace Gameverses {
                 
                 gamePlayer = GetGamePlayer();
                 
-                if(gamePlayer == null) {
+                if (gamePlayer == null) {
                     return;
                 }
             }
@@ -396,9 +392,9 @@ namespace Gameverses {
                 GameMessenger<string, GameNetworkAniStates>.Broadcast(GameNetworkPlayerMessages.PlayerAnimation, uniqueId, lastAnimation);
 
                 //if(gamePlayer.animation) {
-                //	gamePlayer.animation.CrossFade(System.Enum.GetName(typeof(GameNetworkAniStates), currentAnimation));
-                //	gamePlayer.animation["run"].normalizedSpeed = 1.0F;
-                //	gamePlayer.animation["walk"].normalizedSpeed = 1.0F;
+                //  gamePlayer.animation.CrossFade(System.Enum.GetName(typeof(GameNetworkAniStates), currentAnimation));
+                //  gamePlayer.animation["run"].normalizedSpeed = 1.0F;
+                //  gamePlayer.animation["walk"].normalizedSpeed = 1.0F;
                 //}
             }
         }

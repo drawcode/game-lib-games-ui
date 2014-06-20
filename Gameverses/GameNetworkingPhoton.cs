@@ -1,4 +1,4 @@
-#define NETWORK_PHOTON
+#define NETWORK_PHOTON_OFF
 
 using System;
 using System.Collections;

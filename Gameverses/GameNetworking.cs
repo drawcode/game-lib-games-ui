@@ -1,4 +1,4 @@
-#define NETWORK_PHOTON
+#define NETWORK_PHOTON_OFF
 
 using System;
 using System.Collections;
@@ -58,8 +58,10 @@ namespace Gameverses {
     public class GameNetworkingPlayerInfo {
 #if NETWORK_UNITY
 		public NetworkPlayer networkPlayer;
-#else
+#elif NETWORK_PHOTON
         public PhotonPlayer networkPlayer;
+#else
+        public object networkPlayer;
 #endif
         public string name;
         public string uuid;
@@ -77,7 +79,7 @@ namespace Gameverses {
         public void Reset() {
 #if NETWORK_UNITY
 			networkPlayer = Network.player;
-#else
+            #elif NETWORK_PHOTON
             networkPlayer = PhotonNetwork.player;
 #endif
             name = "default";
@@ -190,6 +192,8 @@ namespace Gameverses {
                 return GameNetworkingUnityPhoton.Instance.isNetworkRunning;
 #elif NETWORK_UNITY
 				return GameNetworkingUnity.Instance.isNetworkRunning;
+#else 
+                return false;
 #endif
             }
         }
@@ -199,7 +203,9 @@ namespace Gameverses {
 #if NETWORK_PHOTON
                 return GameNetworkingUnityPhoton.Instance.isServer;
 #elif NETWORK_UNITY
-				return GameNetworkingUnity.Instance.isServer;
+                return GameNetworkingUnity.Instance.isServer;
+                #else 
+                return false;
 #endif
             }
         }
@@ -209,7 +215,9 @@ namespace Gameverses {
 #if NETWORK_PHOTON
                 return GameNetworkingUnityPhoton.Instance.isClient;
 #elif NETWORK_UNITY
-				return GameNetworkingUnity.Instance.isClient;
+                return GameNetworkingUnity.Instance.isClient;
+                #else 
+                return false;
 #endif
             }
         }
@@ -219,7 +227,9 @@ namespace Gameverses {
 #if NETWORK_PHOTON
                 return GameNetworkingUnityPhoton.Instance.isConnected;
 #elif NETWORK_UNITY
-				return GameNetworkingUnity.Instance.isConnected;
+                return GameNetworkingUnity.Instance.isConnected;
+                #else 
+                return false;
 #endif
             }
         }
@@ -229,7 +239,9 @@ namespace Gameverses {
 #if NETWORK_PHOTON
                 return GameNetworkingUnityPhoton.Instance.isConnecting;
 #elif NETWORK_UNITY
-				return GameNetworkingUnity.Instance.isConnecting;
+                return GameNetworkingUnity.Instance.isConnecting;
+                #else 
+                return false;
 #endif
             }
         }
@@ -239,7 +251,9 @@ namespace Gameverses {
 #if NETWORK_PHOTON
                 return GameNetworkingUnityPhoton.Instance.isDisconnected;
 #elif NETWORK_UNITY
-				return GameNetworkingUnity.Instance.isDisconnected;
+                return GameNetworkingUnity.Instance.isDisconnected;
+                #else 
+                return true;
 #endif
             }
         }
@@ -249,7 +263,9 @@ namespace Gameverses {
 #if NETWORK_PHOTON
                 return GameNetworkingUnityPhoton.Instance.isMessageQueueRunning;
 #elif NETWORK_UNITY
-				return GameNetworkingUnity.Instance.isMessageQueueRunning;
+                return GameNetworkingUnity.Instance.isMessageQueueRunning;
+                #else 
+                return false;
 #endif
             }
         }

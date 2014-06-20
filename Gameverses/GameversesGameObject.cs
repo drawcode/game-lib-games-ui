@@ -16,7 +16,7 @@ namespace Gameverses {
 
 #if NETWORK_UNITY
 		public NetworkView networkViewObject;
-#else
+        #elif NETWORK_PHOTON
         public PhotonView networkViewObject;
         public GameObject rpcObject;
         public GameNetworkPhotonRPC rpc;
@@ -28,7 +28,7 @@ namespace Gameverses {
 			networkViewObject = gameObject.AddComponent<NetworkView>();
 			networkViewObject.stateSynchronization = NetworkStateSynchronization.Unreliable;
 			gameNetworking = gameObject.AddComponent<GameNetworking>();
-#else
+            #elif NETWORK_PHOTON
 
             //rpcObject = PhotonNetwork.Instantiate("GameNetworkPhotonRPC", Vector3.zero, Quaternion.identity, 0);
             //networkViewObject = rpcObject.GetComponent<PhotonView>();
@@ -46,15 +46,18 @@ namespace Gameverses {
         }
 
         private void OnLeftRoom() {
+#if NETWORK_UNITY || NETWORK_PHOTON
             rpcObject = null;
             networkViewObject = null;
+#endif
         }
 
         public void SetupNetworkView() {
             //if(GameNetworking.Instance.isServer) {
-
-            string uid = UniqueUtil.Instance.currentUniqueId;
             
+            #if NETWORK_PHOTON
+            string uid = UniqueUtil.Instance.currentUniqueId;
+
             if (rpcObject == null) {
                 foreach(GameNetworkPhotonRPC rpcItem in ObjectUtil.FindObjects<GameNetworkPhotonRPC>()) {
                     if(rpcItem.uniqueId == uid && !string.IsNullOrEmpty(uid)) {
@@ -88,6 +91,7 @@ namespace Gameverses {
                 //rpc.uniqueId = UniqueUtil.Instance.currentUniqueId;
             }
             //}
+            #endif
         }
     }
 }

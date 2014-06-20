@@ -42,7 +42,7 @@ namespace Gameverses {
         public GameversesGameSessionData currentSessionData;
 #if NETWORK_UNITY
 		public NetworkPlayer currentPlayer;
-#else
+#elif NETWORK_PHOTON
         public PhotonPlayer currentPlayer;
 #endif
         public HostData currentHostData;
@@ -232,7 +232,7 @@ namespace Gameverses {
         public void DisconnectGameSession() {
             GameNetworking.Instance.DisconnectNetwork();
         }
-
+        #if NETWORK_PHOTON
         public void SetupNetworkGameSession(string uuid, PhotonPlayer player, HostData hostData) {
             currentPlayer = player;
             currentHostData = hostData;
@@ -265,6 +265,7 @@ namespace Gameverses {
 
             LogUtil.Log("GameversesService.Instance: " + uuid);
         }
+#endif
 
         public void SetupNetworkGameSession(string uuid, NetworkPlayer player, HostData hostData) {
 #if NETWORK_UNITY
