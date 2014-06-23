@@ -301,44 +301,44 @@ namespace Gameverses {
         private void OnNetworkServerInitializedHandler(GameNetworkingType gameType) {
 
             //player = (type)player;
-            //LogUtil.Log("GameversesGameAPI::OnNetworkServerInitializedHandler: " + player.externalIP);
+            //Debug.Log("GameversesGameAPI::OnNetworkServerInitializedHandler: " + player.externalIP);
         }
 
         private void OnNetworkConnectedToServerHandler(GameNetworkingType gameType) {
 
-            //LogUtil.Log("GameversesGameAPI::OnNetworkConnectedToServerHandler: " + player.externalIP);
+            //Debug.Log("GameversesGameAPI::OnNetworkConnectedToServerHandler: " + player.externalIP);
         }
 
         private void OnNetworkDisconnectedFromServerHandler(GameNetworkingType gameType) {
 
-            //LogUtil.Log("GameversesGameAPI::OnNetworkDisconnectedFromServerHandler: " + info);
+            //Debug.Log("GameversesGameAPI::OnNetworkDisconnectedFromServerHandler: " + info);
         }
 
         private void OnNetworkFailedToConnectHandler(GameNetworkingType gameType) {
 
-            //LogUtil.Log("GameversesGameAPI::OnNetworkFailedToConnectHandler: " + error);
+            //Debug.Log("GameversesGameAPI::OnNetworkFailedToConnectHandler: " + error);
         }
 
         private void OnNetworkInstantiateHandler(GameNetworkingType gameType) {
 
-            //LogUtil.Log("GameversesGameAPI::OnNetworkInstantiateHandler: " + info);
+            //Debug.Log("GameversesGameAPI::OnNetworkInstantiateHandler: " + info);
         }
 
         private void OnPhotonPlayerConnectedHandler(GameNetworkingType gameType) {
 
-            //LogUtil.Log("GameversesGameAPI::OnPhotonPlayerConnectedHandler: " + player);
+            //Debug.Log("GameversesGameAPI::OnPhotonPlayerConnectedHandler: " + player);
         }
 
         private void OnNetworkSerializeNetworkViewHandler(GameNetworkingType streamObject, GameNetworkingType infoObject) {
 
             //BitStream stream = (gameType.type)gameType.itemObject;
             //NetworkMessageInfo info = (infoObject.type)gameType.infoObject;
-            //LogUtil.Log("GameversesGameAPI::OnNetworkSerializeNetworkViewHandler: " + info);
+            //Debug.Log("GameversesGameAPI::OnNetworkSerializeNetworkViewHandler: " + info);
         }
 
         private void OnNetworkConnectionTestedHandler() {
 
-            //LogUtil.Log("GameversesGameAPI::OnNetworkConnectionTestedHandler: " + GameNetworking.Instance.hasTestedNAT);
+            //Debug.Log("GameversesGameAPI::OnNetworkConnectionTestedHandler: " + GameNetworking.Instance.hasTestedNAT);
         }
 
         // ##################################################################################################
@@ -384,32 +384,32 @@ namespace Gameverses {
         public void ConnectNetwork() {
             #if NETWORK_PHOTON
             
-            LogUtil.Log("GameNetworking:ConnectNetwork:GameNetworkingUnityPhoton");
+            Debug.Log("GameNetworking:ConnectNetwork:GameNetworkingUnityPhoton");
             GameNetworkingUnityPhoton.Instance.ConnectNetwork();
             #elif NETWORK_UNITY
-            LogUtil.Log("GameNetworking:ConnectNetwork:GameNetworkingUnity");
+            Debug.Log("GameNetworking:ConnectNetwork:GameNetworkingUnity");
             GameNetworkingUnity.Instance.ConnectNetwork();
             #endif
         }
 
         public static void Connect() {
-            LogUtil.Log("GameNetworking:Connect:" + true);
-            LogUtil.Log("GameNetworking:Connect:networkConnected:" + networkConnected);
+            Debug.Log("GameNetworking:Connect:" + true);
+            Debug.Log("GameNetworking:Connect:networkConnected:" + networkConnected);
             if(networkConnected) {
                 return;
             }
             if(Instance != null) {
                 Instance.ConnectNetwork();
             }
-            LogUtil.Log("GameNetworking:Connect:networkConnected:" + networkConnected);
+            Debug.Log("GameNetworking:Connect:networkConnected:" + networkConnected);
         }
         
         public static void Join(string name) {
-            LogUtil.Log("GameNetworking:Join:" + true);
+            Debug.Log("GameNetworking:Join:" + true);
             if(Instance != null) {
                 Instance.join(name);
             }
-            LogUtil.Log("GameNetworking:Join:networkConnected:" + networkConnected);
+            Debug.Log("GameNetworking:Join:networkConnected:" + networkConnected);
         }
 
         public void join(string name) {
@@ -421,11 +421,11 @@ namespace Gameverses {
         }
 
         public static void Create(string name) {
-            LogUtil.Log("GameNetworking:Create:" + true);
+            Debug.Log("GameNetworking:Create:" + true);
             if(Instance != null) {
                 Instance.create(name);
             }
-            LogUtil.Log("GameNetworking:Create:networkConnected:" + networkConnected);
+            Debug.Log("GameNetworking:Create:networkConnected:" + networkConnected);
         }
         
         public void create(string name) {
@@ -437,11 +437,11 @@ namespace Gameverses {
         }
         
         public static void Leave() {
-            LogUtil.Log("GameNetworking:Leave:" + true);
+            Debug.Log("GameNetworking:Leave:" + true);
             if(Instance != null) {
                 Instance.leave();
             }
-            LogUtil.Log("GameNetworking:Create:networkConnected:" + networkConnected);
+            Debug.Log("GameNetworking:Create:networkConnected:" + networkConnected);
         }
         
         public void leave() {
@@ -461,14 +461,14 @@ namespace Gameverses {
         }        
         
         public static void Disconnect() {
-            LogUtil.Log("GameNetworking:Disconnect:networkConnected:" + networkConnected);
+            Debug.Log("GameNetworking:Disconnect:networkConnected:" + networkConnected);
             if(!networkConnected) {
                 return;
             }
             if(Instance != null) {
                 Instance.DisconnectNetwork();
             }
-            LogUtil.Log("GameNetworking:Disconnect:networkConnected:" + networkConnected);
+            Debug.Log("GameNetworking:Disconnect:networkConnected:" + networkConnected);
         }
 
         public void DisconnectNetwork() {
@@ -512,22 +512,22 @@ namespace Gameverses {
                 currentTimeBlockDelayed = 0.0f;
                 /*
                  *
-                LogUtil.Log("isNetworkRunning:" + isNetworkRunning);
-                LogUtil.Log("isServer:" + isServer);
-                LogUtil.Log("isClient:" + isClient);
-                LogUtil.Log("isConnected:" + isConnected);
-                LogUtil.Log("isConnecting:" + isConnecting);
-                LogUtil.Log("isDisconnected:" + isDisconnected);
+                Debug.Log("isNetworkRunning:" + isNetworkRunning);
+                Debug.Log("isServer:" + isServer);
+                Debug.Log("isClient:" + isClient);
+                Debug.Log("isConnected:" + isConnected);
+                Debug.Log("isConnecting:" + isConnecting);
+                Debug.Log("isDisconnected:" + isDisconnected);
 
                 if (Network.peerType == NetworkPeerType.Disconnected) {
-                    LogUtil.Log("Not Connected");
+                    Debug.Log("Not Connected");
                 }
                 else {
                     if (Network.peerType == NetworkPeerType.Connecting) {
-                        LogUtil.Log("Connecting");
+                        Debug.Log("Connecting");
                     }
                     else {
-                        LogUtil.Log("Network started");
+                        Debug.Log("Network started");
                     }
                 }
                 */
@@ -589,7 +589,7 @@ namespace Gameverses {
         if(playerType == "enemy") {
         }
 
-        Gameverses.LogUtil.Log("GameNetworking: SpawnOnNetwork: uuid:" + uuid + " playerName:" + playerName + " playerType:" + playerType + " id1:" + id1);
+        Gameverses.Debug.Log("GameNetworking: SpawnOnNetwork: uuid:" + uuid + " playerName:" + playerName + " playerType:" + playerType + " id1:" + id1);
 
         GameNetworkPlayerContainer playerContainer = (Instantiate(Resources.Load("Prefabs/GameNetworkPlayerObject"), Vector3.zero, Quaternion.identity) as GameObject).GetComponent<GameNetworkPlayerContainer>();
         playerContainer.gameObject.transform.parent = networkObjectsContainer.transform;
@@ -637,7 +637,7 @@ namespace Gameverses {
         else if(action.type == GameNetworkingPlayerTypeMessages.PlayerTypeProjectile) {
         }
 
-        Gameverses.LogUtil.Log("GameNetworking: ActionOnNetwork: uuid:" + action.uuid  + " code:" + action.code + " uuidOwner:" + action.uuidOwner + " type:" + action.type);
+        Gameverses.Debug.Log("GameNetworking: ActionOnNetwork: uuid:" + action.uuid  + " code:" + action.code + " uuidOwner:" + action.uuidOwner + " type:" + action.type);
 
         GameMessenger<GameNetworkingAction, Vector3, Vector3>.Broadcast(GameNetworkingMessages.ActionEvent, action, pos, direction);
 
@@ -675,7 +675,7 @@ namespace Gameverses {
         else if(action.type == GameNetworkingPlayerTypeMessages.PlayerTypeProjectile) {
         }
 
-        //Gameverses.LogUtil.Log("GameNetworking: ActionOnNetwork: uuid:" + action.uuid  + " code:" + action.code + " uuidOwner:" + action.uuidOwner + " type:" + action.type);
+        //Gameverses.Debug.Log("GameNetworking: ActionOnNetwork: uuid:" + action.uuid  + " code:" + action.code + " uuidOwner:" + action.uuidOwner + " type:" + action.type);
 
         ////////////////////
         GameNetworkPlayerContainer playerContainer = (Instantiate(Resources.Load("Prefabs/GameNetworkPlayerObject"), Vector3.zero, Quaternion.identity) as GameObject).GetComponent<GameNetworkPlayerContainer>();
@@ -694,9 +694,9 @@ namespace Gameverses {
 
     [RPC]
     void SetNetworkPlayer(NetworkPlayer networkPlayer, string username, string type) {
-        Gameverses.LogUtil.Log("GameNetworking: SetNetworkPlayer: username:" + username + " type:" + type);
+        Gameverses.Debug.Log("GameNetworking: SetNetworkPlayer: username:" + username + " type:" + type);
 
-        Gameverses.LogUtil.Log("GameNetworking: SetNetworkPlayer: networkPlayer:" + networkPlayer.guid);
+        Gameverses.Debug.Log("GameNetworking: SetNetworkPlayer: networkPlayer:" + networkPlayer.guid);
 
         if(playerList == null) {
             playerList = new List<GameNetworkingPlayerInfo>();
@@ -704,7 +704,7 @@ namespace Gameverses {
 
         GameNetworkingPlayerInfo currentPlayer = GetPlayer(networkPlayer);
 
-        Gameverses.LogUtil.Log("GameNetworking: SetNetworkPlayer: username:" + username + " type:" + type);
+        Gameverses.Debug.Log("GameNetworking: SetNetworkPlayer: username:" + username + " type:" + type);
 
         bool found = false;
 
@@ -715,7 +715,7 @@ namespace Gameverses {
             found = true;
         }
 
-        Gameverses.LogUtil.Log("GameNetworking: SetNetworkPlayer: currentPlayer:" + currentPlayer.name);
+        Gameverses.Debug.Log("GameNetworking: SetNetworkPlayer: currentPlayer:" + currentPlayer.name);
 
         currentPlayer.networkPlayer = networkPlayer;
         currentPlayer.name = username;
@@ -731,7 +731,7 @@ namespace Gameverses {
 
         playerList.Add(currentPlayer);
 
-        Gameverses.LogUtil.Log("GameNetworking: SetNetworkPlayer: UPDATED: username:" + username + " type:" + type);
+        Gameverses.Debug.Log("GameNetworking: SetNetworkPlayer: UPDATED: username:" + username + " type:" + type);
 
         FindOrCreateNetworkObjectsContainer();
     }
@@ -743,24 +743,24 @@ namespace Gameverses {
 
     [RPC]
     void UpdatePlayerAttributeSync(GameNetworkingPlayerInfo currentPlayer, string key, string keyValue) {
-        Gameverses.LogUtil.Log("GameversesGameAPI: UpdatePlayerAttribute: key:" + key + " keyValue: " + keyValue);
+        Gameverses.Debug.Log("GameversesGameAPI: UpdatePlayerAttribute: key:" + key + " keyValue: " + keyValue);
 
         if (currentPlayer != null) {
-            Gameverses.LogUtil.Log("GameversesGameAPI: UpdatePlayerAttribute: Player already exists! Updating...");
+            Gameverses.Debug.Log("GameversesGameAPI: UpdatePlayerAttribute: Player already exists! Updating...");
 
             if(currentPlayer.attributes.ContainsKey(key)) {
                 currentPlayer.attributes[key] = keyValue;
-                Gameverses.LogUtil.Log("GameversesGameAPI: UpdatePlayerAttribute: contained key:" + key + " keyValue: " + keyValue);
+                Gameverses.Debug.Log("GameversesGameAPI: UpdatePlayerAttribute: contained key:" + key + " keyValue: " + keyValue);
             }
             else {
                 currentPlayer.attributes.Add(key, keyValue);
-                Gameverses.LogUtil.Log("GameversesGameAPI: UpdatePlayerAttribute: add key:" + key + " keyValue: " + keyValue);
+                Gameverses.Debug.Log("GameversesGameAPI: UpdatePlayerAttribute: add key:" + key + " keyValue: " + keyValue);
             }
 
             SetPlayerAttributes(currentPlayer.uuid, currentPlayer);
         }
         else {
-            Gameverses.LogUtil.Log("GameversesGameAPI: UpdatePlayerAttribute: Player doesn't exist! Adding...");
+            Gameverses.Debug.Log("GameversesGameAPI: UpdatePlayerAttribute: Player doesn't exist! Adding...");
             GameNetworkingPlayerInfo np = new GameNetworkingPlayerInfo();
             np.networkPlayer = currentPlayer.networkPlayer;
 
@@ -781,13 +781,13 @@ namespace Gameverses {
 
     void SetPlayerTransform(NetworkPlayer networkPlayer, Transform pTransform) {
         if (!pTransform) {
-            Gameverses.LogUtil.LogError("GameversesGameAPI: SetPlayersTransform has a NULL playerTransform!");
+            Gameverses.Debug.LogError("GameversesGameAPI: SetPlayersTransform has a NULL playerTransform!");
         }
 
         GameNetworkingPlayerInfo thePlayer = GetPlayer(networkPlayer);
 
         if (thePlayer == null) {
-            Gameverses.LogUtil.LogError("GameversesGameAPI: SetPlayersPlayerTransform: No player found!");
+            Gameverses.Debug.LogError("GameversesGameAPI: SetPlayersPlayerTransform: No player found!");
         }
 
         thePlayer.transform = pTransform;
