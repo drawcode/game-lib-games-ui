@@ -130,7 +130,7 @@ public class GameCommunityPlatformGlobal : GameObjectBehavior
 		//yield return StartCoroutine(Contents.Instance.ProcessLoadCo());		
 		
 		//if(AppViewerAppController.Instance != null) {
-        //	AppViewerAppController.Instance.ChangeAppContentStateByCode("pack-vidari-featured-1-initial");
+        //	AppViewerAppController.Instance.ChangeAppContentStateByCode("pack-featured-1-initial");
 		//}
 		yield break;
 	}

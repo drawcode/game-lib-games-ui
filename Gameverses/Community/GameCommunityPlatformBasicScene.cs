@@ -9,7 +9,7 @@ using System.IO;
  
  SAMPLE BASIC GAME COMMUNITY SCENE
   - Uses facebook login
-  - Uses Popar platform profiles, statistics, achievements for 
+  - Uses [app] platform profiles, statistics, achievements for 
     local persistence in streaming assets/documents cache
   - Get statistics lists
   - Get Facebook scores for app
@@ -50,14 +50,14 @@ using System.IO;
   GameCommunity.SetHighScore(int score)
    - Facebook specific scores api set for single supported facebook score
      uses 'high-score' statistic in statistics list 
-     (StreamingAssets/popar/[app folder name ("vehicle-shoot")]/version/shared/data/statistics-data.json)
+     (StreamingAssets/[app]/[app folder name ("vehicle-shoot")]/version/shared/data/statistics-data.json)
    - Auto calls GameCommunity.SendStatistics(), other stats this needs to be called 
      explicitely to send to other networks
      
   int GameCommunity.GetHighScore() 
    - Get local high score and last sent to facebook scores api as int
    - Uses 'high-score' statistic in statistics list 
-     (StreamingAssets/popar/[app folder name ("vehicle-shoot")]/version/shared/data/statistics-data.json)
+     (StreamingAssets/[app]/[app folder name ("vehicle-shoot")]/version/shared/data/statistics-data.json)
  
   GameCommunity.SendStatistics()
    - Send statistics not sent to all networks
@@ -65,27 +65,27 @@ using System.IO;
   GameCommunity.SetStatisticValue(string code, float value)
    - Set another stat by code and float	
    - statistic in statistics list 
-     (StreamingAssets/popar/[app folder name ("vehicle-shoot")]/version/shared/data/statistics-data.json)
+     (StreamingAssets/[app]/[app folder name ("vehicle-shoot")]/version/shared/data/statistics-data.json)
      
   double GameCommunity.GetStatisticValue(string statisticCode)
    - Get another stat by statisticCode or 'code' in data
    - statistic in statistics list 
-     (StreamingAssets/popar/[app folder name ("vehicle-shoot")]/version/shared/data/statistics-data.json)
+     (StreamingAssets/[app]/[app folder name ("vehicle-shoot")]/version/shared/data/statistics-data.json)
      
   bool GameCommunity.SetAchievement(string achievementCode, bool completed)
    - Set achievement by achievementCode or 'code' in data
    - achievement in achievements list 
-     (StreamingAssets/popar/[app folder name ("vehicle-shoot")]/version/shared/data/achievements-data.json)
+     (StreamingAssets/[app]/[app folder name ("vehicle-shoot")]/version/shared/data/achievements-data.json)
      
   bool GameCommunity.GetAchievement(string achievementCode)
    - Get achievement by achievementCode or 'code' in data 
    - achievement in achievements list 
-     (StreamingAssets/popar/[app folder name ("vehicle-shoot")]/version/shared/data/achievements-data.json)
+     (StreamingAssets/[app]/[app folder name ("vehicle-shoot")]/version/shared/data/achievements-data.json)
      
   bool GameCommunity.GetAchievement(string achievementCode)
    - Get achievement by achievementCode or 'code' in data 
    - achievement in achievements list 
-     (StreamingAssets/popar/[app folder name ("vehicle-shoot")]/version/shared/data/achievements-data.json)
+     (StreamingAssets/[app]/[app folder name ("vehicle-shoot")]/version/shared/data/achievements-data.json)
  
 */
 
