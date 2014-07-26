@@ -27,7 +27,6 @@ namespace Gameverses {
     */
 
     // base
-
     public class GameversesBaseEntity {
         public string uuid = "";
         public DateTime date_modified = DateTime.Now;
@@ -173,7 +172,6 @@ namespace Gameverses {
         public string profile_id = "";
         public string profile_username = "";
         public string hash = "";
-
         public string game_id = "";
         public string game_type = "";
         public string game_state = "";
@@ -184,7 +182,6 @@ namespace Gameverses {
         public int game_players_allowed = 4;
         public double game_player_x = 0;
         public double game_player_z = 0;
-
         public string network_uuid = "";
         public string network_ip = "";
         public int network_port = 50666;
