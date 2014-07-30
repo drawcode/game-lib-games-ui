@@ -9,14 +9,14 @@ using Engine.Data.Json;
 using Engine.Events;
 using Engine.Utility;
 
-public class GameCloudSyncMessages {
+public class GameSyncMessages {
     
     public static string cloudSyncStart = "cloud-sync-start";
     public static string cloudSyncSuccess = "cloud-sync-success";
     public static string cloudSyncError = "cloud-sync-error";
 }
 
-public class BaseGameCloudSyncResult : GameDataObject {
+public class BaseGameSyncResult : GameDataObject {
     
     public virtual GameDataObject info {
         get {
@@ -39,27 +39,27 @@ public class BaseGameCloudSyncResult : GameDataObject {
     } 
 }
 
-public class GameCloudSyncResult : BaseGameCloudSyncResult {        
+public class GameSyncResult : BaseGameSyncResult {        
     
-    public virtual GameCloudSyncObject data {
+    public virtual GameSyncObject data {
         get {
-            return Get<GameCloudSyncObject>(BaseDataObjectKeys.data);
+            return Get<GameSyncObject>(BaseDataObjectKeys.data);
         }
         
         set {
-            Set<GameCloudSyncObject>(BaseDataObjectKeys.data, value);
+            Set<GameSyncObject>(BaseDataObjectKeys.data, value);
         }
     } 
 }
 
-public class GameCloudSyncType {
+public class GameSyncType {
     public static string upload = "upload";
     public static string upload_delta = "upload-delta";
     public static string download = "download";
     public static string download_delta = "download-delta";
 }
 
-public class GameCloudSyncFileObject : GameDataObject {
+public class GameSyncFileObject : GameDataObject {
 
     // code 
     // path
@@ -67,29 +67,29 @@ public class GameCloudSyncFileObject : GameDataObject {
     // content
     // data_type
 
-    public GameCloudSyncFileObject() {
-        data_type = GameCloudSyncType.upload;
+    public GameSyncFileObject() {
+        data_type = GameSyncType.upload;
     }
 }
 
-public class GameCloudSyncObject : GameDataObject {
+public class GameSyncObject : GameDataObject {
 
     // uuid
     // email
     // code
-    // username
+    // username@@ryn@pcstein00BB--!!!
 
-    public GameCloudSyncObject() {
+    public GameSyncObject() {
         Reset();
     }
     
-    public virtual Dictionary<string, GameCloudSyncFileObject> files {
+    public virtual Dictionary<string, GameSyncFileObject> files {
         get {
-            return Get<Dictionary<string, GameCloudSyncFileObject>>(BaseDataObjectKeys.files);
+            return Get<Dictionary<string, GameSyncFileObject>>(BaseDataObjectKeys.files);
         }
         
         set {
-            Set<Dictionary<string, GameCloudSyncFileObject>>(BaseDataObjectKeys.files, value);
+            Set<Dictionary<string, GameSyncFileObject>>(BaseDataObjectKeys.files, value);
         }
     } 
 
@@ -97,21 +97,21 @@ public class GameCloudSyncObject : GameDataObject {
         email = "";
         
         if(files == null)
-            files = new Dictionary<string, GameCloudSyncFileObject>();
+            files = new Dictionary<string, GameSyncFileObject>();
         else 
             files.Clear();
     }
 
     public void SetFile(string code, string path, string content) {
 
-        GameCloudSyncFileObject fileObject = null;
+        GameSyncFileObject fileObject = null;
 
         if(files.ContainsKey(code)) {
             fileObject = files[code];
         }
 
         if(fileObject == null) {
-            fileObject = new GameCloudSyncFileObject();
+            fileObject = new GameSyncFileObject();
         }
 
         fileObject.code = code;
@@ -123,36 +123,36 @@ public class GameCloudSyncObject : GameDataObject {
 
 }
 
-public class GameCloudSyncGame : GameDataObject {
+public class GameSyncGame : GameDataObject {
     // game_id
     // 
 }
 
-public class GameCloudSyncNetwork : GameDataObject {
+public class GameSyncNetwork : GameDataObject {
 
     // network_id
     // username
 }
 
-public class GameCloudSync : GameObjectBehavior { 
+public class GameSync : GameObjectBehavior { 
     
     public static bool gameCloudSyncEnabled = AppConfigs.gameCloudSyncEnabled;
     public static bool gameCloudSyncTestingEnabled = AppConfigs.gameCloudSyncTestingEnabled;
     
-    // Only one GameCloudSync can exist. We use a singleton pattern to enforce this.
-    private static GameCloudSync _instance = null;
+    // Only one GameSync can exist. We use a singleton pattern to enforce this.
+    private static GameSync _instance = null;
     
-    public static GameCloudSync Instance {
+    public static GameSync Instance {
         get {
             if (!_instance) {
                 
                 // check if an ObjectPoolManager is already available in the scene graph
-                _instance = FindObjectOfType(typeof(GameCloudSync)) as GameCloudSync;
+                _instance = FindObjectOfType(typeof(GameSync)) as GameSync;
                 
                 // nope, create a new one
                 if (!_instance) {
-                    var obj = new GameObject("_GameCloudSync");
-                    _instance = obj.AddComponent<GameCloudSync>();
+                    var obj = new GameObject("_GameSync");
+                    _instance = obj.AddComponent<GameSync>();
                 }
             }
             
@@ -162,8 +162,8 @@ public class GameCloudSync : GameObjectBehavior {
 
     //
 
-    public GameCloudSyncObject profileSyncObject;
-    public GameCloudSyncObject gameSyncObject;
+    public GameSyncObject profileSyncObject;
+    public GameSyncObject gameSyncObject;
 
     //
     
@@ -188,11 +188,11 @@ public class GameCloudSync : GameObjectBehavior {
     void Reset() {
         
         if(profileSyncObject == null) {
-            profileSyncObject = new GameCloudSyncObject();
+            profileSyncObject = new GameSyncObject();
         }
 
         if(gameSyncObject == null) {
-            gameSyncObject = new GameCloudSyncObject();
+            gameSyncObject = new GameSyncObject();
         }
 
         profileSyncObject.Reset();
@@ -201,15 +201,15 @@ public class GameCloudSync : GameObjectBehavior {
 
     // EVENTS
 
-    void OnGameCloudSyncStart(GameCloudSyncResult result) {
+    void OnGameSyncStart(GameSyncResult result) {
 
     }
     
-    void OnGameCloudSyncSuccess(GameCloudSyncResult result) {
+    void OnGameSyncSuccess(GameSyncResult result) {
         
     }
     
-    void OnGameCloudSyncError(GameCloudSyncResult result) {
+    void OnGameSyncError(GameSyncResult result) {
         
     }
 
