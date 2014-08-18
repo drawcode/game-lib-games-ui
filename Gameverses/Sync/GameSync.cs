@@ -356,7 +356,15 @@ public class GameSync : GameObjectBehavior {
         requestItem.paramHash.Set("uid", uid);
         requestItem.paramHash.Set("profile_id", profile_id);
         requestItem.paramHash.Set("game_id", game_id);
-        requestItem.paramHash.Set("data", data.ToJson().Replace("\\\"","\"").TrimStart('"').TrimEnd('"'));
+        string dataValue = "";//data.ToJson();
+        if(data != null) {
+            dataValue = data.ToJson();
+            if(!string.IsNullOrEmpty(dataValue)) {
+                dataValue = dataValue.Replace("\\\"","\"").TrimStart('"').TrimEnd('"');
+            }
+        }
+
+        requestItem.paramHash.Set("data", dataValue);
 
         
         Debug.Log("requestItem.paramHash" + requestItem.paramHash.ToJson());
