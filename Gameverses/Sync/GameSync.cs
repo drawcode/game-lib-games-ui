@@ -347,6 +347,27 @@ public class GameSync : GameObjectBehavior {
         string game_id, 
         object data) {
         
+        CoroutineUtil.Start(syncProfileCo(
+            url, 
+            key,
+            uid,
+            profile_id, 
+            game_id, 
+            data));
+    }
+
+    //
+        
+    public IEnumerator syncProfileCo(
+        string url, 
+        string key,
+        string uid,
+        string profile_id, 
+        string game_id, 
+        object data) {
+        
+        yield return new WaitForEndOfFrame();
+        
         WWWs.RequestItem requestItem = new WWWs.RequestItem();
         
         requestItem.url = url;
@@ -363,16 +384,14 @@ public class GameSync : GameObjectBehavior {
                 dataValue = dataValue.Replace("\\\"","\"").TrimStart('"').TrimEnd('"');
             }
         }
-
-        requestItem.paramHash.Set("data", dataValue);
-
+        
+        requestItem.paramHash.Set("data", dataValue);        
         
         Debug.Log("requestItem.paramHash" + requestItem.paramHash.ToJson());
-
+        
         WWWs.Request(requestItem);
         //Debug.Log("" + requestItem.ToJson());
+
+        yield return new WaitForEndOfFrame();
     }
-
-    //
-
 }
