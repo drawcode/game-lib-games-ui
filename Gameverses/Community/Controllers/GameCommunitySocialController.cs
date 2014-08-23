@@ -8,9 +8,9 @@ using Engine.Events;
 using Engine.Networking;
 
 
-public class GameCommunityPlatformSocialController : GameObjectBehavior {
+public class GameCommunitySocialController : GameObjectBehavior {
 	
-	public static GameCommunityPlatformSocialController Instance;
+	public static GameCommunitySocialController Instance;
 	
 	public float currentTimeBlock = 0.0f;
 	public float actionInterval = 1.0f;
@@ -35,12 +35,12 @@ public class GameCommunityPlatformSocialController : GameObjectBehavior {
 	
 	void OnEnable() {
 		Messenger<GameCommunityMessageResult>.AddListener(
-			GameCommunityPlatformMessages.gameCommunityResultMessage, OnGameCommunityResultMessage);
+			GameCommunityMessages.gameCommunityResultMessage, OnGameCommunityResultMessage);
 	}
 	
 	void OnDisable() {
 		Messenger<GameCommunityMessageResult>.RemoveListener(
-			GameCommunityPlatformMessages.gameCommunityResultMessage, OnGameCommunityResultMessage);		
+			GameCommunityMessages.gameCommunityResultMessage, OnGameCommunityResultMessage);		
 	}
 	
 	void OnGameCommunityResultMessage(GameCommunityMessageResult result) {
@@ -202,7 +202,7 @@ public class GameCommunityPlatformSocialController : GameObjectBehavior {
 		TwitterManager.twitterPost += () =>
 		{
 			//LogUtil.Log("[CH] Post uploaded!");
-			GameCommunityPlatformController.SendResultMessage(
+			GameCommunityController.SendResultMessage(
 				twitterPostSuccessTitle, twitterPostSuccessMessage);
 		};
 
@@ -302,7 +302,7 @@ public class GameCommunityPlatformSocialController : GameObjectBehavior {
 		}
 		else {
 			
-			GameCommunityPlatformController.SendResultMessage(
+			GameCommunityController.SendResultMessage(
 				AppConfigs.stringTwitterDisabledTitle , 
 				AppConfigs.stringTwitterDisabledMessage);
 		}
@@ -343,12 +343,12 @@ public class GameCommunityPlatformSocialController : GameObjectBehavior {
 		if(error != null) {
 			//LogUtil.LogError( error );
 						
-			GameCommunityPlatformController.SendResultMessage(
+			GameCommunityController.SendResultMessage(
 				AppConfigs.stringFacebookUploadErrorTitle, 
 				AppConfigs.stringFacebookUploadErrorMessage + error);
 		}
 		else {			
-			GameCommunityPlatformController.SendResultMessage(
+			GameCommunityController.SendResultMessage(
 				AppConfigs.stringFacebookUploadSuccessTitle , 
 				AppConfigs.stringFacebookUploadSuccessMessage);
 		}
@@ -364,12 +364,12 @@ public class GameCommunityPlatformSocialController : GameObjectBehavior {
 	}
 
 	void displayPendingSaveAnimation() {
-		GameCommunityPlatformController.SendResultMessage(
+		GameCommunityController.SendResultMessage(
 			"SAVING", AppConfigs.stringPendingCreatingScreenshot );
 	}
 
 	void displayPendingUploadAnimation() {
-		GameCommunityPlatformController.SendResultMessage(
+		GameCommunityController.SendResultMessage(
 			"UPLOADING", AppConfigs.stringPendingUploadingPost );
 
 #if UNITY_EDITOR
@@ -380,7 +380,7 @@ public class GameCommunityPlatformSocialController : GameObjectBehavior {
 
 	IEnumerator waitAndDisplayAlert() {
 		yield return new WaitForSeconds(2.0f);
-		GameCommunityPlatformController.SendResultMessage(
+		GameCommunityController.SendResultMessage(
 			"UPLOAD", "Facebook/Twitter upload doesn't work on desktop currently." );
 	}
 	
@@ -409,7 +409,7 @@ public class GameCommunityPlatformSocialController : GameObjectBehavior {
 		EtceteraAndroid.saveImageToGallery(fileToSave, name);
 #endif	
 		
-		GameCommunityPlatformController.SendResultMessage(
+		GameCommunityController.SendResultMessage(
 			AppConfigs.stringLibraryPhotoSavedTitle, 
 			AppConfigs.stringLibraryPhotoSavedMessage );
 	}

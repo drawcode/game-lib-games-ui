@@ -8,9 +8,10 @@ using System.IO;
 
 using Engine.Events;
 
-public class GameCommunityPlatformController : GameObjectBehavior {
+
+public class GameCommunityController : GameObjectBehavior {
 	
-	public static GameCommunityPlatformController Instance;
+	public static GameCommunityController Instance;
 	
 	public float currentTimeBlock = 0.0f;
 	public float actionInterval = 1.0f;
@@ -31,7 +32,7 @@ public class GameCommunityPlatformController : GameObjectBehavior {
 	void OnEnable() {
 		
 		Messenger.AddListener(
-			GameCommunityPlatformMessages.gameCommunityReady, 
+			GameCommunityMessages.gameCommunityReady, 
 			OnGameCommunityReady);
 		
 		Messenger.AddListener(SocialNetworksMessages.socialLoggedIn, OnProfileLoggedIn);
@@ -39,18 +40,18 @@ public class GameCommunityPlatformController : GameObjectBehavior {
 		Messenger<string, string, object>.AddListener(SocialNetworksMessages.socialProfileData, OnProfileData);
 		
 		Messenger<GameCommunityLeaderboardData>.AddListener(
-			GameCommunityPlatformMessages.gameCommunityLeaderboardData, 
+			GameCommunityMessages.gameCommunityLeaderboardData, 
 			OnLeaderboardData);
 		
 		Messenger<GameCommunityLeaderboardData>.AddListener(
-			GameCommunityPlatformMessages.gameCommunityLeaderboardUserData, 
+			GameCommunityMessages.gameCommunityLeaderboardUserData, 
 			OnProfileLeaderboardData);
 	}
 	
 	void OnDisable() {
 		
 		Messenger.RemoveListener(
-			GameCommunityPlatformMessages.gameCommunityReady, 
+			GameCommunityMessages.gameCommunityReady, 
 			OnGameCommunityReady);				
 		
 		Messenger.RemoveListener(SocialNetworksMessages.socialLoggedIn, OnProfileLoggedIn);
@@ -58,11 +59,11 @@ public class GameCommunityPlatformController : GameObjectBehavior {
 		Messenger<string, string, object>.RemoveListener(SocialNetworksMessages.socialProfileData, OnProfileData);	
 		
 		Messenger<GameCommunityLeaderboardData>.AddListener(
-			GameCommunityPlatformMessages.gameCommunityLeaderboardData, 
+			GameCommunityMessages.gameCommunityLeaderboardData, 
 			OnLeaderboardData);
 		
 		Messenger<GameCommunityLeaderboardData>.RemoveListener(
-			GameCommunityPlatformMessages.gameCommunityLeaderboardUserData, 
+			GameCommunityMessages.gameCommunityLeaderboardUserData, 
 			OnProfileLeaderboardData);
 	}
 	
@@ -80,11 +81,11 @@ public class GameCommunityPlatformController : GameObjectBehavior {
 		
 	void OnProfileLoggedIn() {
 		
-		LogUtil.Log("GameCommunityPlatformController: OnProfileLoggedIn");
+		LogUtil.Log("GameCommunityController: OnProfileLoggedIn");
 		
 		// If they logged in to like
 		
-		if(GameCommunityPlatformController.Instance.likeActionClicked) {
+		if(GameCommunityController.Instance.likeActionClicked) {
 			GameCommunity.LikeCurrentApp();
 		}
 		
@@ -215,7 +216,7 @@ public class GameCommunityPlatformController : GameObjectBehavior {
 					//GameProfiles.Current.SetSocialNetworkAuthTokenApp(SocialNetworks.Instance.GetAccessTokenUserFacebook());
 					GameProfiles.Current.SetSocialNetworkAuthTokenUser(SocialNetworks.GetAccessTokenUserFacebook());
 					
-					GameCommunityPlatformState.SaveProfile();
+					GameState.SaveProfile();
 					
 					GameCommunityNetworkUser user = new GameCommunityNetworkUser();
 					user.username = username;
@@ -227,7 +228,7 @@ public class GameCommunityPlatformController : GameObjectBehavior {
 					GameCommunity.ResetLoggingIn();
 					
 					Messenger<GameCommunityNetworkUser>.Broadcast(
-						GameCommunityPlatformMessages.gameCommunityLoggedIn,
+						GameCommunityMessages.gameCommunityLoggedIn,
 						user);
 					
 				}				
@@ -275,7 +276,7 @@ public class GameCommunityPlatformController : GameObjectBehavior {
 						}
 					}
 				}
-				GameCommunityPlatformState.SaveProfile();
+				GameState.SaveProfile();
 			}
 		}
 		
@@ -327,7 +328,7 @@ public class GameCommunityPlatformController : GameObjectBehavior {
 	
 	public void sendResultMessage(GameCommunityMessageResult result) {
 		Messenger<GameCommunityMessageResult>.Broadcast(
-			GameCommunityPlatformMessages.gameCommunityResultMessage, result);
+			GameCommunityMessages.gameCommunityResultMessage, result);
 	}
 	
 	// LIKES
@@ -360,9 +361,10 @@ public class GameCommunityPlatformController : GameObjectBehavior {
 		//else {
 			if(GameCommunity.IsLoggedIn() || Application.isEditor) {
 				likeActionClicked = false;
-				GameCommunityPlatformSocialController.LikeUrl(urlToLike);
+				GameCommunitySocialController.LikeUrl(urlToLike);
 				
-				GameCommunityUIPanelLoading.ShowGameCommunityLoading("THANK YOU", AppConfigs.appGameDisplayName + " successfully liked!");
+				GameCommunityUIPanelLoading.ShowGameCommunityLoading(
+					"THANK YOU", AppConfigs.appGameDisplayName + " successfully liked!");
 				
 				Invoke("HideLikeThanks", 4f);
 			}

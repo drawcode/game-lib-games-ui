@@ -33,15 +33,15 @@ public class GameCommunityUIPanelLeaderboards : UIAppPanelBaseList {
         base.OnEnable();
 
 		Messenger.AddListener(
-			GameCommunityPlatformMessages.gameCommunityReady, 
+			GameCommunityMessages.gameCommunityReady, 
 			OnGameCommunityReady);
 		
 		Messenger<GameCommunityLeaderboardData>.AddListener(
-			GameCommunityPlatformMessages.gameCommunityLeaderboardData, 
+			GameCommunityMessages.gameCommunityLeaderboardData, 
 			OnGameCommunityLeaderboards);
 		
 		Messenger<GameCommunityLeaderboardData>.AddListener(
-			GameCommunityPlatformMessages.gameCommunityLeaderboardFriendData, 
+			GameCommunityMessages.gameCommunityLeaderboardFriendData, 
 			OnGameCommunityLeaderboardFriends);
 	}
 	
@@ -50,15 +50,15 @@ public class GameCommunityUIPanelLeaderboards : UIAppPanelBaseList {
         base.OnDisable();
 
 		Messenger.RemoveListener(
-			GameCommunityPlatformMessages.gameCommunityReady, 
+			GameCommunityMessages.gameCommunityReady, 
 			OnGameCommunityReady);		
 		
 		Messenger<GameCommunityLeaderboardData>.RemoveListener(
-			GameCommunityPlatformMessages.gameCommunityLeaderboardData, 
+			GameCommunityMessages.gameCommunityLeaderboardData, 
 			OnGameCommunityLeaderboards);
 		
 		Messenger<GameCommunityLeaderboardData>.RemoveListener(
-			GameCommunityPlatformMessages.gameCommunityLeaderboardFriendData, 
+			GameCommunityMessages.gameCommunityLeaderboardFriendData, 
 			OnGameCommunityLeaderboardFriends);
 	}
 	
@@ -181,7 +181,7 @@ public class GameCommunityUIPanelLeaderboards : UIAppPanelBaseList {
 					
 					UITexture profilePic = item.transform.FindChild("TextureProfilePic").GetComponent<UITexture>();
 					
-					GameCommunityPlatformUIController.LoadFacebookProfileImage(leaderboardItem.userId, profilePic, 48, 48, i + 1);
+					GameCommunityUIController.LoadFacebookProfileImage(leaderboardItem.userId, profilePic, 48, 48, i + 1);
 									
 					i++;
 		        }

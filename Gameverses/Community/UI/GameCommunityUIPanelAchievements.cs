@@ -7,8 +7,7 @@ using Engine.Data.Json;
 using Engine.Events;
 using Engine.Networking;
 
-public class GameCommunityUIPanelAchievements : UIAppPanelBaseList {
-	
+public class GameCommunityUIPanelAchievements : UIAppPanelBaseList {	
 	
     public GameObject listItemPrefab;
 	
@@ -31,12 +30,12 @@ public class GameCommunityUIPanelAchievements : UIAppPanelBaseList {
 	
 	public override void OnEnable() {
         base.OnEnable();
-		Messenger.AddListener(GameCommunityPlatformMessages.gameCommunityReady, OnGameCommunityReady);
+		Messenger.AddListener(GameCommunityMessages.gameCommunityReady, OnGameCommunityReady);
 	}
 	
 	public override void OnDisable() {
         base.OnDisable();
-        Messenger.RemoveListener(GameCommunityPlatformMessages.gameCommunityReady, OnGameCommunityReady);
+        Messenger.RemoveListener(GameCommunityMessages.gameCommunityReady, OnGameCommunityReady);
 	}
 	
 	void OnGameCommunityReady() {

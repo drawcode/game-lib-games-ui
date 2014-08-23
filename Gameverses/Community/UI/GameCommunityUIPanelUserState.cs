@@ -41,15 +41,15 @@ public class GameCommunityUIPanelUserState : UIAppPanelBaseList {
     public override void OnEnable() {
 		Messenger<string>.AddListener(ButtonEvents.EVENT_BUTTON_CLICK, OnButtonClickEventHandler);
 		
-		Messenger.AddListener(GameCommunityPlatformMessages.gameCommunityReady, OnGameCommunityReady);
-		Messenger<GameCommunityNetworkUser>.AddListener(GameCommunityPlatformMessages.gameCommunityLoggedIn, OnProfileLoggedIn);
+		Messenger.AddListener(GameCommunityMessages.gameCommunityReady, OnGameCommunityReady);
+		Messenger<GameCommunityNetworkUser>.AddListener(GameCommunityMessages.gameCommunityLoggedIn, OnProfileLoggedIn);
 	}
 	
 	public override void OnDisable() {
 		Messenger<string>.RemoveListener(ButtonEvents.EVENT_BUTTON_CLICK, OnButtonClickEventHandler);
 		
-		Messenger.RemoveListener(GameCommunityPlatformMessages.gameCommunityReady, OnGameCommunityReady);
-		Messenger<GameCommunityNetworkUser>.RemoveListener(GameCommunityPlatformMessages.gameCommunityLoggedIn, OnProfileLoggedIn);
+		Messenger.RemoveListener(GameCommunityMessages.gameCommunityReady, OnGameCommunityReady);
+		Messenger<GameCommunityNetworkUser>.RemoveListener(GameCommunityMessages.gameCommunityLoggedIn, OnProfileLoggedIn);
 	}
 	
 	void OnGameCommunityReady() {
@@ -184,7 +184,7 @@ public class GameCommunityUIPanelUserState : UIAppPanelBaseList {
 	public void LoadFacebookProfileImage() {
 		if(!imageLoaded) {
 			string username = GameCommunity.networkUserName;
-			GameCommunityPlatformUIController.LoadFacebookProfileImageByUsername(username, textureSpriteProfilePicture, 48, 48, 1);
+			GameCommunityUIController.LoadFacebookProfileImageByUsername(username, textureSpriteProfilePicture, 48, 48, 1);
 			imageLoaded = true;
 		}
 	}

@@ -10,9 +10,9 @@ using Engine.Data.Json;
 using Engine.Events;
 using Engine.Networking;
 
-public class GameCommunityPlatformTrackingController : GameObjectBehavior {
+public class GameCommunityTrackingController : GameObjectBehavior {
 	
-	public static GameCommunityPlatformTrackingController Instance;
+	public static GameCommunityTrackingController Instance;
 	
 	public static System.Object syncRoot = new System.Object();
 	
@@ -45,11 +45,11 @@ public class GameCommunityPlatformTrackingController : GameObjectBehavior {
 		Messenger<string, string, object>.AddListener(SocialNetworksMessages.socialProfileData, OnProfileData);
 		
 		Messenger<GameCommunityLeaderboardData>.AddListener(
-			GameCommunityPlatformMessages.gameCommunityLeaderboardData, 
+			GameCommunityMessages.gameCommunityLeaderboardData, 
 			OnLeaderboardData);
 		
 		Messenger<GameCommunityLeaderboardData>.AddListener(
-			GameCommunityPlatformMessages.gameCommunityLeaderboardUserData, 
+			GameCommunityMessages.gameCommunityLeaderboardUserData, 
 			OnProfileLeaderboardData);
 		//socialLoggedIn
 	}
@@ -59,11 +59,11 @@ public class GameCommunityPlatformTrackingController : GameObjectBehavior {
 		Messenger<string, string, object>.RemoveListener(SocialNetworksMessages.socialProfileData, OnProfileData);	
 		
 		Messenger<GameCommunityLeaderboardData>.AddListener(
-			GameCommunityPlatformMessages.gameCommunityLeaderboardData, 
+			GameCommunityMessages.gameCommunityLeaderboardData, 
 			OnLeaderboardData);
 		
 		Messenger<GameCommunityLeaderboardData>.RemoveListener(
-			GameCommunityPlatformMessages.gameCommunityLeaderboardUserData, 
+			GameCommunityMessages.gameCommunityLeaderboardUserData, 
 			OnProfileLeaderboardData);
 	}
 
@@ -212,20 +212,24 @@ public class GameCommunityPlatformTrackingController : GameObjectBehavior {
 	string currentCheckPointUrl = "";
 	
 	public void trackView(string title, string url) {
-		LogUtil.Log("trackView: title:" + title + " url:" + url);
-		if(trackerReports != null) {
-			GameCommunityTrackerView trackerView = new GameCommunityTrackerView();
-			trackerView.title = title;
-			trackerView.url = url;
-			trackerReports.SetTrackerView(trackerView);		
+
+		if(AppConfigs.analyticsNetworkEnabledGoogle) {
+
+			LogUtil.Log("trackView: title:" + title + " url:" + url);
+			if(trackerReports != null) {
+				GameCommunityTrackerView trackerView = new GameCommunityTrackerView();
+				trackerView.title = title;
+				trackerView.url = url;
+				trackerReports.SetTrackerView(trackerView);		
+			}
+			
+			TestFlight.CheckpointExit(currentCheckPointTitle, currentCheckPointUrl);
+			
+			currentCheckPointTitle = title;		
+			currentCheckPointUrl = url;		
+			
+			TestFlight.CheckpointEnter(currentCheckPointTitle, currentCheckPointUrl);
 		}
-		
-		TestFlight.CheckpointExit(currentCheckPointTitle, currentCheckPointUrl);
-		
-		currentCheckPointTitle = title;		
-		currentCheckPointUrl = url;		
-		
-		TestFlight.CheckpointEnter(currentCheckPointTitle, currentCheckPointUrl);
 	}
 	
 	// TODO .. add common events for adding game event, store event, ui event, load event etc.
@@ -342,7 +346,7 @@ public class GameCommunityPlatformTrackingController : GameObjectBehavior {
 			GameProfileTrackerAttributes.infoSystemScreenDpi, 
 			Screen.dpi);
 		
-		GameCommunityPlatformState.SaveProfile();
+		GameState.SaveProfile();
 		
 		//
 		

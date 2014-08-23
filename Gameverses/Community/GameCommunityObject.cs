@@ -15,20 +15,17 @@ using Engine.Networking;
  - requires app id that is categorized as a 'Game' on facebook to enable facebook scores/achievement apis
  
  HOWTO
- - configure settings here in GameCommunityPlatformConfig and attach to a root global object called 'GameCommunityPlatform' or a single object that
+ - configure settings here in GameCommunityConfig and attach to a root global object called 'GameCommunity' or a single object that
     will not be destroyed DontDestroyOnLoad(gameObject);
 
 */
 
-public class GameCommunityPlatformObject : GameObjectBehavior {
+public class GameCommunityObject : GameObjectBehavior {
 	
-	public string note = "See AppConfigs for settings...";
-	
+	public string note = "See AppConfigs for settings...";	
+
 	[NonSerialized]
-	public GameCommunityPlatformGlobal platformGlobal;
-	
-	[NonSerialized]
-	public static GameCommunityPlatformObject Instance;
+	public static GameCommunityObject Instance;
 		    
 	public void Awake() {
 		
@@ -41,9 +38,6 @@ public class GameCommunityPlatformObject : GameObjectBehavior {
         Instance = this;
 		
 		DontDestroyOnLoad(gameObject);	
-		
-		// Add all objects needed to hook it up!		
-		platformGlobal = gameObject.AddComponent<GameCommunityPlatformGlobal>();
 	}
 	
 	void Start() {	

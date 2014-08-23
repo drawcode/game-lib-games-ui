@@ -4,9 +4,9 @@ using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 
-public class GameCommunityPlatformUIController : GameObjectBehavior {
+public class GameCommunityUIController : GameObjectBehavior {
 	
-	public static GameCommunityPlatformUIController Instance;	
+	public static GameCommunityUIController Instance;	
 		    
 	public void Awake() {
 		

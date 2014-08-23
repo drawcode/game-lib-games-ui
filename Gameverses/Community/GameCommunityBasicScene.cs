@@ -93,7 +93,7 @@ using Engine.Data.Json;
 using Engine.Events;
 using Engine.Networking;
 
-public class GameCommunityPlatformBasicSceneAppViewerUIButtonNames {	
+public class GameCommunityBasicSceneAppViewerUIButtonNames {	
 	
 	public static string ButtonSendStatistics = "ButtonSendStatistics";
 	public static string ButtonLeaderboards = "ButtonLeaderboards";
@@ -107,9 +107,9 @@ public class GameCommunityPlatformBasicSceneAppViewerUIButtonNames {
 	public static string ButtonMain = "ButtonMain";
 }
 
-public class GameCommunityPlatformBasicScene : GameObjectBehavior {
+public class GameCommunityBasicScene : GameObjectBehavior {
 	
-	public static GameCommunityPlatformBasicScene Instance;	
+	public static GameCommunityBasicScene Instance;	
 		    
 	public void Awake() {
 		
@@ -136,15 +136,15 @@ public class GameCommunityPlatformBasicScene : GameObjectBehavior {
 	void OnEnable() {
 		//Messenger<string>.AddListener(ButtonEvents.EVENT_BUTTON_CLICK, OnButtonClickEventHandler);
 		
-		//Messenger.AddListener(GameCommunityPlatformMessages.gameCommunityReady, OnGameCommunityReady);
-		//Messenger<GameCommunityNetworkUser>.AddListener(GameCommunityPlatformMessages.gameCommunityLoggedIn, OnProfileLoggedIn);
+		//Messenger.AddListener(GameCommunityMessages.gameCommunityReady, OnGameCommunityReady);
+		//Messenger<GameCommunityNetworkUser>.AddListener(GameCommunityMessages.gameCommunityLoggedIn, OnProfileLoggedIn);
 	}
 	
 	void OnDisable() {
 		//Messenger<string>.RemoveListener(ButtonEvents.EVENT_BUTTON_CLICK, OnButtonClickEventHandler);
 		
-		//Messenger.RemoveListener(GameCommunityPlatformMessages.gameCommunityReady, OnGameCommunityReady);
-		//Messenger<GameCommunityNetworkUser>.RemoveListener(GameCommunityPlatformMessages.gameCommunityLoggedIn, OnProfileLoggedIn);
+		//Messenger.RemoveListener(GameCommunityMessages.gameCommunityReady, OnGameCommunityReady);
+		//Messenger<GameCommunityNetworkUser>.RemoveListener(GameCommunityMessages.gameCommunityLoggedIn, OnProfileLoggedIn);
 	}
 	
 	void OnGameCommunityReady() {
@@ -181,7 +181,7 @@ public class GameCommunityPlatformBasicScene : GameObjectBehavior {
 	void OnButtonClickEventHandler(string buttonName) {
 		
 		if(buttonName 
-			== GameCommunityPlatformBasicSceneAppViewerUIButtonNames.ButtonLeaderboards) {
+			== GameCommunityBasicSceneAppViewerUIButtonNames.ButtonLeaderboards) {
 			
 			HideAllDialogs();
 			
@@ -191,7 +191,7 @@ public class GameCommunityPlatformBasicScene : GameObjectBehavior {
 			
 		}
 		else if(buttonName 
-			== GameCommunityPlatformBasicSceneAppViewerUIButtonNames.ButtonLeaderboardFriends) {
+			== GameCommunityBasicSceneAppViewerUIButtonNames.ButtonLeaderboardFriends) {
 			
 			HideAllDialogs();
 			
@@ -201,7 +201,7 @@ public class GameCommunityPlatformBasicScene : GameObjectBehavior {
 			
 		}
 		else if(buttonName 
-			== GameCommunityPlatformBasicSceneAppViewerUIButtonNames.ButtonStatistics) {
+			== GameCommunityBasicSceneAppViewerUIButtonNames.ButtonStatistics) {
 			
 			HideAllDialogs();
 			
@@ -210,7 +210,7 @@ public class GameCommunityPlatformBasicScene : GameObjectBehavior {
 			GameCommunityUIPanelStatistics.Instance.LoadData();
 		}
 		else if(buttonName 
-			== GameCommunityPlatformBasicSceneAppViewerUIButtonNames.ButtonStatisticHighScoreAddOne) {
+			== GameCommunityBasicSceneAppViewerUIButtonNames.ButtonStatisticHighScoreAddOne) {
 			
 			// Here we are adding a score to the current.  IN actual use at the end of a level just send the
 			// game score.  If higher than the current it will send to facebook.
@@ -225,7 +225,7 @@ public class GameCommunityPlatformBasicScene : GameObjectBehavior {
 			
 		}
 		else if(buttonName 
-			== GameCommunityPlatformBasicSceneAppViewerUIButtonNames.ButtonStatisticHighScoreAddTen) {
+			== GameCommunityBasicSceneAppViewerUIButtonNames.ButtonStatisticHighScoreAddTen) {
 			
 			// Here we are adding a score to the current.  IN actual use at the end of a level just send the
 			// game score.  If higher than the current it will send to facebook.
@@ -240,7 +240,7 @@ public class GameCommunityPlatformBasicScene : GameObjectBehavior {
 			
 		}
 		else if(buttonName 
-			== GameCommunityPlatformBasicSceneAppViewerUIButtonNames.ButtonSendStatistics) {
+			== GameCommunityBasicSceneAppViewerUIButtonNames.ButtonSendStatistics) {
 			
 			// Set high score automatically calls this, for other stats that may be set this method
 			// is required after setting all stats for non facebook networks i.e. custom or gamecenter.
@@ -248,7 +248,7 @@ public class GameCommunityPlatformBasicScene : GameObjectBehavior {
 			GameCommunity.SyncProfileProgress();
 			
 		}
-		else if(buttonName == GameCommunityPlatformBasicSceneAppViewerUIButtonNames.ButtonCloseDialogs) {
+		else if(buttonName == GameCommunityBasicSceneAppViewerUIButtonNames.ButtonCloseDialogs) {
 			
 			HideAllDialogs();
 			

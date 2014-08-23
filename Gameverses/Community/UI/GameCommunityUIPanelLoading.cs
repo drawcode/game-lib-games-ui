@@ -34,17 +34,17 @@ public class GameCommunityUIPanelLoading : UIAppPanelBaseList {
 		Messenger<string>.AddListener(ButtonEvents.EVENT_BUTTON_CLICK, OnButtonClickEventHandler);
 		
 		Messenger.AddListener(
-			GameCommunityPlatformMessages.gameCommunityReady, 
+			GameCommunityMessages.gameCommunityReady, 
 			OnGameCommunityReady);
 		
 		Messenger<GameCommunityLeaderboardData>.AddListener(
-			GameCommunityPlatformMessages.gameCommunityLeaderboardData, 
+			GameCommunityMessages.gameCommunityLeaderboardData, 
 			OnGameCommunityLeaderboards);
 		
-		Messenger<GameCommunityNetworkUser>.AddListener(GameCommunityPlatformMessages.gameCommunityLoggedIn, OnProfileLoggedIn);
+		Messenger<GameCommunityNetworkUser>.AddListener(GameCommunityMessages.gameCommunityLoggedIn, OnProfileLoggedIn);
 		
 		Messenger.AddListener(
-			GameCommunityPlatformMessages.gameCommunityLoginDefer, 
+			GameCommunityMessages.gameCommunityLoginDefer, 
 			OnGameCommunityLoginDefer);		
 	}
 	
@@ -53,17 +53,17 @@ public class GameCommunityUIPanelLoading : UIAppPanelBaseList {
 		Messenger<string>.RemoveListener(ButtonEvents.EVENT_BUTTON_CLICK, OnButtonClickEventHandler);
 		
 		Messenger.RemoveListener(
-			GameCommunityPlatformMessages.gameCommunityReady, 
+			GameCommunityMessages.gameCommunityReady, 
 			OnGameCommunityReady);		
 		
 		Messenger<GameCommunityLeaderboardData>.RemoveListener(
-			GameCommunityPlatformMessages.gameCommunityLeaderboardData, 
+			GameCommunityMessages.gameCommunityLeaderboardData, 
 			OnGameCommunityLeaderboards);	
 		
-		Messenger<GameCommunityNetworkUser>.RemoveListener(GameCommunityPlatformMessages.gameCommunityLoggedIn, OnProfileLoggedIn);
+		Messenger<GameCommunityNetworkUser>.RemoveListener(GameCommunityMessages.gameCommunityLoggedIn, OnProfileLoggedIn);
 		
 		Messenger.RemoveListener(
-			GameCommunityPlatformMessages.gameCommunityLoginDefer, 
+			GameCommunityMessages.gameCommunityLoginDefer, 
 			OnGameCommunityLoginDefer);		
 	}
 	

@@ -336,7 +336,7 @@ public class GameCommunity {
 		GameCommunity.TrackGameEvent("game-stats", statisticCode, (int)statisticValue);
 		
 		// queue for sending since it was updated
-		GameCommunityPlatformTrackingController.SetSyncStatistic(statisticCode, statisticValue);		
+		GameCommunityTrackingController.SetSyncStatistic(statisticCode, statisticValue);		
 		// save local
 		GamePlayerProgress.Instance.SetStatisticValue(statisticCode, statisticValue);
 	}
@@ -426,7 +426,7 @@ public class GameCommunity {
 		
 		if(highScore > currentScore) {
 			
-			GameCommunityPlatformTrackingController.SetSyncStatistic(
+			GameCommunityTrackingController.SetSyncStatistic(
 				AppConfigs.socialStatisticForFacebook,
 				(float)currentScore);
 		}
@@ -437,7 +437,7 @@ public class GameCommunity {
 				highScore);
 		}
 		
-		GameCommunityPlatformState.SaveProfile();
+		GameState.SaveProfile();
 	}
 	
 	// points	
@@ -454,7 +454,7 @@ public class GameCommunity {
 		
 		if(points > currentScore) {
 			
-			GameCommunityPlatformTrackingController.SetSyncStatistic(
+			GameCommunityTrackingController.SetSyncStatistic(
 				AppConfigs.socialStatisticForFacebook,
 				(float)currentScore);
 		}
@@ -465,7 +465,7 @@ public class GameCommunity {
 				currentScore);
 		}
 		
-		GameCommunityPlatformState.SaveProfile();
+		GameState.SaveProfile();
 	}
 	
 	// rank
@@ -722,7 +722,7 @@ public class GameCommunity {
 	
 	public static void RequestLeaderboards(string code, int page, int pageSize, string rangeType) {
 				
-		GameCommunityPlatformService.GetLeaderboardFull(
+		GameCommunityService.GetLeaderboardFull(
 			code, page, pageSize, rangeType);
 		
 		// If just facebook scores are on
@@ -731,7 +731,7 @@ public class GameCommunity {
 	
 	public static void RequestLeaderboardUser(string code, int page, int pageSize, string rangeType, string username) {
 				
-		GameCommunityPlatformService.GetLeaderboardUser(
+		GameCommunityService.GetLeaderboardUser(
 			code, page, pageSize, rangeType, username);
 	}
 	
@@ -876,13 +876,13 @@ public class GameCommunity {
 		
 	public void sendSync() {
 		
-		GameCommunityPlatformState.SaveProfile();
+		GameState.SaveProfile();
 		
 		if(AppConfigs.featureEnableFacebook) {
 			
 			if(isLoggedIn()) {
 			
-				if(GameCommunityPlatformTrackingController.Instance.dataUpdates.achievements.ContainsKey(
+				if(GameCommunityTrackingController.Instance.dataUpdates.achievements.ContainsKey(
 					AppConfigs.socialStatisticForFacebook)) {
 					// Facebook only allows one score so we will only send the 'high-score' stat
 					// that is a state high to low.
@@ -902,7 +902,7 @@ public class GameCommunity {
 		}
 		
 		
-		GameCommunityPlatformTrackingController.ResetUpdated();
+		GameCommunityTrackingController.ResetUpdated();
 		
 		ProcessTrackers();
 	}
@@ -936,10 +936,10 @@ public class GameCommunity {
 		
 		// add updated statistics
 		foreach(GameStatistic statistic in GameStatistics.Instance.GetAll()) {
-			if(GameCommunityPlatformTrackingController.Instance.dataUpdates.statistics.ContainsKey(statistic.code)) {
+			if(GameCommunityTrackingController.Instance.dataUpdates.statistics.ContainsKey(statistic.code)) {
 				GameCommunitySyncProfileStatistic stat = new GameCommunitySyncProfileStatistic();
 				stat.code = statistic.code;
-				stat.statistic_value = GameCommunityPlatformTrackingController.Instance.dataUpdates.statistics[statistic.code];
+				stat.statistic_value = GameCommunityTrackingController.Instance.dataUpdates.statistics[statistic.code];
 				stat.absolute_value = GameProfileStatistics.Current.GetStatisticValue(stat.code);
 				if(stat.statistic_value > 0) {
 					syncData.profileStatistics.statistics.Add(stat);
@@ -949,12 +949,12 @@ public class GameCommunity {
 		
 		// achievements
 		foreach(GameAchievement achievement in GameAchievements.Instance.GetAll()) {
-			if(GameCommunityPlatformTrackingController.Instance.dataUpdates.achievements.ContainsKey(achievement.code)) {
+			if(GameCommunityTrackingController.Instance.dataUpdates.achievements.ContainsKey(achievement.code)) {
 				GameCommunitySyncProfileAchievement achieve = new GameCommunitySyncProfileAchievement();
 				bool completed = GameProfileAchievements.Current.GetAchievementValue(achieve.code);
 				achieve.code = achievement.code;
 				achieve.completed = completed;
-				achieve.achievement_value = GameCommunityPlatformTrackingController.Instance.dataUpdates.achievements[achievement.code];
+				achieve.achievement_value = GameCommunityTrackingController.Instance.dataUpdates.achievements[achievement.code];
 				achieve.absolute_value = completed ? 1.0f: 0.0f;
 				if(achieve.achievement_value == 1.0f) {
 					syncData.profileAchievements.achievements.Add(achieve);
@@ -962,11 +962,11 @@ public class GameCommunity {
 			}
 		}
 		
-		GameCommunityPlatformTrackingController.SyncSystemAttributes();
+		GameCommunityTrackingController.SyncSystemAttributes();
 		
 		// profile game data attributes
 		
-		GameCommunityPlatformTrackingController.SetSyncProfileGameDataAttributes(GameProfiles.Current.attributes);
+		GameCommunityTrackingController.SetSyncProfileGameDataAttributes(GameProfiles.Current.attributes);
 		
 		// profile attributes
 		
@@ -981,7 +981,7 @@ public class GameCommunity {
 		
 		// data attributes - extra
 		
-		GameCommunityPlatformService.SyncData(syncData);
+		GameCommunityService.SyncData(syncData);
 		
 		// TODO add fall back to save locally
 		syncData = new GameCommunitySyncData();
@@ -997,11 +997,11 @@ public class GameCommunity {
 	// LIKES
 	
 	public static void LikeCurrentApp() {
-		GameCommunityPlatformController.LikeCurrentApp();
+		GameCommunityController.LikeCurrentApp();
 	}
 	
 	public static void LikeUrl(string urlToLike) {
-		GameCommunityPlatformController.LikeUrl(urlToLike);
+		GameCommunityController.LikeUrl(urlToLike);
 	}
 		
 	// TRACKING
@@ -1009,7 +1009,7 @@ public class GameCommunity {
 	//
 	
 	public static void ProcessTrackers() {
-		GameCommunityPlatformTrackingController.ProcessTrackers();
+		GameCommunityTrackingController.ProcessTrackers();
 	}
 	
 	// views
@@ -1023,13 +1023,13 @@ public class GameCommunity {
 	}	
 	
 	public static void TrackView(string title, string url) {
-		GameCommunityPlatformTrackingController.TrackView(title, url);
+		GameCommunityTrackingController.TrackView(title, url);
 	}
 	
 	// events
 	
 	public static void TrackEvent(string category, string action, string label, int val) {
-		GameCommunityPlatformTrackingController.TrackEvent(category, action, label, val);
+		GameCommunityTrackingController.TrackEvent(category, action, label, val);
 	}	
 	
 }

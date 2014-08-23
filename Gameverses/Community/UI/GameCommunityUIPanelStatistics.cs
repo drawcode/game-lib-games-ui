@@ -28,11 +28,11 @@ public class GameCommunityUIPanelStatistics : UIAppPanelBaseList {
 	}
 	
 	public override void OnEnable() {
-		Messenger.AddListener(GameCommunityPlatformMessages.gameCommunityReady, OnGameCommunityReady);
+		Messenger.AddListener(GameCommunityMessages.gameCommunityReady, OnGameCommunityReady);
 	}
 	
 	public override void OnDisable() {
-		Messenger.RemoveListener(GameCommunityPlatformMessages.gameCommunityReady, OnGameCommunityReady);
+		Messenger.RemoveListener(GameCommunityMessages.gameCommunityReady, OnGameCommunityReady);
 	}
 	
 	void OnGameCommunityReady() {

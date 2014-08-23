@@ -28,7 +28,7 @@ public class SearchFilterLeaderboard : SearchFilter {
 	public string username = "";
 }
 
-public class GameCommunityPlatformService {
+public class GameCommunityService {
 	
 	public static string apiUrl = AppConfigs.apiUrlWeb;
 	public static string apiPathGames = "games";
@@ -37,15 +37,15 @@ public class GameCommunityPlatformService {
 	public static string apiPathGameLeaderboard = "leaderboard";
 	public static string apiPathGameSync = "sync";
 	
-	private static volatile GameCommunityPlatformService instance;
+	private static volatile GameCommunityService instance;
 	private static System.Object syncRoot = new System.Object();
 		
-	public static GameCommunityPlatformService Instance {
+	public static GameCommunityService Instance {
 		get {
 			if (instance == null) { 
 				lock (syncRoot) {
 					if (instance == null) 
-						instance = new GameCommunityPlatformService();
+						instance = new GameCommunityService();
 	        	}
 	     	}	
 	     return instance;
@@ -142,7 +142,7 @@ public class GameCommunityPlatformService {
 		
 		if(leaderboardData != null) {
 			Messenger<GameCommunityLeaderboardData>.Broadcast(
-				GameCommunityPlatformMessages.gameCommunityLeaderboardData, leaderboardData);
+				GameCommunityMessages.gameCommunityLeaderboardData, leaderboardData);
 		}
 	}
 	
@@ -189,7 +189,7 @@ public class GameCommunityPlatformService {
 		
 		if(leaderboardData != null) {
 			Messenger<GameCommunityLeaderboardData>.Broadcast(
-				GameCommunityPlatformMessages.gameCommunityLeaderboardUserData, leaderboardData);
+				GameCommunityMessages.gameCommunityLeaderboardUserData, leaderboardData);
 		}
 	}
 	
@@ -199,7 +199,7 @@ public class GameCommunityPlatformService {
 		GameCommunityLeaderboardData leaderboardData = ParseLeaderboard(responseText);
 		
 		Messenger<GameCommunityLeaderboardData>.Broadcast(
-			GameCommunityPlatformMessages.gameCommunityLeaderboardData, leaderboardData);
+			GameCommunityMessages.gameCommunityLeaderboardData, leaderboardData);
 	}
 	
 	
@@ -344,7 +344,7 @@ public class GameCommunityPlatformService {
 	 	GameCommunitySyncDataResponse syncDataResponse = parseSyncData(responseText);
 		
 		Messenger<GameCommunitySyncDataResponse>.Broadcast(
-			GameCommunityPlatformMessages.gameCommunitySyncComplete, syncDataResponse);
+			GameCommunityMessages.gameCommunitySyncComplete, syncDataResponse);
 
 	}	
 	
@@ -355,7 +355,7 @@ public class GameCommunityPlatformService {
 	 	GameCommunitySyncDataResponse syncDataResponse = ParseSyncData(responseText);
 		
 		Messenger<GameCommunitySyncDataResponse>.Broadcast(
-			GameCommunityPlatformMessages.gameCommunitySyncComplete, syncDataResponse);
+			GameCommunityMessages.gameCommunitySyncComplete, syncDataResponse);
 	}
 	
 	

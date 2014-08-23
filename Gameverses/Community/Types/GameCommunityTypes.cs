@@ -278,7 +278,7 @@ public class GameCommunityNetworkUser {
 	public string user_id = "";
 }
 
-public class GameCommunityPlatformMessages {
+public class GameCommunityMessages {
 	public static string gameCommunityLoggedIn = "game-community-network-loggedin";
 	
 	public static string gameCommunityReady = "game-community-ready";

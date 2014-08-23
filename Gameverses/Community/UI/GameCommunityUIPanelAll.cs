@@ -64,18 +64,18 @@ public class GameCommunityUIPanelAll : UIAppPanelBaseList {
 		Messenger<string>.AddListener(ButtonEvents.EVENT_BUTTON_CLICK, OnButtonClickEventHandler);
 		
 		Messenger.AddListener(
-			GameCommunityPlatformMessages.gameCommunityReady, 
+			GameCommunityMessages.gameCommunityReady, 
 			OnGameCommunityReady);
 		
 		Messenger<GameCommunityLeaderboardData>.AddListener(
-			GameCommunityPlatformMessages.gameCommunityLeaderboardData, 
+			GameCommunityMessages.gameCommunityLeaderboardData, 
 			OnGameCommunityLeaderboards);
 		
 		Messenger<GameCommunityLeaderboardData>.AddListener(
-			GameCommunityPlatformMessages.gameCommunityLeaderboardFriendData, 
+			GameCommunityMessages.gameCommunityLeaderboardFriendData, 
 			OnGameCommunityLeaderboardFriends);		
 		
-		Messenger<GameCommunityNetworkUser>.AddListener(GameCommunityPlatformMessages.gameCommunityLoggedIn, OnProfileLoggedIn);
+		Messenger<GameCommunityNetworkUser>.AddListener(GameCommunityMessages.gameCommunityLoggedIn, OnProfileLoggedIn);
 	}
 	
 	public override void OnDisable() {
@@ -85,18 +85,18 @@ public class GameCommunityUIPanelAll : UIAppPanelBaseList {
 		Messenger<string>.RemoveListener(ButtonEvents.EVENT_BUTTON_CLICK, OnButtonClickEventHandler);
 		
 		Messenger.RemoveListener(
-			GameCommunityPlatformMessages.gameCommunityReady, 
+			GameCommunityMessages.gameCommunityReady, 
 			OnGameCommunityReady);		
 		
 		Messenger<GameCommunityLeaderboardData>.RemoveListener(
-			GameCommunityPlatformMessages.gameCommunityLeaderboardData, 
+			GameCommunityMessages.gameCommunityLeaderboardData, 
 			OnGameCommunityLeaderboards);
 		
 		Messenger<GameCommunityLeaderboardData>.RemoveListener(
-			GameCommunityPlatformMessages.gameCommunityLeaderboardFriendData, 
+			GameCommunityMessages.gameCommunityLeaderboardFriendData, 
 			OnGameCommunityLeaderboardFriends);		
 		
-		Messenger<GameCommunityNetworkUser>.RemoveListener(GameCommunityPlatformMessages.gameCommunityLoggedIn, OnProfileLoggedIn);
+		Messenger<GameCommunityNetworkUser>.RemoveListener(GameCommunityMessages.gameCommunityLoggedIn, OnProfileLoggedIn);
 	}
 	
 	void OnProfileLoggedIn(GameCommunityNetworkUser user) {
@@ -408,7 +408,7 @@ public class GameCommunityUIPanelAll : UIAppPanelBaseList {
 					}
 				
 					string url = String.Format("http://graph.facebook.com/{0}/picture", leaderboardItem.username);	
-					GameCommunityPlatformUIController.LoadUITextureImage(profilePic, url, 48, 48, i + 1);
+					GameCommunityUIController.LoadUITextureImage(profilePic, url, 48, 48, i + 1);
 					
 					i++;
 		        }
