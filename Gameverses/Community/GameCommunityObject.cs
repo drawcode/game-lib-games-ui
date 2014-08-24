@@ -21,47 +21,47 @@ using Engine.Networking;
 */
 
 public class GameCommunityObject : GameObjectBehavior {
-	
-	public string note = "See AppConfigs for settings...";	
-
-	[NonSerialized]
-	public static GameCommunityObject Instance;
-		    
-	public void Awake() {
-		
+    
+    public string note = "See AppConfigs for settings...";
+    [NonSerialized]
+    public static GameCommunityObject
+        Instance;
+            
+    public void Awake() {
+        
         if (Instance != null && this != Instance) {
             //There is already a copy of this script running
             //Destroy(gameObject);
             return;
         }
-		
+        
         Instance = this;
-		
-		DontDestroyOnLoad(gameObject);	
-	}
-	
-	void Start() {	
-		
-	}	
-	
-	void OnEnable() {
-		//Messenger<string>.AddListener(ButtonEvents.EVENT_BUTTON_CLICK, OnButtonClickEventHandler);
-	}
-	
-	void OnDisable() {
-		//Messenger<string>.RemoveListener(ButtonEvents.EVENT_BUTTON_CLICK, OnButtonClickEventHandler);
-	}
-	// Quits the player when the user hits escape
+        
+        DontDestroyOnLoad(gameObject);  
+    }
+    
+    void Start() {  
+        
+    }
+    
+    void OnEnable() {
+        //Messenger<string>.AddListener(ButtonEvents.EVENT_BUTTON_CLICK, OnButtonClickEventHandler);
+    }
+    
+    void OnDisable() {
+        //Messenger<string>.RemoveListener(ButtonEvents.EVENT_BUTTON_CLICK, OnButtonClickEventHandler);
+    }
+    // Quits the player when the user hits escape
 
-	
-	void Update () {
+    
+    void Update() {
 #if !UNITY_IPHONE    
-		// quit on android and pc
-		if (Input.GetKey(KeyCode.Escape)) {
-        	Application.Quit();
-    	}
+        // quit on android and pc
+        if (Input.GetKey(KeyCode.Escape)) {
+            Application.Quit();
+        }
 #endif
-	}
-	
+    }
+    
 }
 
