@@ -82,6 +82,18 @@ public class GameCommunitySocialController : GameObjectBehavior {
             // like other
         }
     }
+        
+    public static void TakePhoto(Material photoPlaceholderMaterial) {
+        if (Instance != null) {
+            Instance.takePhoto(photoPlaceholderMaterial);
+        }
+    }
+    
+    public void takePhoto(Material photoPlaceholderMaterial) {
+        photoMaterial = photoPlaceholderMaterial;
+        TakePhoto();
+    }
+
     
     public static void TakePhoto() {
         if (Instance != null) {
@@ -274,6 +286,12 @@ public class GameCommunitySocialController : GameObjectBehavior {
         }
     }
 
+    public static void UpdatePhotoPreview() {
+        if (Instance != null) {
+            Instance.updatePhotoPreview();
+        }
+    }
+
     public void updatePhotoPreview() {
         // load this into the preview image texture.
         GameObject photoPreview = GameObject.Find("PhotoPreview");
@@ -294,6 +312,16 @@ public class GameCommunitySocialController : GameObjectBehavior {
             uploadCurrentPhotoToFacebook();
         }
     }
+    
+    public static void UploadPhotoToTwitter() {
+        if (Instance != null) {
+            Instance.uploadPhotoToTwitter();
+        }
+    }
+    
+    public void uploadPhotoToTwitter() {
+        startTwitterPhotoUploadProcess();
+    }
 
     public void startTwitterPhotoUploadProcess() {
         if (SocialNetworks.IsTwitterAvailable()) {
@@ -310,17 +338,23 @@ public class GameCommunitySocialController : GameObjectBehavior {
         }
     }
     
-    void uploadCurrentPhotoToFacebook() {
+    public static void UploadCurrentPhotoToFacebook() {
+        if (Instance != null) {
+            Instance.uploadCurrentPhotoToFacebook();
+        }
+    }
+    
+    public void uploadCurrentPhotoToFacebook() {
         uploadPhotoToFacebook(photoMaterial);
     }
     
-    void uploadPhotoToFacebook(Material photoMaterialPlaceholder) {
+    public void uploadPhotoToFacebook(Material photoMaterialPlaceholder) {
         
         Texture2D tex = (Texture2D)photoMaterialPlaceholder.mainTexture;
         uploadPhotoToFacebook(tex);
     }
 
-    void uploadPhotoToFacebook(Texture2D tex) {
+    public void uploadPhotoToFacebook(Texture2D tex) {
 
         // normally, we would just encode the Texture to a PNG but Facebook does not like Unity created PNG's since 3.4.0 came out
         //var bytes = tex.EncodeToPNG();        
@@ -340,7 +374,7 @@ public class GameCommunitySocialController : GameObjectBehavior {
             bytes, AppConfigs.stringFacebookPostMessage, onFacebookUploadComplete);     
     }
 
-    void onFacebookUploadComplete(string error, object result) {        
+    public void onFacebookUploadComplete(string error, object result) {        
 
         if (error != null) {
             //LogUtil.LogError( error );
@@ -355,22 +389,30 @@ public class GameCommunitySocialController : GameObjectBehavior {
                 AppConfigs.stringFacebookUploadSuccessMessage);
         }
     }
+
+    // TWITTER
     
-    void uploadCurrentPhotoToTwitter() {
+    public static void UploadCurrentPhotoToTwitter() {
+        if (Instance != null) {
+            Instance.uploadCurrentPhotoToTwitter();
+        }
+    }
+    
+    public void uploadCurrentPhotoToTwitter() {
         uploadPhotoToTwitter(filePath);
     }
     
-    void uploadPhotoToTwitter(string filePathToUpload) {
+    public void uploadPhotoToTwitter(string filePathToUpload) {
         SocialNetworks.ShowComposerTwitter(
             AppConfigs.stringTwitterPostMessage, filePathToUpload);
     }
 
-    void displayPendingSaveAnimation() {
+    public void displayPendingSaveAnimation() {
         GameCommunityController.SendResultMessage(
             "SAVING", AppConfigs.stringPendingCreatingScreenshot);
     }
 
-    void displayPendingUploadAnimation() {
+    public void displayPendingUploadAnimation() {
         GameCommunityController.SendResultMessage(
             "UPLOADING", AppConfigs.stringPendingUploadingPost);
 
