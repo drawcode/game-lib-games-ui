@@ -42,10 +42,26 @@ public class GameCommunitySocialController : GameObjectBehavior {
     void OnGameCommunityResultMessage(GameCommunityMessageResult result) {
         
         // show message from title, message in alert
-        GameCommunityUIPanelLoading.ShowGameCommunityLoading(
-            result.title, 
-            result.message
-        );      
+        //GameCommunityUIPanelLoading.ShowGameCommunityLoading(
+        //    result.title, 
+        //    result.message
+        //);      
+
+        if(result == null) {
+            return;
+        }
+
+        if(string.IsNullOrEmpty(result.title)) {
+            return;
+        }
+
+
+        if(result.title.ToLower().Contains("error")) {
+            UINotificationDisplay.QueueError(result.title, result.message);            
+        }
+        else {
+            UINotificationDisplay.QueueInfo(result.title, result.message);
+        }
     }
     
     void Init() {
