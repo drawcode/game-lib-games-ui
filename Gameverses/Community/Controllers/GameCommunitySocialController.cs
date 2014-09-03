@@ -246,7 +246,7 @@ public class GameCommunitySocialController : GameObjectBehavior {
     }
 */
     IEnumerator takePhotoCo() {
-        yield return new WaitForSeconds(0.5f);
+        //yield return new WaitForSeconds(0.5f);
         
         fileName = "screenshot.png";
         filePath = Application.persistentDataPath + "/" + fileName;
@@ -270,8 +270,8 @@ public class GameCommunitySocialController : GameObjectBehavior {
          * enough for all devices. I think we can assume so. In the editor this
          * means that you won't see the 'saving screenshot' screen.
         **/
-        yield return new WaitForSeconds(0.5f);
-        displayPendingSaveAnimation();
+        //yield return new WaitForSeconds(0.5f);
+        //displayPendingSaveAnimation();
 
         while (File.Exists(filePath) == false) {
             yield return null;
