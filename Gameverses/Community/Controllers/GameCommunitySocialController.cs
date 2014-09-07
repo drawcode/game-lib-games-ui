@@ -319,6 +319,12 @@ public class GameCommunitySocialController : GameObjectBehavior {
         }
     }
 
+    public static void StartPhotoUploadToFacebook() {
+        if (Instance != null) {
+            Instance.startFacebookPhotoUploadProcess();
+        }
+    }
+
     public void startFacebookPhotoUploadProcess() {
         if (!GameCommunity.IsLoggedIn(SocialNetworkTypes.facebook)) {
             GameCommunity.Login(SocialNetworkTypes.facebook);
@@ -329,14 +335,21 @@ public class GameCommunitySocialController : GameObjectBehavior {
         }
     }
     
-    public static void UploadPhotoToTwitter() {
-        if (Instance != null) {
-            Instance.uploadPhotoToTwitter();
-        }
-    }
+    //public static void UploadPhotoToTwitter() {
+    //    if (Instance != null) {
+    //        Instance.uploadPhotoToTwitter();
+    //    }
+    //}
     
     public void uploadPhotoToTwitter() {
         startTwitterPhotoUploadProcess();
+    }
+
+    
+    public static void StartPhotoUploadToTwitter() {
+        if (Instance != null) {
+            Instance.startTwitterPhotoUploadProcess();
+        }
     }
 
     public void startTwitterPhotoUploadProcess() {
@@ -354,11 +367,11 @@ public class GameCommunitySocialController : GameObjectBehavior {
         }
     }
     
-    public static void UploadCurrentPhotoToFacebook() {
-        if (Instance != null) {
-            Instance.uploadCurrentPhotoToFacebook();
-        }
-    }
+    //public static void UploadCurrentPhotoToFacebook() {
+    //    if (Instance != null) {
+    //        Instance.uploadCurrentPhotoToFacebook();
+    //    }
+    //}
     
     public void uploadCurrentPhotoToFacebook() {
         uploadPhotoToFacebook(photoMaterial);
@@ -385,7 +398,7 @@ public class GameCommunitySocialController : GameObjectBehavior {
         var bytes = encoder.GetBytes();     
         
         displayPendingUploadAnimation();
-        
+
         Facebook.instance.postImage(
             bytes, AppConfigs.stringFacebookPostMessage, onFacebookUploadComplete);     
     }
