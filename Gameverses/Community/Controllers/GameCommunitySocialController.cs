@@ -486,4 +486,37 @@ public class GameCommunitySocialController : GameObjectBehavior {
             AppConfigs.stringLibraryPhotoSavedTitle, 
             AppConfigs.stringLibraryPhotoSavedMessage);
     }
+
+    // GAME
+
+    public static void PostGameResultsFacebook() {
+        if (Instance != null) {
+            Instance.postGameResultsFacebook();  
+        }
+    }
+    
+    public void postGameResultsFacebook() {
+        
+        //SocialNetworks.PostMessageTwitter(
+        //    "Just 
+        
+        SocialNetworks.PostMessageFacebook(
+            "Played a game of Barrow Brainball #playsmart ", 
+            "http://barrowbrainball.com", 
+            "Barrow Brainball - Epic Run", 
+            filePath, 
+            "Epic Run in Barrow Brainball" );
+    }
+    
+    public static void PostGameResultsTwitter() {
+        if (Instance != null) {
+            Instance.postGameResultsTwitter();  
+        }
+    }
+
+    public void postGameResultsTwitter() {
+        
+        SocialNetworks.PostMessageTwitter(
+            "Played a game of Barrow Brainball #playsmart ", filePath);
+    }
 }
