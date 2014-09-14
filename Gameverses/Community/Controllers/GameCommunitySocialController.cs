@@ -393,7 +393,7 @@ public class GameCommunitySocialController : GameObjectBehavior {
         //Destroy( tex );
         
         // We will instead make a JPG and upload that
-        var encoder = new ImageJPGEncoder(tex, 75.0f);
+        var encoder = new ImageJPGEncoder(tex, 95.0f);
         encoder.doEncoding();
         var bytes = encoder.GetBytes();     
         
@@ -499,8 +499,8 @@ public class GameCommunitySocialController : GameObjectBehavior {
         
         //SocialNetworks.PostMessageTwitter(
         //    "Just 
-        
-        SocialNetworks.PostMessageFacebook(
+
+        SocialNetworks.ShowLoginOrPostMessageFacebook(
             "Played a game of Barrow Brainball #playsmart ", 
             "http://barrowbrainball.com", 
             "Barrow Brainball - Epic Run", 
@@ -515,8 +515,8 @@ public class GameCommunitySocialController : GameObjectBehavior {
     }
 
     public void postGameResultsTwitter() {
-        
-        SocialNetworks.PostMessageTwitter(
+
+        SocialNetworks.ShowLoginOrComposerTwitter(  
             "Played a game of Barrow Brainball #playsmart ", filePath);
     }
 }
