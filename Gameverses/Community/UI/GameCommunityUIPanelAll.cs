@@ -121,7 +121,7 @@ public class GameCommunityUIPanelAll : UIAppPanelBaseList {
     
     }
     
-    void OnButtonClickEventHandler(string buttonName) {
+    public override void OnButtonClickEventHandler(string buttonName) {
         
         if (buttonName == buttonFull.name) {
             

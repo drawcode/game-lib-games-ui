@@ -95,7 +95,7 @@ public class GameCommunityUIPanelLoading : UIAppPanelBaseList {
         }
     }
     
-    void OnButtonClickEventHandler(string buttonName) {
+    public override void OnButtonClickEventHandler(string buttonName) {
         
         if (buttonName == buttonCloseLoading.name) {
             

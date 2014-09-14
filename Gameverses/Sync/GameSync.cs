@@ -27,7 +27,7 @@ public class BaseGameSyncResult : GameDataObject {
         set {
             Set<GameDataObject>(BaseDataObjectKeys.info, value);
         }
-    } 
+    }
     
     public virtual int error {
         get {
@@ -93,12 +93,14 @@ public class GameSyncObject : GameDataObject {
         set {
             Set<Dictionary<string, GameSyncFileObject>>(BaseDataObjectKeys.files, value);
         }
-    } 
+    }
 
-    public void Reset() {
+    public override void Reset() {
+        base.Reset();
+
         email = "";
         
-        if(files == null)
+        if (files == null)
             files = new Dictionary<string, GameSyncFileObject>();
         else 
             files.Clear();
@@ -108,11 +110,11 @@ public class GameSyncObject : GameDataObject {
 
         GameSyncFileObject fileObject = null;
 
-        if(files.ContainsKey(code)) {
+        if (files.ContainsKey(code)) {
             fileObject = files[code];
         }
 
-        if(fileObject == null) {
+        if (fileObject == null) {
             fileObject = new GameSyncFileObject();
         }
 
@@ -196,7 +198,7 @@ public class GameSync : GameObjectBehavior {
         Messenger<WWWs.RequestItem,string>.RemoveListener(
             WWWs.StatusMessages.error, OnWWWRequestItemError);         
         
-    }    
+    }
     
     void Init() {  
         Reset();
@@ -214,7 +216,7 @@ public class GameSync : GameObjectBehavior {
         
         Debug.Log("OnWWWRequestItemSuccess:" + requestItem.ToJson());
 
-        Dictionary<string,object> files = new Dictionary<string, object>();
+        //Dictionary<string,object> files = new Dictionary<string, object>();
 
 
         //foreach(var file in requestItem.
@@ -245,7 +247,7 @@ public class GameSync : GameObjectBehavior {
 
     public void resetProfileSyncObject() {
         
-        if(profileSyncObject == null) {
+        if (profileSyncObject == null) {
             profileSyncObject = new GameSyncObject();
         }
         profileSyncObject.Reset();
@@ -257,7 +259,7 @@ public class GameSync : GameObjectBehavior {
     
     public void resetGameSyncObject() {
         
-        if(gameSyncObject == null) {
+        if (gameSyncObject == null) {
             gameSyncObject = new GameSyncObject();
         }
         gameSyncObject.Reset();
@@ -306,7 +308,7 @@ public class GameSync : GameObjectBehavior {
         
     public void syncProfile() {
 
-        if(string.IsNullOrEmpty(GameProfiles.Current.uuid)) {
+        if (string.IsNullOrEmpty(GameProfiles.Current.uuid)) {
             GameProfiles.Current.uuid = UniqueUtil.Instance.CreateUUID4();
             GameState.SaveProfile();
         }
@@ -378,10 +380,10 @@ public class GameSync : GameObjectBehavior {
         requestItem.paramHash.Set("profile_id", profile_id);
         requestItem.paramHash.Set("game_id", game_id);
         string dataValue = "";//data.ToJson();
-        if(data != null) {
+        if (data != null) {
             dataValue = data.ToJson();
-            if(!string.IsNullOrEmpty(dataValue)) {
-                dataValue = dataValue.Replace("\\\"","\"").TrimStart('"').TrimEnd('"');
+            if (!string.IsNullOrEmpty(dataValue)) {
+                dataValue = dataValue.Replace("\\\"", "\"").TrimStart('"').TrimEnd('"');
             }
         }
         

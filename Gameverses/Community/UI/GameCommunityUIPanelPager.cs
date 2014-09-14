@@ -155,7 +155,7 @@ public class GameCommunityUIPanelPager : UIAppPanelBaseList {
         UpdateState();
     }
     
-    void OnButtonClickEventHandler(string buttonName) {
+    public override void OnButtonClickEventHandler(string buttonName) {
         
         if (buttonNext != null) {
             if (buttonName == buttonNext.name) {        

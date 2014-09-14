@@ -185,7 +185,7 @@ public class GameCommunityUIPanelLogin : UIAppPanelBaseList {
         }
     }
     
-    void OnButtonClickEventHandler(string buttonName) {
+    public override  void OnButtonClickEventHandler(string buttonName) {
 
         string networkType = SocialNetworkTypes.facebook;
         

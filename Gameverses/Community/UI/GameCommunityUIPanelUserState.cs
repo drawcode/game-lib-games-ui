@@ -110,7 +110,7 @@ public class GameCommunityUIPanelUserState : UIAppPanelBaseList {
         }       
     }
     
-    void OnButtonClickEventHandler(string buttonName) {
+    public override void OnButtonClickEventHandler(string buttonName) {
         
         if (buttonFacebookLogin != null) {
             if (buttonName == buttonFacebookLogin.name) {
