@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+
 #if NETWORK_PHOTON
 using ExitGames;
 using ExitGames.Client;
@@ -10,13 +11,11 @@ using ExitGames.Client.Photon.Lite;
 using Photon.SocketServer;
 using Photon.SocketServer.Security;
 #endif
-
 using UnityEngine;
 
 using Engine.Data.Json;
 
 namespace Gameverses {
-
     public class GameNetworkingUnityPhoton : GameObjectBehavior {
         public static GameNetworkingUnityPhoton Instance;
         #if NETWORK_PHOTON
@@ -45,17 +44,16 @@ namespace Gameverses {
 
         public string localDeviceId = "";
 
-        public bool useCloudMasterServer = true;
-
-        public string masterserverGameName = "defaultgame";
-        public int defaultServerPort = 50666;
-        public int connectTimeoutValue = 30;
-        public int connectTestTimeValue = 9;
-        public int masterServerPort = 5055;
-        public int connectionTesterPort = 25011;
-        public int natFacilitatorPort = 25011;
-        public string masterserveriPAddressOrDns = "matchup.myserver.com";
-        public bool useMasterserverRouting = false;
+        public bool useCloudMasterServer = GameversesConfig.useCloudMasterServer;
+        public string masterserverGameName = GameversesConfig.masterserverGameName;
+        public int defaultServerPort = GameversesConfig.defaultServerPort;
+        public int connectTimeoutValue = GameversesConfig.connectTimeoutValue;
+        public int connectTestTimeValue = GameversesConfig.connectTestTimeValue;
+        public int masterServerPort = GameversesConfig.masterServerPort;
+        public int connectionTesterPort = GameversesConfig.connectionTesterPort;
+        public int natFacilitatorPort = GameversesConfig.masterserveriPAddressOrDns;
+        public string masterserveriPAddressOrDns = GameversesConfig.masterserveriPAddressOrDns;
+        public bool useMasterserverRouting = GameversesConfig.useMasterserverRouting;
 
         public string networkObjectsContainerName = "GameversesNetworkContainers";
         public GameObject networkObjectsContainer;
@@ -404,13 +402,13 @@ namespace Gameverses {
                 photonView.RPC("SetPhotonPlayer", PhotonTargets.AllBuffered, PhotonNetwork.player, UniqueUtil.Instance.currentUniqueId, currentPlayerName, GameNetworkingPlayerTypeMessages.PlayerTypeHero);
 
                 //SpawnOnNetwork(Vector3.zero,
-                //		Quaternion.identity,
-                //		id1,
-                //		currentPlayerName,
-                //		GameNetworkingPlayerTypeMessages.PlayerTypeHero,
-                //		UniqueUtil.Instance.currentUniqueId,
-                //		false,
-                //		PhotonNetwork.player);
+                //      Quaternion.identity,
+                //      id1,
+                //      currentPlayerName,
+                //      GameNetworkingPlayerTypeMessages.PlayerTypeHero,
+                //      UniqueUtil.Instance.currentUniqueId,
+                //      false,
+                //      PhotonNetwork.player);
 
                 photonView.RPC("SpawnOnNetwork",
                         PhotonTargets.AllBuffered,
@@ -1249,20 +1247,20 @@ OnPhotonInstantiate
 }
 
                            *
-NoError	 No error occurred.
-RSAPublicKeyMismatch	 We presented an RSA public key which does not match what the system we connected to is using.
-InvalidPassword	 The server is using a password and has refused our connection because we did not set the correct password.
-ConnectionFailed	 Connection attempt failed, possibly because of internal connectivity problems.
-TooManyConnectedPlayers	 The server is at full capacity, failed to connect.
-ConnectionBanned	 We are banned from the system we attempted to connect to (likely temporarily).
-AlreadyConnectedToServer	 We are already connected to this particular server (can happen after fast disconnect/reconnect).
-AlreadyConnectedToAnotherServer	 Cannot connect to two servers at once. Close the connection before connecting again.
-CreateSocketOrThreadFailure	 Internal error while attempting to initialize network interface. Socket possibly already in use.
-IncorrectParameters	 Incorrect parameters given to Connect function.
-EmptyConnectTarget	 No host target given in Connect.
-InternalDirectConnectFailed	 Client could not connect internally to same network NAT enabled server.
-NATTargetNotConnected	 The NAT target we are trying to connect to is not connected to the facilitator server.
-NATTargetConnectionLost	 Connection lost while attempting to connect to NAT target.
-NATPunchthroughFailed	 NAT punchthrough attempt has failed. The cause could be a too restrictive NAT implementation on either endpoints.
+NoError  No error occurred.
+RSAPublicKeyMismatch     We presented an RSA public key which does not match what the system we connected to is using.
+InvalidPassword  The server is using a password and has refused our connection because we did not set the correct password.
+ConnectionFailed     Connection attempt failed, possibly because of internal connectivity problems.
+TooManyConnectedPlayers  The server is at full capacity, failed to connect.
+ConnectionBanned     We are banned from the system we attempted to connect to (likely temporarily).
+AlreadyConnectedToServer     We are already connected to this particular server (can happen after fast disconnect/reconnect).
+AlreadyConnectedToAnotherServer  Cannot connect to two servers at once. Close the connection before connecting again.
+CreateSocketOrThreadFailure  Internal error while attempting to initialize network interface. Socket possibly already in use.
+IncorrectParameters  Incorrect parameters given to Connect function.
+EmptyConnectTarget   No host target given in Connect.
+InternalDirectConnectFailed  Client could not connect internally to same network NAT enabled server.
+NATTargetNotConnected    The NAT target we are trying to connect to is not connected to the facilitator server.
+NATTargetConnectionLost  Connection lost while attempting to connect to NAT target.
+NATPunchthroughFailed    NAT punchthrough attempt has failed. The cause could be a too restrictive NAT implementation on either endpoints.
 
 */

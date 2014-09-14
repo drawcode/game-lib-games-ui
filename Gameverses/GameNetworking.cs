@@ -1,5 +1,4 @@
 #define NETWORK_PHOTON_OFF
-
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -7,7 +6,6 @@ using System.Collections.Generic;
 using UnityEngine;
 
 namespace Gameverses {
-
     public class GameNetworkingPlayerTypeMessages {
         public static string PlayerTypeHero = "type-hero";
         public static string PlayerTypeEnemy = "type-enemy";
@@ -57,7 +55,7 @@ namespace Gameverses {
 
     public class GameNetworkingPlayerInfo {
 #if NETWORK_UNITY
-		public NetworkPlayer networkPlayer;
+        public NetworkPlayer networkPlayer;
 #elif NETWORK_PHOTON
         public PhotonPlayer networkPlayer;
 #else
@@ -78,7 +76,7 @@ namespace Gameverses {
 
         public void Reset() {
 #if NETWORK_UNITY
-			networkPlayer = Network.player;
+            networkPlayer = Network.player;
             #elif NETWORK_PHOTON
             networkPlayer = PhotonNetwork.player;
 #endif
@@ -107,23 +105,16 @@ namespace Gameverses {
 
     public class GameNetworking : GameObjectBehavior {
         public static GameNetworking Instance;
-
         public HostData currentHostData;
         public HostData currentGameSessionHostData;
-
         public int connectedPlayerCount = 0;
-
         public HostData[] hostDataMasterServer;
         public HostData hostDataGameSession;
-
         private float currentTimeBlock = 0.0f;
         private float currentTimeBlockDelayed = 0.0f;
         private float actionInterval = 1.0f;
-
         public string localDeviceId = "";
-
         public string currentPlayerName = "default";
-
         public bool pseudoMultiplayer = false; // multiplayer faked with AI
         public bool useExistingTransforms = true;
         public bool connectingAsClient = false;
@@ -146,7 +137,7 @@ namespace Gameverses {
 #if NETWORK_PHOTON
             gameObject.AddComponent<GameNetworkingUnityPhoton>();
 #elif NETWORK_UNITY
-			gameObject.AddComponent<GameNetworkingUnity>();
+            gameObject.AddComponent<GameNetworkingUnity>();
 #endif
             DontDestroyOnLoad(gameObject);
         }
@@ -169,7 +160,7 @@ namespace Gameverses {
         
         public static bool networkConnected {
             get {
-                if(Instance != null) {
+                if (Instance != null) {
                     return Instance.isConnected;
                 }
                 return false;
@@ -178,20 +169,19 @@ namespace Gameverses {
 
         public static bool networkRunning {
             get {
-                if(Instance != null) {
+                if (Instance != null) {
                     return Instance.isNetworkRunning;
                 }
                 return false;
             }
         }
 
-
         public bool isNetworkRunning {
             get {
 #if NETWORK_PHOTON
                 return GameNetworkingUnityPhoton.Instance.isNetworkRunning;
 #elif NETWORK_UNITY
-				return GameNetworkingUnity.Instance.isNetworkRunning;
+                return GameNetworkingUnity.Instance.isNetworkRunning;
 #else 
                 return false;
 #endif
@@ -356,7 +346,7 @@ namespace Gameverses {
 #if NETWORK_PHOTON
             GameNetworkingUnityPhoton.Instance.ServerStart();
 #elif NETWORK_UNITY
-			GameNetworkingUnity.Instance.ServerStart();
+            GameNetworkingUnity.Instance.ServerStart();
 #endif
         }
 
@@ -368,7 +358,7 @@ namespace Gameverses {
 #if NETWORK_PHOTON
             GameNetworkingUnityPhoton.Instance.SetGameSessionComplete();
 #elif NETWORK_UNITY
-			GameNetworkingUnity.Instance.SetGameSessionComplete();
+            GameNetworkingUnity.Instance.SetGameSessionComplete();
 #endif
         }
 
@@ -377,7 +367,7 @@ namespace Gameverses {
 #if NETWORK_PHOTON
             GameNetworkingUnityPhoton.Instance.ConnectGameSession(hostData);
 #elif NETWORK_UNITY
-			GameNetworkingUnity.Instance.ConnectGameSession(hostData);
+            GameNetworkingUnity.Instance.ConnectGameSession(hostData);
 #endif
         }
 
@@ -395,10 +385,10 @@ namespace Gameverses {
         public static void Connect() {
             Debug.Log("GameNetworking:Connect:" + true);
             Debug.Log("GameNetworking:Connect:networkConnected:" + networkConnected);
-            if(networkConnected) {
+            if (networkConnected) {
                 return;
             }
-            if(Instance != null) {
+            if (Instance != null) {
                 Instance.ConnectNetwork();
             }
             Debug.Log("GameNetworking:Connect:networkConnected:" + networkConnected);
@@ -406,7 +396,7 @@ namespace Gameverses {
         
         public static void Join(string name) {
             Debug.Log("GameNetworking:Join:" + true);
-            if(Instance != null) {
+            if (Instance != null) {
                 Instance.join(name);
             }
             Debug.Log("GameNetworking:Join:networkConnected:" + networkConnected);
@@ -422,7 +412,7 @@ namespace Gameverses {
 
         public static void Create(string name) {
             Debug.Log("GameNetworking:Create:" + true);
-            if(Instance != null) {
+            if (Instance != null) {
                 Instance.create(name);
             }
             Debug.Log("GameNetworking:Create:networkConnected:" + networkConnected);
@@ -438,7 +428,7 @@ namespace Gameverses {
         
         public static void Leave() {
             Debug.Log("GameNetworking:Leave:" + true);
-            if(Instance != null) {
+            if (Instance != null) {
                 Instance.leave();
             }
             Debug.Log("GameNetworking:Create:networkConnected:" + networkConnected);
@@ -456,16 +446,16 @@ namespace Gameverses {
 #if NETWORK_PHOTON
             GameNetworkingUnityPhoton.Instance.ConnectNetwork(hostData);
 #elif NETWORK_UNITY
-			GameNetworkingUnity.Instance.ConnectNetwork(hostData);
+            GameNetworkingUnity.Instance.ConnectNetwork(hostData);
 #endif
-        }        
+        }
         
         public static void Disconnect() {
             Debug.Log("GameNetworking:Disconnect:networkConnected:" + networkConnected);
-            if(!networkConnected) {
+            if (!networkConnected) {
                 return;
             }
-            if(Instance != null) {
+            if (Instance != null) {
                 Instance.DisconnectNetwork();
             }
             Debug.Log("GameNetworking:Disconnect:networkConnected:" + networkConnected);
@@ -475,7 +465,7 @@ namespace Gameverses {
 #if NETWORK_PHOTON
             GameNetworkingUnityPhoton.Instance.DisconnectNetwork();
 #elif NETWORK_UNITY
-			GameNetworkingUnity.Instance.DisconnectNetwork();
+            GameNetworkingUnity.Instance.DisconnectNetwork();
 #endif
         }
 
@@ -488,7 +478,7 @@ namespace Gameverses {
 #if NETWORK_PHOTON
             GameNetworkingUnityPhoton.Instance.DisconnectNetwork();
 #elif NETWORK_UNITY
-			GameNetworkingUnity.Instance.DisconnectNetwork();
+            GameNetworkingUnity.Instance.DisconnectNetwork();
 #endif
         }
 
@@ -496,7 +486,7 @@ namespace Gameverses {
 #if NETWORK_PHOTON
             GameNetworkingUnityPhoton.Instance.SendActionMessage(action, pos, direction);
 #elif NETWORK_UNITY
-			GameNetworkingUnity.Instance.SendActionMessage(action, pos, direction);
+            GameNetworkingUnity.Instance.SendActionMessage(action, pos, direction);
 #endif
         }
 

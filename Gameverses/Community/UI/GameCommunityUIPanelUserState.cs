@@ -176,7 +176,7 @@ public class GameCommunityUIPanelUserState : UIAppPanelBaseList {
                     labelFirstname.text = "";   
                 }
             }
-            if(networkType == SocialNetworkTypes.facebook) {
+            if (networkType == SocialNetworkTypes.facebook) {
                 LoadFacebookProfileImage(username);
             }
         }

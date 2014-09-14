@@ -5,7 +5,6 @@ using System.Collections.Generic;
 using UnityEngine;
 
 namespace Gameverses {
-
     public class GameversesKeys {
         public static string ProfileList = "gv-profile-list";
         public static string Profile = "gv-profile";
@@ -34,19 +33,16 @@ namespace Gameverses {
     public class GameversesGameAPI {
         private static volatile GameversesGameAPI instance;
         private static System.Object syncRoot = new System.Object();
-
         public GameversesProfile currentProfile;
         public string currentProfileId = "";
-
         public GameversesGameSession currentSession;
         public GameversesGameSessionData currentSessionData;
 #if NETWORK_UNITY
-		public NetworkPlayer currentPlayer;
+        public NetworkPlayer currentPlayer;
 #elif NETWORK_PHOTON
         public PhotonPlayer currentPlayer;
 #endif
         public HostData currentHostData;
-
         public HostData currentClientHostData;
 
         public static GameversesGameAPI Instance {
@@ -220,7 +216,10 @@ namespace Gameverses {
             currentClientHostData.gameName = gameSession.uuid;
             currentClientHostData.gameType = gameSession.uuid;
             currentClientHostData.guid = gameSession.network_uuid;
-            currentClientHostData.ip = new string[2] { gameSession.network_ip, gameSession.network_external_ip };
+            currentClientHostData.ip = new string[2] {
+                gameSession.network_ip,
+                gameSession.network_external_ip
+            };
             currentClientHostData.passwordProtected = false;
             currentClientHostData.playerLimit = gameSession.game_players_allowed;
             currentClientHostData.port = gameSession.network_external_port;
@@ -269,39 +268,39 @@ namespace Gameverses {
 
         public void SetupNetworkGameSession(string uuid, NetworkPlayer player, HostData hostData) {
 #if NETWORK_UNITY
-			if(!Network.isServer)
-				return;
+            if(!Network.isServer)
+                return;
 
-			currentPlayer = player;
-			currentHostData = hostData;
+            currentPlayer = player;
+            currentHostData = hostData;
 
-			currentSession = new GameversesGameSession();
-			currentSession.active = true;
-			currentSession.date_created = DateTime.Now;
-			currentSession.date_modified = DateTime.Now;
+            currentSession = new GameversesGameSession();
+            currentSession.active = true;
+            currentSession.date_created = DateTime.Now;
+            currentSession.date_modified = DateTime.Now;
 
-			currentSession.network_external_ip = currentPlayer.externalIP;
-			currentSession.network_external_port = currentPlayer.externalPort;
+            currentSession.network_external_ip = currentPlayer.externalIP;
+            currentSession.network_external_port = currentPlayer.externalPort;
 
-			currentSession.game_players_allowed = 4;
-			currentSession.game_players_connected = 1;
-			currentSession.game_type = "demogame";
-			currentSession.game_level = "chapter-1-1";
-			currentSession.game_area = "here";
-			currentSession.game_state = "init";
-			currentSession.network_ip = currentPlayer.ipAddress;
-			currentSession.network_port = currentPlayer.port;
-			currentSession.network_uuid = currentPlayer.guid;
-			currentSession.network_use_nat = currentHostData.useNat;
+            currentSession.game_players_allowed = 4;
+            currentSession.game_players_connected = 1;
+            currentSession.game_type = "demogame";
+            currentSession.game_level = "chapter-1-1";
+            currentSession.game_area = "here";
+            currentSession.game_state = "init";
+            currentSession.network_ip = currentPlayer.ipAddress;
+            currentSession.network_port = currentPlayer.port;
+            currentSession.network_uuid = currentPlayer.guid;
+            currentSession.network_use_nat = currentHostData.useNat;
 
-			currentSession.status = "";
-			currentSession.uuid = uuid;
-			currentSession.profile_id = UniqueUtil.CreateUUID4();
-			currentSession.game_id = "11111111-1111-1111-1111-111111111111";
+            currentSession.status = "";
+            currentSession.uuid = uuid;
+            currentSession.profile_id = UniqueUtil.CreateUUID4();
+            currentSession.game_id = "11111111-1111-1111-1111-111111111111";
 
-			SetGameSession(currentSession);
+            SetGameSession(currentSession);
 
-			LogUtil.Log("GameversesService.Instance: " + currentPlayer.externalPort);
+            LogUtil.Log("GameversesService.Instance: " + currentPlayer.externalPort);
 #endif
         }
 

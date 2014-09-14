@@ -7,7 +7,6 @@ using UnityEngine;
 using Engine.Networking;
 
 namespace Gameverses {
-
     public class GameversesGameObject : GameObjectBehavior {
         public GameversesGameAPI gameverses;
         public GameversesService gameversesService;
@@ -15,7 +14,7 @@ namespace Gameverses {
         public WebRequests requests;
 
 #if NETWORK_UNITY
-		public NetworkView networkViewObject;
+        public NetworkView networkViewObject;
         #elif NETWORK_PHOTON
         public PhotonView networkViewObject;
         public GameObject rpcObject;
@@ -25,9 +24,9 @@ namespace Gameverses {
         private void Start() {
             requests = gameObject.AddComponent<WebRequests>();
 #if NETWORK_UNITY
-			networkViewObject = gameObject.AddComponent<NetworkView>();
-			networkViewObject.stateSynchronization = NetworkStateSynchronization.Unreliable;
-			gameNetworking = gameObject.AddComponent<GameNetworking>();
+            networkViewObject = gameObject.AddComponent<NetworkView>();
+            networkViewObject.stateSynchronization = NetworkStateSynchronization.Unreliable;
+            gameNetworking = gameObject.AddComponent<GameNetworking>();
             #elif NETWORK_PHOTON
 
             //rpcObject = PhotonNetwork.Instantiate("GameNetworkPhotonRPC", Vector3.zero, Quaternion.identity, 0);

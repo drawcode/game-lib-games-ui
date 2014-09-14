@@ -47,16 +47,16 @@ public class GameCommunitySocialController : GameObjectBehavior {
         //    result.message
         //);      
 
-        if(result == null) {
+        if (result == null) {
             return;
         }
 
-        if(string.IsNullOrEmpty(result.title)) {
+        if (string.IsNullOrEmpty(result.title)) {
             return;
         }
 
 
-        if(result.title.ToLower().Contains("error")) {
+        if (result.title.ToLower().Contains("error")) {
             UINotificationDisplay.QueueError(result.title, result.message);            
         }
         else {
@@ -109,7 +109,6 @@ public class GameCommunitySocialController : GameObjectBehavior {
         photoMaterial = photoPlaceholderMaterial;
         TakePhoto();
     }
-
     
     public static void TakePhoto() {
         if (Instance != null) {
@@ -344,7 +343,6 @@ public class GameCommunitySocialController : GameObjectBehavior {
     public void uploadPhotoToTwitter() {
         startTwitterPhotoUploadProcess();
     }
-
     
     public static void StartPhotoUploadToTwitter() {
         if (Instance != null) {
@@ -505,7 +503,7 @@ public class GameCommunitySocialController : GameObjectBehavior {
             "http://barrowbrainball.com", 
             "Barrow Brainball - Epic Run", 
             filePath, 
-            "Epic Run in Barrow Brainball" );
+            "Epic Run in Barrow Brainball");
     }
     
     public static void PostGameResultsTwitter() {
@@ -516,7 +514,7 @@ public class GameCommunitySocialController : GameObjectBehavior {
 
     public void postGameResultsTwitter() {
 
-        SocialNetworks.ShowLoginOrComposerTwitter(  
+        SocialNetworks.ShowLoginOrComposerTwitter(
             "Played a game of Barrow Brainball #playsmart ", filePath);
     }
 }

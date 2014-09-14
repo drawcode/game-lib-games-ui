@@ -6,7 +6,6 @@ using Engine.Data.Json;
 using Engine.Networking;
 
 namespace Gameverses {
-
     public class GameversesServiceMessages {
         public static string GameList = "game-get-list";
         public static string GameSessionList = "game-session-get-list";
@@ -18,12 +17,10 @@ namespace Gameverses {
     public class GameversesServiceActions {
         public static string Game = "game";
         public static string Games = "games";
-
         public static string GameSession = "game-session";
         public static string GameSessions = "game-sessions";
         public static string GameContent = "game-content";
         public static string GameContents = "game-contents";
-
         public static string GameProfile = "game-profile";
         public static string GameProfileContent = "game-profile-content";
     }
@@ -39,7 +36,7 @@ namespace Gameverses {
         public GameversesProfile currentProfile;
         public GameversesProfileData currentProfileData;
 
-        public delegate void HandleGameProfileCallback(GameversesProfile data, WebRequests.ResponseObject responseObject);
+        public delegate void HandleGameProfileCallback(GameversesProfile data,WebRequests.ResponseObject responseObject);
 
         public HandleGameProfileCallback callbackGameProfile;
 
@@ -54,31 +51,31 @@ namespace Gameverses {
         public GameversesGameSession currentGameSession;
         public GameversesGameSessionData currentGameSessionData;
 
-        public delegate void HandleGameListCallback(List<GameversesGame> data, WebRequests.ResponseObject responseObject);
+        public delegate void HandleGameListCallback(List<GameversesGame> data,WebRequests.ResponseObject responseObject);
 
         public HandleGameListCallback callbackGameList;
 
-        public delegate void HandleGameSessionListCallback(List<GameversesGameSession> data, WebRequests.ResponseObject responseObject);
+        public delegate void HandleGameSessionListCallback(List<GameversesGameSession> data,WebRequests.ResponseObject responseObject);
 
         public HandleGameSessionListCallback callbackGameSessionList;
 
-        public delegate void HandleGameSessionCallback(GameversesGameSession data, WebRequests.ResponseObject responseObject);
+        public delegate void HandleGameSessionCallback(GameversesGameSession data,WebRequests.ResponseObject responseObject);
 
         public HandleGameSessionCallback callbackGameSession;
 
-        public delegate void HandleGameSessionDataCallback(GameversesGameSessionData data, WebRequests.ResponseObject responseObject);
+        public delegate void HandleGameSessionDataCallback(GameversesGameSessionData data,WebRequests.ResponseObject responseObject);
 
         public HandleGameSessionDataCallback callbackGameSessionData;
 
-        public delegate void HandleGameSessionSetCallback(GameversesGameSession data, WebRequests.ResponseObject responseObject);
+        public delegate void HandleGameSessionSetCallback(GameversesGameSession data,WebRequests.ResponseObject responseObject);
 
         public HandleGameSessionSetCallback callbackGameSessionSet;
 
-        public delegate void HandleGameSessionDataSetCallback(GameversesGameSessionData data, WebRequests.ResponseObject responseObject);
+        public delegate void HandleGameSessionDataSetCallback(GameversesGameSessionData data,WebRequests.ResponseObject responseObject);
 
         public HandleGameSessionDataSetCallback callbackGameSessionDataSet;
 
-        public delegate void HandleGameSessionStateCallback(GameversesGameSession data, WebRequests.ResponseObject responseObject);
+        public delegate void HandleGameSessionStateCallback(GameversesGameSession data,WebRequests.ResponseObject responseObject);
 
         public HandleGameSessionStateCallback callbackGameSessionState;
 
@@ -272,8 +269,8 @@ namespace Gameverses {
 
         public void RequestGameSessionList(HandleGameSessionListCallback callback) {
             string url = GameversesConfig.apiGameFullPath
-                    + GameversesServiceActions.GameSessions
-                    + "/all";
+                + GameversesServiceActions.GameSessions
+                + "/all";
 
             // Since this is a real-time update, ensure cache on the url to bypass Unity's WWW caching.
             //url = serviceUtil.EnsureUrlUniqueByTime(url);
@@ -328,7 +325,7 @@ namespace Gameverses {
         public void PostGameSession(GameversesGameSession gameSession, HandleGameSessionSetCallback callback) {
             string url = GameversesConfig.apiGameFullPath
                 + GameversesServiceActions.GameSession
-                    + "/" + gameSession.uuid;
+                + "/" + gameSession.uuid;
             LogUtil.Log("url:" + url);
 
             // Since this is a real-time update, ensure cache on the url to bypass Unity's WWW caching.
@@ -390,11 +387,11 @@ namespace Gameverses {
 
         public void PostGameSessionState(GameversesGameSession gameSession, HandleGameSessionStateCallback callback) {
             string url = GameversesConfig.apiGameFullPath
-                    + GameversesServiceActions.GameSession
-                    + "/"
-                    + gameSession.uuid
-                    + "/"
-                    + gameSession.game_state;
+                + GameversesServiceActions.GameSession
+                + "/"
+                + gameSession.uuid
+                + "/"
+                + gameSession.game_state;
             LogUtil.Log("url:" + url);
 
             // Since this is a real-time update, ensure cache on the url to bypass Unity's WWW caching.
