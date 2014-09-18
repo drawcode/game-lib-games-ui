@@ -109,13 +109,18 @@ using UnityEngine;
 
 */
 
+public enum GameCommunityNetworkLoginState {
+    none,
+    loggingIn
+}
+
 public class GameCommunity {
     
     private static volatile GameCommunity instance;
     private static System.Object syncRoot = new System.Object();
     private GameCommunitySyncData syncData = new GameCommunitySyncData();
-    bool isLoggingIn = false;
-    
+    public Dictionary<string,GameCommunityNetworkLoginState> networkProcessStates;
+
     public static GameCommunity Instance {
         get {
             if (instance == null) { 
@@ -126,6 +131,40 @@ public class GameCommunity {
             }   
             return instance;
         }
+    }
+
+    public GameCommunity() {
+        Init();
+    }
+
+    public void Init() {
+        networkProcessStates = new Dictionary<string, GameCommunityNetworkLoginState>();
+    }
+
+    public bool IsNetworkLoggingIn(string networkType) {
+
+        GameCommunityNetworkLoginState keyState = 
+            networkProcessStates.Get(networkType);
+
+        //if (keyState != null) {
+        if (keyState == GameCommunityNetworkLoginState.loggingIn) {
+            return true;
+        }
+        //}
+
+        return false;
+    }
+
+    public GameCommunityNetworkLoginState GetNetworkLoginState(string networkType) {
+        
+        GameCommunityNetworkLoginState keyState = networkProcessStates.Get(networkType);
+        
+        return keyState;
+    }
+
+    public void SetNetworkLoginState(string networkType, GameCommunityNetworkLoginState loginState) {
+
+        networkProcessStates.Set(networkType, loginState);
     }
 
     // LOGIN
@@ -144,9 +183,9 @@ public class GameCommunity {
         if (networkType == SocialNetworkTypes.facebook) {
             bool isLoggedInFacebook = SocialNetworks.IsLoggedInFacebook();
             
-            //LogUtil.Log(">>>>>>> isLoggedIn:networkType" + networkType + "\r\n\r\n\r\n");     
-            //LogUtil.Log(">>>>>>> isLoggedIn:networkUserName" + networkUserName + "\r\n\r\n\r\n");
-            //LogUtil.Log(">>>>>>> isLoggedIn:isLoggedInFacebook" + isLoggedInFacebook + "\r\n\r\n\r\n");
+            Debug.Log(">>>>>>> isLoggedIn:networkType: " + networkType + "\r\n\r\n\r\n");     
+            Debug.Log(">>>>>>> isLoggedIn:networkUserName: " + networkUserName + "\r\n\r\n\r\n");
+            Debug.Log(">>>>>>> isLoggedIn:isLoggedInFacebook: " + isLoggedInFacebook + "\r\n\r\n\r\n");
             
             if (!string.IsNullOrEmpty(networkType)) {
                 if (!string.IsNullOrEmpty(networkUserName)) {
@@ -179,35 +218,47 @@ public class GameCommunity {
     
     public void login(string networkType) {
         
-        LogUtil.Log("login: isLoggingIn:" + isLoggedIn(networkType).ToString());
-        LogUtil.Log("login: IsLoggedInFacebook:" + SocialNetworks.IsLoggedInFacebook().ToString());
-        LogUtil.Log("login: IsLoggedInFacebook:" + SocialNetworks.IsLoggedInTwitter().ToString());
+        Debug.Log("login: isLoggingIn:" + isLoggedIn(networkType).ToString());
+        if (networkType == SocialNetworkTypes.facebook) {
+            Debug.Log("login: IsLoggedInFacebook:" + SocialNetworks.IsLoggedInFacebook().ToString());
+        }
+        else if (networkType == SocialNetworkTypes.twitter) {
+            Debug.Log("login: IsLoggedInTwitter:" + SocialNetworks.IsLoggedInTwitter().ToString());
+        }
         
-        if (!isLoggingIn) {
-            isLoggingIn = true;
+        if (!IsLoggingIn(networkType)) {
+
+            SetNetworkLoginState(networkType, GameCommunityNetworkLoginState.loggingIn);
         
             GameCommunity.TrackGameView("Logging In", "logging-in");
             GameCommunity.TrackGameEvent("logging-in", "login", 1);
-            // TODO look up others, custom
-            loginFacebook();
+            
+            if (networkType == SocialNetworkTypes.facebook) {
+                loginFacebook();
+            }
+            else if (networkType == SocialNetworkTypes.twitter) {
+                loginTwitter();                
+            }
             
         }
     }
-
-    public static bool IsLoggingIn {
-        get {
-            return Instance.isLoggingIn;
-        }
-    }
     
-    public static void ResetLoggingIn() {
+    public static bool IsLoggingIn(string networkType) {
         if (Instance != null) {
-            Instance.resetLoggingIn();
+            return Instance.IsNetworkLoggingIn(networkType);
+        }
+
+        return false;
+    }
+
+    public static void ResetLoggingIn(string networkType) {
+        if (Instance != null) {
+            Instance.resetLoggingIn(networkType);
         }
     }
     
-    public void resetLoggingIn() {
-        isLoggingIn = false;
+    public void resetLoggingIn(string networkType) {
+        SetNetworkLoginState(networkType, GameCommunityNetworkLoginState.none);
     }
     
     private void loginFacebook() {

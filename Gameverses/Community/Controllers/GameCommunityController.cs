@@ -80,7 +80,7 @@ public class GameCommunityController : GameObjectBehavior {
         
     void OnProfileLoggedIn() {
         
-        LogUtil.Log("GameCommunityController: OnProfileLoggedIn");
+        Debug.Log("GameCommunityController: OnProfileLoggedIn");
         
         // If they logged in to like
         
@@ -95,10 +95,9 @@ public class GameCommunityController : GameObjectBehavior {
     
     void OnProfileData(string networkType, string dataType, object data) {
         
-        LogUtil.Log("OnProfileData: networkType: ", networkType);
-        LogUtil.Log("OnProfileData: dataType: ", dataType);
-        LogUtil.Log("OnProfileData: data: ", data);
-        
+        Debug.Log("OnProfileData: networkType: " + networkType);
+        Debug.Log("OnProfileData: dataType: "+ dataType);
+        Debug.Log("OnProfileData: data: "+ data);        
         
         GameCommunityUIPanelLoading.HideGameCommunityLoading();
         
@@ -115,37 +114,37 @@ public class GameCommunityController : GameObjectBehavior {
                     if (dict.ContainsKey("id")) {
                         userId = dict["id"].ToString();
                     }
-                    LogUtil.Log("OnProfileData: userId:" + userId);
+                    Debug.Log("OnProfileData: userId:" + userId);
                     
                     string name = "";
                     if (dict.ContainsKey("name")) {
                         name = dict["name"].ToString();
                     }
-                    LogUtil.Log("OnProfileData: name:" + name);
+                    Debug.Log("OnProfileData: name:" + name);
                     
                     string username = "";
                     if (dict.ContainsKey("username")) {
                         username = dict["username"].ToString();
                     }
-                    LogUtil.Log("OnProfileData: username:" + username);
+                    Debug.Log("OnProfileData: username:" + username);
                     
                     string first_name = "";
                     if (dict.ContainsKey("first_name")) {
                         first_name = dict["first_name"].ToString();
                     }
-                    LogUtil.Log("OnProfileData: first_name:" + first_name);
+                    Debug.Log("OnProfileData: first_name:" + first_name);
                                         
                     string gender = "";
                     if (dict.ContainsKey("gender")) {
                         gender = dict["gender"].ToString();
                     }
-                    LogUtil.Log("OnProfileData: gender:" + gender);
+                    Debug.Log("OnProfileData: gender:" + gender);
                     
                     string dob = "";
                     if (dict.ContainsKey("birthday")) {
                         dob = dict["birthday"].ToString();
                     }
-                    LogUtil.Log("OnProfileData: dob:" + dob);
+                    Debug.Log("OnProfileData: dob:" + dob);
                     
                     string location = "";
                     string locationCity = "";
@@ -171,21 +170,22 @@ public class GameCommunityController : GameObjectBehavior {
                         }
                     }
                     
-                    LogUtil.Log("OnProfileData: location:" + location);
-                    LogUtil.Log("OnProfileData: locationCity:" + locationCity);
-                    LogUtil.Log("OnProfileData: locationState:" + locationState);
+                    Debug.Log("OnProfileData: location:" + location);
+                    Debug.Log("OnProfileData: locationCity:" + locationCity);
+                    Debug.Log("OnProfileData: locationState:" + locationState);
                     
                     string locale = "en_US";
                     if (dict.ContainsKey("locale")) {
                         locale = dict["locale"].ToString();
                     }
-                    LogUtil.Log("OnProfileData: locale:" + locale);
+                    Debug.Log("OnProfileData: locale:" + locale);
                     
-                    LogUtil.Log("OnProfileData ht: userId:" + userId + 
+                    Debug.Log("OnProfileData ht: userId:" + userId + 
                         " name:" + name + 
                         " username:" + username + 
                         " first_name:" + first_name);
-                    
+
+                    //GameProfiles.Current.SetThirdPartyNetworkUser();
                     GameProfiles.Current.SetNetworkValueId(networkType, userId);
                     GameProfiles.Current.SetNetworkValueName(networkType, name);
                     GameProfiles.Current.SetNetworkValueUsername(networkType, username);
@@ -228,7 +228,7 @@ public class GameCommunityController : GameObjectBehavior {
                     user.user_id = userId;
                     user.network = networkType;
                     
-                    GameCommunity.ResetLoggingIn();
+                    GameCommunity.ResetLoggingIn(networkType);
                     
                     Messenger<GameCommunityNetworkUser>.Broadcast(
                         GameCommunityMessages.gameCommunityLoggedIn,

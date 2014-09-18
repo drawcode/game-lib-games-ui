@@ -119,131 +119,7 @@ public class GameCommunitySocialController : GameObjectBehavior {
     public void takePhoto() {
         StartCoroutine(takePhotoCo());
     }
-    
-    /*
-    public void FindSocialNetworkFacebookObject() {     
-        if(socialNetworkFacebookObject == null) {
-            socialNetworkFacebookObject = GameObject.Find("SocialNetworkFacebook");
-            if(socialNetworkFacebookObject == null) {
-                socialNetworkFacebookObject = new GameObject("SocialNetworkFacebook");
-                DontDestroyOnLoad(socialNetworkFacebookObject);
-            }
-        }
-    }
-    
-    public void FindSocialNetworkTwitterObject() {      
-        if(socialNetworkTwitterObject == null) {
-            socialNetworkTwitterObject = GameObject.Find("SocialNetworkTwitter");
-            if(socialNetworkTwitterObject == null) {
-                socialNetworkTwitterObject = new GameObject("SocialNetworkTwitter");
-                DontDestroyOnLoad(socialNetworkTwitterObject);
-            }
-        }
-    }
-    
-    public void FindFacebookManagerObject() {       
-        FindSocialNetworkFacebookObject();      
-        if(facebookManager == null) {
-            facebookManager = socialNetworkFacebookObject.GetComponent<FacebookManager>();
-            facebookEventListener = socialNetworkFacebookObject.GetComponent<FacebookEventListener>();
-            
-            if(facebookManager == null || facebookEventListener == null) {
-                
-                //LogUtil.Log("initFacebook:adding:" + facebookManager);
-                
-                facebookManager = socialNetworkFacebookObject.AddComponent<FacebookManager>();
-                facebookEventListener = socialNetworkFacebookObject.AddComponent<FacebookEventListener>();
-            }
-        }
-    }
-    
-    public void FindTwitterManagerObject() {
-        
-        FindSocialNetworkTwitterObject();
-        
-        if(twitterManager == null) {
-            
-            twitterManager = socialNetworkTwitterObject.GetComponent<TwitterManager>();
-            
-            #if UNITY_IPHONE
-            twitterEventListener = socialNetworkTwitterObject.GetComponent<TwitterEventListener>();
-            #elif UNITY_ANDROID
-            twitterEventListener = socialNetworkTwitterObject.GetComponent<TwitterAndroidEventListener>();
-            #endif
-            
-            if(twitterManager == null) {
-                
-                //LogUtil.Log("initTwitter:adding:" + twitterManager);
-                
-                twitterManager = socialNetworkTwitterObject.AddComponent<TwitterManager>();
-                #if UNITY_IPHONE
-                twitterEventListener = socialNetworkTwitterObject.AddComponent<TwitterEventListener>();
-                #elif UNITY_ANDROID
-                twitterEventListener = socialNetworkTwitterObject.AddComponent<TwitterAndroidEventListener>();
-                #endif
-            }
-        }
-    }
-    
-    
-    public void initFacebook() {
-        
-        //LogUtil.Log("initFacebook:" + facebookManager);
-    
-        FindFacebookManagerObject();
-                        
-    #if UNITY_IPHONE
-        FacebookBinding.init(FACEBOOK_APP_ID);
-    #elif UNITY_ANDROID
-        FacebookAndroid.init(FACEBOOK_APP_ID);
-    #endif
-        
-        initFacebookEvents();
-    }
-    public void initFacebookEvents() {
-        // [CH] Uncomment this to test initial user workflow.
-        //FacebookBinding.logout();
-        if(photoMaterial != null) {
-            photoMaterial = new Material(photoMaterial); // [CH] Copy the material so we don't destroy the original material.
-        }
-        FacebookManager.loginSucceededEvent += () =>
-        {
-            //LogUtil.Log("[CH] Login succeeded! uploading photo....");
-            uploadPhotoToFacebook();
-        };
-    }
-    
-    public void initTwitter() {
-        
-        FindTwitterManagerObject();
-                
-    #if UNITY_IPHONE
-        TwitterBinding.init(TWITTER_KEY, TWITTER_SECRET);
-    #elif UNITY_ANDROID
-        TwitterAndroid.init(TWITTER_KEY, TWITTER_SECRET);
-    #endif
-        
-        initTwitterEvents();
-    }
-    
-    public void initTwitterEvents() {
 
-        TwitterManager.twitterPost += () =>
-        {
-            //LogUtil.Log("[CH] Post uploaded!");
-            GameCommunityController.SendResultMessage(
-                twitterPostSuccessTitle, twitterPostSuccessMessage);
-        };
-
-        TwitterManager.twitterPostFailed += errorMessage =>
-        {
-            //LogUtil.Log("[CH] Post error!");
-            // [CH] Display the ingame gui. At this point in time no gui is displayed.
-            GUIInGame.SetActive(true);
-            alwaysOnController.refreshInterface();
-        };
-    }
-*/
     IEnumerator takePhotoCo() {
         //yield return new WaitForSeconds(0.5f);
         
@@ -269,6 +145,7 @@ public class GameCommunitySocialController : GameObjectBehavior {
          * enough for all devices. I think we can assume so. In the editor this
          * means that you won't see the 'saving screenshot' screen.
         **/
+
         //yield return new WaitForSeconds(0.5f);
         //displayPendingSaveAnimation();
 
@@ -280,7 +157,7 @@ public class GameCommunitySocialController : GameObjectBehavior {
 
         var tex = new Texture2D(Screen.width, Screen.height, TextureFormat.RGB24, false);
         WWW www = new WWW("file://" + filePath);
-        //LogUtil.Log("[CH] looking for:"+www.url);
+
         yield return www;
 
         if (www.error != null) {
@@ -294,7 +171,7 @@ public class GameCommunitySocialController : GameObjectBehavior {
             //AppViewerUIController.Instance.HidePhotoCompleteActionUI();
             //AppViewerUIController.Instance.ShowPhotoShareActionUI();
         
-            updatePhotoPreview();
+            //updatePhotoPreview();
         }
         else {
             LogUtil.Log("Set photoMaterial property with read/write material/texture before taking photo");
@@ -325,7 +202,13 @@ public class GameCommunitySocialController : GameObjectBehavior {
     }
 
     public void startFacebookPhotoUploadProcess() {
-        if (!GameCommunity.IsLoggedIn(SocialNetworkTypes.facebook)) {
+
+        bool loggedIn = GameCommunity.IsLoggedIn(SocialNetworkTypes.facebook);
+
+        Debug.Log("GameCommunitySocialController:startFacebookPhotoUploadProcess:" 
+                  + " loggedIn:" + loggedIn.ToJson());
+
+        if (loggedIn) {
             GameCommunity.Login(SocialNetworkTypes.facebook);
         }
         else {      
