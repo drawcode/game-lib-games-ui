@@ -243,8 +243,8 @@ public class GameCommunitySocialController : GameObjectBehavior {
         else {
             
             GameCommunityController.SendResultMessage(
-                AppConfigs.stringTwitterDisabledTitle, 
-                AppConfigs.stringTwitterDisabledMessage);
+                Locos.Get(LocoKeys.social_twitter_disabled_title), 
+                Locos.Get(LocoKeys.social_twitter_disabled_message));
         }
     }
     
@@ -281,7 +281,9 @@ public class GameCommunitySocialController : GameObjectBehavior {
         displayPendingUploadAnimation();
 
         Facebook.instance.postImage(
-            bytes, AppConfigs.stringFacebookPostMessage, onFacebookUploadComplete);     
+            bytes, 
+            Locos.Get(LocoKeys.social_facebook_post_message),
+            onFacebookUploadComplete);     
     }
 
     public void onFacebookUploadComplete(string error, object result) {        
@@ -290,13 +292,13 @@ public class GameCommunitySocialController : GameObjectBehavior {
             //LogUtil.LogError( error );
                         
             GameCommunityController.SendResultMessage(
-                AppConfigs.stringFacebookUploadErrorTitle, 
-                AppConfigs.stringFacebookUploadErrorMessage + error);
+                Locos.Get(LocoKeys.social_facebook_upload_error_title), 
+                Locos.Get(LocoKeys.social_facebook_upload_error_message) + error);
         }
         else {          
             GameCommunityController.SendResultMessage(
-                AppConfigs.stringFacebookUploadSuccessTitle, 
-                AppConfigs.stringFacebookUploadSuccessMessage);
+                Locos.Get(LocoKeys.social_facebook_upload_success_title), 
+                Locos.Get(LocoKeys.social_facebook_upload_success_message));
         }
     }
 
@@ -314,17 +316,22 @@ public class GameCommunitySocialController : GameObjectBehavior {
     
     public void uploadPhotoToTwitter(string filePathToUpload) {
         SocialNetworks.ShowComposerTwitter(
-            AppConfigs.stringTwitterPostMessage, filePathToUpload);
+            Locos.Get(LocoKeys.social_twitter_post_message), 
+            filePathToUpload);
     }
 
     public void displayPendingSaveAnimation() {
         GameCommunityController.SendResultMessage(
-            "SAVING", AppConfigs.stringPendingCreatingScreenshot);
+            "SAVING", 
+            Locos.Get(LocoKeys.social_photo_pending_creating_screenshot)
+            );
     }
 
     public void displayPendingUploadAnimation() {
         GameCommunityController.SendResultMessage(
-            "UPLOADING", AppConfigs.stringPendingUploadingPost);
+            "UPLOADING", 
+            Locos.Get(LocoKeys.social_photo_pending_uploading_post)
+            );
 
 #if UNITY_EDITOR
         StartCoroutine(waitAndDisplayAlert());
@@ -345,7 +352,7 @@ public class GameCommunitySocialController : GameObjectBehavior {
     }
     
     public void saveImageToLibraryDefault() {
-        string name = AppConfigs.stringSavedPhotoTitleDefault;  
+        string name = Locos.Get(LocoKeys.social_photo_saved_photo_title);  
         string filePath = Path.Combine(Application.persistentDataPath, "screenshot.png");
         saveImageToLibrary(name, filePath);
     }
@@ -364,8 +371,9 @@ public class GameCommunitySocialController : GameObjectBehavior {
 #endif  
         
         GameCommunityController.SendResultMessage(
-            AppConfigs.stringLibraryPhotoSavedTitle, 
-            AppConfigs.stringLibraryPhotoSavedMessage);
+            Locos.Get(LocoKeys.social_photo_library_photo_saved_title),
+            Locos.Get(LocoKeys.social_photo_library_photo_saved_message)
+            );
     }
 
     // GAME

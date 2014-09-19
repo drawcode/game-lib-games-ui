@@ -339,27 +339,27 @@ public class GameCommunityTrackerReports : DataObjectItem {
     public void SetTrackerReport(GameCommunityTrackerReport trackerReport) {
         if (trackerReports != null) {
             if (!trackerReports.Contains(trackerReport)) {
-                trackerReports.Add(trackerReport);
+                //trackerReports.Add(trackerReport);
             }
         }
     }
     
     public void SetTrackerView(GameCommunityTrackerView trackerView) {
-        if (currentTrackerReport != null)
-            currentTrackerReport.SetTrackerView(trackerView);
+        //if (currentTrackerReport != null)
+            //currentTrackerReport.SetTrackerView(trackerView);
     }
     
     public void SetTrackerEvent(GameCommunityTrackerEvent trackerEvent) {
-        if (currentTrackerReport != null)
-            currentTrackerReport.SetTrackerEvent(trackerEvent);
+        //if (currentTrackerReport != null)
+            //currentTrackerReport.SetTrackerEvent(trackerEvent);
     }
     
     public void Save() {
-        SaveData(ContentPaths.appCachePathAllSharedUserData, key, trackerReports);
+        //SaveData(ContentPaths.appCachePathAllSharedUserData, key, trackerReports);
     }
     
     public void Load() {
-        trackerReports = LoadData<List<GameCommunityTrackerReport>>(ContentPaths.appCachePathAllSharedUserData, key);
+        //trackerReports = LoadData<List<GameCommunityTrackerReport>>(ContentPaths.appCachePathAllSharedUserData, key);
         currentTrackerReport = new GameCommunityTrackerReport();
         SetTrackerReport(currentTrackerReport);
     }
