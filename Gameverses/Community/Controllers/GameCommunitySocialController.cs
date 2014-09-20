@@ -234,17 +234,27 @@ public class GameCommunitySocialController : GameObjectBehavior {
     }
 
     public void startTwitterPhotoUploadProcess() {
-        if (SocialNetworks.IsTwitterAvailable()) {
+                
+        bool loggedIn = GameCommunity.IsLoggedIn(SocialNetworkTypes.twitter);
+
+        if (loggedIn) {//SocialNetworks.IsTwitterAvailable()) {
 #if UNITY_EDITOR
             displayPendingUploadAnimation();
 #endif
             uploadCurrentPhotoToTwitter();
         }
         else {
+
+            if(SocialNetworks.IsTwitterAvailable()) {
+            GameCommunity.Login(SocialNetworkTypes.twitter);
             
-            GameCommunityController.SendResultMessage(
+            }
+            else {
+            
+                GameCommunityController.SendResultMessage(
                 Locos.Get(LocoKeys.social_twitter_disabled_title), 
                 Locos.Get(LocoKeys.social_twitter_disabled_message));
+            }
         }
     }
     
