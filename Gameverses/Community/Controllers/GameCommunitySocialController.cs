@@ -388,24 +388,56 @@ public class GameCommunitySocialController : GameObjectBehavior {
 
     // GAME
 
+    // COMMUNITY - RESULTS
+
+    // FACEBOOK
+
     public static void PostGameResultsFacebook() {
+        
         if (Instance != null) {
-            Instance.postGameResultsFacebook();  
+            Instance.postGameResultsFacebook(
+                );  
         }
     }
     
     public void postGameResultsFacebook() {
         
-        //SocialNetworks.PostMessageTwitter(
-        //    "Just 
+        postGameResultsFacebook(
+            Locos.Get(LocoKeys.social_facebook_game_results_message),
+            Locos.Get(LocoKeys.social_facebook_game_results_url),
+            Locos.Get(LocoKeys.social_facebook_game_results_title),
+            Locos.Get(LocoKeys.social_facebook_game_results_image_url),
+            Locos.Get(LocoKeys.social_facebook_game_results_caption)
+            );
+    }
+
+    public static void PostGameResultsFacebook(
+        string message, string url,  string title, string urlImage, string caption) {
+
+        if (Instance != null) {
+            Instance.postGameResultsFacebook(
+                message,
+                url,
+                title,
+                urlImage,
+                caption
+            );  
+        }
+    }
+    
+    public void postGameResultsFacebook(
+        string message, string url,  string title, string urlImage, string caption) {
 
         SocialNetworks.ShowLoginOrPostMessageFacebook(
-            "Played a game of Barrow Brainball #playsmart ", 
-            "http://barrowbrainball.com", 
-            "Barrow Brainball - Epic Run", 
-            filePath, 
-            "Epic Run in Barrow Brainball");
+            message,
+            url,
+            title,
+            urlImage,
+            caption
+        );
     }
+
+    // TWITTER
     
     public static void PostGameResultsTwitter() {
         if (Instance != null) {
@@ -415,7 +447,30 @@ public class GameCommunitySocialController : GameObjectBehavior {
 
     public void postGameResultsTwitter() {
 
+        postGameResultsTwitter(
+            Locos.Get(LocoKeys.social_twitter_game_results_message),
+            Locos.Get(LocoKeys.social_twitter_game_results_image_url));
+    }
+
+    
+    
+    public static void PostGameResultsTwitter(
+        string message, string urlImage) {
+        
+        if (Instance != null) {
+            Instance.postGameResultsTwitter(
+                message,
+                urlImage
+                );  
+        }
+    }
+    
+    public void postGameResultsTwitter(
+        string message, string urlImage) {
+        
         SocialNetworks.ShowLoginOrComposerTwitter(
-            "Played a game of Barrow Brainball #playsmart ", filePath);
+            message,
+            urlImage
+            );
     }
 }
