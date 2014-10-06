@@ -205,8 +205,11 @@ public class GameCommunitySocialController : GameObjectBehavior {
 
         bool loggedIn = GameCommunity.IsLoggedIn(SocialNetworkTypes.facebook);
 
+        
+        Debug.Log("GameCommunitySocialController:startFacebookPhotoUploadProcess:Logging in facebook: urlscheme:" + AppConfigs.appUrlScheme);
+
         Debug.Log("GameCommunitySocialController:startFacebookPhotoUploadProcess:" 
-                  + " loggedIn:" + loggedIn.ToJson());
+                  + " loggedIn:" + loggedIn);
 
         if (loggedIn) {
             GameCommunity.Login(SocialNetworkTypes.facebook);
