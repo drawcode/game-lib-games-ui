@@ -12,9 +12,13 @@ public class GameCommunitySocialController : GameObjectBehavior {
     public static GameCommunitySocialController Instance;
     public float currentTimeBlock = 0.0f;
     public float actionInterval = 1.0f;
+
     public Material photoMaterial;
     string fileName;
     string filePath;
+
+    string currentMessageFacebook = "";
+    string currentMessageTwitter = "";
 
     public void Awake() {
         
@@ -32,13 +36,65 @@ public class GameCommunitySocialController : GameObjectBehavior {
     void OnEnable() {
         Messenger<GameCommunityMessageResult>.AddListener(
             GameCommunityMessages.gameCommunityResultMessage, OnGameCommunityResultMessage);
+        
+        
+        #if UNITY_ANDROID || UNITY_IPHONE
+        //TwitterManager.loginSucceededEvent += twitterLoginSucceededEvent;
+        //TwitterManager.loginFailedEvent += twitterLoginFailedEvent;
+        TwitterManager.requestDidFinishEvent += twitterRequestDidFinishEvent;
+        
+        TwitterManager.requestDidFailEvent += twitterRequestDidFailEvent;
+        TwitterManager.tweetSheetCompletedEvent += twitterTweetSheetCompletedEvent;
+        //TwitterManager.tweetSheetFailedEvent += twitterTweetSheetFailedEvent;
+        #endif
     }
     
     void OnDisable() {
         Messenger<GameCommunityMessageResult>.RemoveListener(
-            GameCommunityMessages.gameCommunityResultMessage, OnGameCommunityResultMessage);        
+            GameCommunityMessages.gameCommunityResultMessage, OnGameCommunityResultMessage); 
+
+        
+        #if UNITY_ANDROID || UNITY_IPHONE
+        //TwitterManager.loginSucceededEvent -= twitterLoginSucceededEvent;
+        //TwitterManager.loginFailedEvent -= twitterLoginFailedEvent;
+        TwitterManager.requestDidFinishEvent -= twitterRequestDidFinishEvent;
+        
+        TwitterManager.requestDidFailEvent -= twitterRequestDidFailEvent;
+        TwitterManager.tweetSheetCompletedEvent -= twitterTweetSheetCompletedEvent;
+        //TwitterManager.tweetSheetFailedEvent -= twitterTweetSheetFailedEvent;
+        #endif
+    }
+
+    void twitterTweetSheetCompletedEvent(bool completed) {
+
+        if(completed) {
+            GameCommunityController.SendResultMessage(
+                Locos.Get(LocoKeys.social_twitter_upload_success_title), 
+                Locos.Get(LocoKeys.social_twitter_upload_success_message));
+        }
+        else {
+            GameCommunityController.SendResultMessage(
+                Locos.Get(LocoKeys.social_twitter_upload_error_title), 
+                Locos.Get(LocoKeys.social_twitter_upload_error_message));
+        }
+    }
+
+    void twitterRequestDidFinishEvent(object data) {
+
+        GameCommunityController.SendResultMessage(
+            Locos.Get(LocoKeys.social_twitter_upload_success_title), 
+            Locos.Get(LocoKeys.social_twitter_upload_success_message));
+
     }
     
+    void twitterRequestDidFailEvent(object data) {
+        
+        GameCommunityController.SendResultMessage(
+            Locos.Get(LocoKeys.social_twitter_upload_error_title), 
+            Locos.Get(LocoKeys.social_twitter_upload_error_message));
+        
+    }
+
     void OnGameCommunityResultMessage(GameCommunityMessageResult result) {
         
         // show message from title, message in alert
@@ -54,7 +110,6 @@ public class GameCommunitySocialController : GameObjectBehavior {
         if (string.IsNullOrEmpty(result.title)) {
             return;
         }
-
 
         if (result.title.ToLower().Contains("error")) {
             UINotificationDisplay.QueueError(result.title, result.message);            
@@ -76,7 +131,7 @@ public class GameCommunitySocialController : GameObjectBehavior {
         //Invoke("initFacebook", 2);    
         //Invoke("initTwitter", 4);
     }
-    
+
     public static void LikeUrl(string networkType, string url) {
         if (Instance != null) {
             Instance.likeUrl(networkType, url);
@@ -98,6 +153,61 @@ public class GameCommunitySocialController : GameObjectBehavior {
             // like other
         }
     }
+
+    public static void CaptureCameraPhoto(string key, Camera cam, Material photoPlaceholderMaterial) {
+        if (Instance != null) {
+            Instance.captureCameraPhoto(key, cam, photoPlaceholderMaterial);
+        }
+    }
+    
+    public void captureCameraPhoto(string key, Camera cam, Material photoPlaceholderMaterial) {        
+        photoMaterial = photoPlaceholderMaterial;
+        StartCoroutine(captureCameraPhotoCo(key, cam));
+    }
+    
+    IEnumerator captureCameraPhotoCo(string key, Camera cam) {
+        
+        yield return new WaitForEndOfFrame();
+        
+        fileName = key.ToLower() + "-screenshot-" + System.DateTime.Now.Ticks.ToString() + ".png";
+        filePath = Application.persistentDataPath + "/" + fileName;
+        
+        //File.Delete(filePath);
+                
+        RenderTexture renderTexture = RenderTexture.active;
+        
+        RenderTexture.active = cam.targetTexture;
+
+        cam.Render();
+
+        Texture2D tex = new Texture2D(cam.targetTexture.width, cam.targetTexture.height, TextureFormat.RGB24, false);
+        tex.ReadPixels(new Rect(0, 0, cam.targetTexture.width, cam.targetTexture.height), 0, 0);
+        tex.Apply();
+        
+        RenderTexture.active = renderTexture;        
+
+        while (File.Exists(filePath) == false) {
+            yield return null;
+        }
+
+        WWW www = new WWW("file://" + filePath);
+        
+        yield return www;
+        
+        if (www.error != null) {
+            //LogUtil.Log("Cannot load file"+www.error+" Path:"+www.url);
+        }
+        www.LoadImageIntoTexture(tex);
+        
+        if (photoMaterial != null) {
+            photoMaterial.mainTexture = tex;
+        }
+        else {
+            LogUtil.Log("Set photoMaterial property with read/write material/texture before taking photo");
+        }
+    }
+
+    // TAKE PHOTO
         
     public static void TakePhoto(Material photoPlaceholderMaterial) {
         if (Instance != null) {
@@ -204,19 +314,19 @@ public class GameCommunitySocialController : GameObjectBehavior {
     public void startFacebookPhotoUploadProcess() {
 
         bool loggedIn = GameCommunity.IsLoggedIn(SocialNetworkTypes.facebook);
-
         
         Debug.Log("GameCommunitySocialController:startFacebookPhotoUploadProcess:Logging in facebook: urlscheme:" + AppConfigs.appUrlScheme);
 
         Debug.Log("GameCommunitySocialController:startFacebookPhotoUploadProcess:" 
-                  + " loggedIn:" + loggedIn);
+            + " loggedIn:" + loggedIn);
 
         if (loggedIn) {
-            GameCommunity.Login(SocialNetworkTypes.facebook);
+            displayPendingUploadAnimation();
+            uploadCurrentPhotoToFacebook();
         }
         else {      
             //LogUtil.Log("We have a valid session.");
-            uploadCurrentPhotoToFacebook();
+            GameCommunity.Login(SocialNetworkTypes.facebook);
         }
     }
     
@@ -241,15 +351,13 @@ public class GameCommunitySocialController : GameObjectBehavior {
         bool loggedIn = GameCommunity.IsLoggedIn(SocialNetworkTypes.twitter);
 
         if (loggedIn) {//SocialNetworks.IsTwitterAvailable()) {
-#if UNITY_EDITOR
             displayPendingUploadAnimation();
-#endif
             uploadCurrentPhotoToTwitter();
         }
         else {
 
-            if(SocialNetworks.IsTwitterAvailable()) {
-            GameCommunity.Login(SocialNetworkTypes.twitter);
+            if (SocialNetworks.IsTwitterAvailable()) {
+                GameCommunity.Login(SocialNetworkTypes.twitter);
             
             }
             else {
@@ -295,7 +403,7 @@ public class GameCommunitySocialController : GameObjectBehavior {
 
         Facebook.instance.postImage(
             bytes, 
-            Locos.Get(LocoKeys.social_facebook_post_message),
+            currentMessageFacebook,
             onFacebookUploadComplete);     
     }
 
@@ -329,7 +437,7 @@ public class GameCommunitySocialController : GameObjectBehavior {
     
     public void uploadPhotoToTwitter(string filePathToUpload) {
         SocialNetworks.ShowComposerTwitter(
-            Locos.Get(LocoKeys.social_twitter_post_message), 
+            currentMessageTwitter, 
             filePathToUpload);
     }
 
@@ -337,14 +445,14 @@ public class GameCommunitySocialController : GameObjectBehavior {
         GameCommunityController.SendResultMessage(
             "SAVING", 
             Locos.Get(LocoKeys.social_photo_pending_creating_screenshot)
-            );
+        );
     }
 
     public void displayPendingUploadAnimation() {
         GameCommunityController.SendResultMessage(
             "UPLOADING", 
             Locos.Get(LocoKeys.social_photo_pending_uploading_post)
-            );
+        );
 
 #if UNITY_EDITOR
         StartCoroutine(waitAndDisplayAlert());
@@ -386,12 +494,62 @@ public class GameCommunitySocialController : GameObjectBehavior {
         GameCommunityController.SendResultMessage(
             Locos.Get(LocoKeys.social_photo_library_photo_saved_title),
             Locos.Get(LocoKeys.social_photo_library_photo_saved_message)
-            );
+        );
     }
 
     // GAME
 
     // COMMUNITY - RESULTS
+
+    public string GetGameStateMessage(string networkType) {
+
+        string message = "";
+        string messagePre = "";//"results! " + currentPanel;
+        string messagePost = "";//"results! " + currentPanel;
+
+        string currentPanel = GameUIController.Instance.currentPanel;
+
+        if(networkType == SocialNetworkTypes.facebook) {
+
+            message = Locos.Get(LocoKeys.social_facebook_game_results_message);
+
+            if(currentPanel == GameUIPanel.panelResults) {
+                // 
+                
+                messagePre += "Score: " + GameController.CurrentGamePlayerController.runtimeData.totalScoreValue;
+            }
+            else if(currentPanel == GameUIPanel.panelCustomizeCharacter) {
+                // 
+                
+                messagePre += "My character in Barrow Brainball. ";
+            }
+            else if(currentPanel == GameUIPanel.panelCustomizeCharacterColors) {
+                // 
+                
+                messagePre += "My character colors in Barrow Brainball. ";
+            }
+            else if(currentPanel == GameUIPanel.panelCustomizeCharacterRPG) {
+                // 
+                
+                messagePre += "My character skills in Barrow Brainball. ";
+            }
+            
+            messagePost += "Play Barrow Brainball! " + 
+                "on iTunes:https://itunes.apple.com/us/app/barrow-brainball/id725328485?ls=1&mt=8 " + "" +
+                    "or Google Play:https://play.google.com/store/apps/details?id=com.barrow.barrowbrainball" + "" +
+                    " or online: http://barrowbrainball.com/play ";
+        }
+        else if(networkType == SocialNetworkTypes.twitter) {
+            message = Locos.Get(LocoKeys.social_twitter_game_results_message);
+        }
+        
+        //Locos.Get(LocoKeys.social_twitter_post_message
+        // TODO base on current game state / scores etc.
+
+        message = messagePre + message + messagePost;
+        
+        return message;
+    }
 
     // FACEBOOK
 
@@ -399,7 +557,7 @@ public class GameCommunitySocialController : GameObjectBehavior {
         
         if (Instance != null) {
             Instance.postGameResultsFacebook(
-                );  
+            );  
         }
     }
     
@@ -411,11 +569,11 @@ public class GameCommunitySocialController : GameObjectBehavior {
             Locos.Get(LocoKeys.social_facebook_game_results_title),
             Locos.Get(LocoKeys.social_facebook_game_results_image_url),
             Locos.Get(LocoKeys.social_facebook_game_results_caption)
-            );
+        );
     }
 
     public static void PostGameResultsFacebook(
-        string message, string url,  string title, string urlImage, string caption) {
+        string message, string url, string title, string urlImage, string caption) {
 
         if (Instance != null) {
             Instance.postGameResultsFacebook(
@@ -429,7 +587,7 @@ public class GameCommunitySocialController : GameObjectBehavior {
     }
     
     public void postGameResultsFacebook(
-        string message, string url,  string title, string urlImage, string caption) {
+        string message, string url, string title, string urlImage, string caption) {
 
         SocialNetworks.ShowLoginOrPostMessageFacebook(
             message,
@@ -454,8 +612,6 @@ public class GameCommunitySocialController : GameObjectBehavior {
             Locos.Get(LocoKeys.social_twitter_game_results_message),
             Locos.Get(LocoKeys.social_twitter_game_results_image_url));
     }
-
-    
     
     public static void PostGameResultsTwitter(
         string message, string urlImage) {
@@ -464,7 +620,7 @@ public class GameCommunitySocialController : GameObjectBehavior {
             Instance.postGameResultsTwitter(
                 message,
                 urlImage
-                );  
+            );  
         }
     }
     
@@ -474,6 +630,6 @@ public class GameCommunitySocialController : GameObjectBehavior {
         SocialNetworks.ShowLoginOrComposerTwitter(
             message,
             urlImage
-            );
+        );
     }
 }
