@@ -34,7 +34,7 @@ public class GameCommunityController : GameObjectBehavior {
             GameCommunityMessages.gameCommunityReady, 
             OnGameCommunityReady);
         
-        Messenger.AddListener(SocialNetworksMessages.socialLoggedIn, OnProfileLoggedIn);
+        Messenger<string>.AddListener(SocialNetworksMessages.socialLoggedIn, OnProfileLoggedIn);
         
         Messenger<string, string, object>.AddListener(SocialNetworksMessages.socialProfileData, OnProfileData);
         
@@ -53,7 +53,7 @@ public class GameCommunityController : GameObjectBehavior {
             GameCommunityMessages.gameCommunityReady, 
             OnGameCommunityReady);              
         
-        Messenger.RemoveListener(SocialNetworksMessages.socialLoggedIn, OnProfileLoggedIn);
+        Messenger<string>.RemoveListener(SocialNetworksMessages.socialLoggedIn, OnProfileLoggedIn);
         
         Messenger<string, string, object>.RemoveListener(SocialNetworksMessages.socialProfileData, OnProfileData);  
         
@@ -78,19 +78,21 @@ public class GameCommunityController : GameObjectBehavior {
         
     }
         
-    void OnProfileLoggedIn() {
+    void OnProfileLoggedIn(string networkType) {
         
         Debug.Log("GameCommunityController: OnProfileLoggedIn");
-        
-        // If they logged in to like
-        
-        if (GameCommunityController.Instance.likeActionClicked) {
-            GameCommunity.LikeCurrentApp(SocialNetworkTypes.facebook);
+
+        if(networkType == SocialNetworkTypes.facebook) {
+            // If they logged in to like
+            
+            if (GameCommunityController.Instance.likeActionClicked) {
+                GameCommunity.LikeCurrentApp(SocialNetworkTypes.facebook);
+            }
+            
+            GameCommunity.TrackGameView("Facebook Logged In", "logged-in");
+            
+            GameCommunity.SyncProfileProgress();
         }
-        
-        GameCommunity.TrackGameView("Facebook Logged In", "logged-in");
-        
-        GameCommunity.SyncProfileProgress();
     }
     
     void OnProfileData(string networkType, string dataType, object data) {

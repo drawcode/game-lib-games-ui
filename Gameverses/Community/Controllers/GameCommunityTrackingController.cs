@@ -35,7 +35,7 @@ public class GameCommunityTrackingController : GameObjectBehavior {
     }
     
     void OnEnable() {
-        Messenger.AddListener(SocialNetworksMessages.socialLoggedIn, OnProfileLoggedIn);
+        Messenger<string>.AddListener(SocialNetworksMessages.socialLoggedIn, OnProfileLoggedIn);
         Messenger<string, string, object>.AddListener(SocialNetworksMessages.socialProfileData, OnProfileData);
         
         Messenger<GameCommunityLeaderboardData>.AddListener(
@@ -49,7 +49,7 @@ public class GameCommunityTrackingController : GameObjectBehavior {
     }
     
     void OnDisable() {
-        Messenger.RemoveListener(SocialNetworksMessages.socialLoggedIn, OnProfileLoggedIn);
+        Messenger<string>.RemoveListener(SocialNetworksMessages.socialLoggedIn, OnProfileLoggedIn);
         Messenger<string, string, object>.RemoveListener(SocialNetworksMessages.socialProfileData, OnProfileData);  
         
         Messenger<GameCommunityLeaderboardData>.AddListener(
@@ -440,7 +440,7 @@ public class GameCommunityTrackingController : GameObjectBehavior {
     
     // events to track from
     
-    void OnProfileLoggedIn() {
+    void OnProfileLoggedIn(string networkType) {
         
     }
     

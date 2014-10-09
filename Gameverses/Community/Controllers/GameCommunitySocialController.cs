@@ -7,18 +7,24 @@ using Engine.Data.Json;
 using Engine.Events;
 using Engine.Networking;
 
+public enum GameCommunityItemProgress {
+    NotStarted,
+    Started,
+    Completed
+}
+
 public class GameCommunitySocialController : GameObjectBehavior {
     
     public static GameCommunitySocialController Instance;
     public float currentTimeBlock = 0.0f;
     public float actionInterval = 1.0f;
-
     public Material photoMaterial;
     string fileName;
     string filePath;
-
     string currentMessageFacebook = "";
     string currentMessageTwitter = "";
+    GameCommunityItemProgress facebookPhotoUploadProgress = GameCommunityItemProgress.NotStarted;
+    GameCommunityItemProgress twitterPhotoUploadProgress = GameCommunityItemProgress.NotStarted;
 
     public void Awake() {
         
@@ -36,8 +42,9 @@ public class GameCommunitySocialController : GameObjectBehavior {
     void OnEnable() {
         Messenger<GameCommunityMessageResult>.AddListener(
             GameCommunityMessages.gameCommunityResultMessage, OnGameCommunityResultMessage);
-        
-        
+                
+        Messenger<string>.AddListener(SocialNetworksMessages.socialLoggedIn, OnSocialNetworkLoggedIn);
+                
         #if UNITY_ANDROID || UNITY_IPHONE
         //TwitterManager.loginSucceededEvent += twitterLoginSucceededEvent;
         //TwitterManager.loginFailedEvent += twitterLoginFailedEvent;
@@ -52,7 +59,8 @@ public class GameCommunitySocialController : GameObjectBehavior {
     void OnDisable() {
         Messenger<GameCommunityMessageResult>.RemoveListener(
             GameCommunityMessages.gameCommunityResultMessage, OnGameCommunityResultMessage); 
-
+        
+        Messenger<string>.RemoveListener(SocialNetworksMessages.socialLoggedIn, OnSocialNetworkLoggedIn);
         
         #if UNITY_ANDROID || UNITY_IPHONE
         //TwitterManager.loginSucceededEvent -= twitterLoginSucceededEvent;
@@ -65,9 +73,23 @@ public class GameCommunitySocialController : GameObjectBehavior {
         #endif
     }
 
+    void OnSocialNetworkLoggedIn(string networkType) {
+
+        if (networkType == SocialNetworkTypes.facebook) {
+            if (facebookPhotoUploadProgress == GameCommunityItemProgress.Started) {
+                uploadCurrentPhotoToFacebook();
+            }
+        }
+        else if (networkType == SocialNetworkTypes.twitter) {
+            if (twitterPhotoUploadProgress == GameCommunityItemProgress.Started) {
+                uploadCurrentPhotoToTwitter();
+            }
+        }
+    }
+
     void twitterTweetSheetCompletedEvent(bool completed) {
 
-        if(completed) {
+        if (completed) {
             GameCommunityController.SendResultMessage(
                 Locos.Get(LocoKeys.social_twitter_upload_success_title), 
                 Locos.Get(LocoKeys.social_twitter_upload_success_message));
@@ -315,13 +337,16 @@ public class GameCommunitySocialController : GameObjectBehavior {
 
         bool loggedIn = GameCommunity.IsLoggedIn(SocialNetworkTypes.facebook);
         
-        Debug.Log("GameCommunitySocialController:startFacebookPhotoUploadProcess:Logging in facebook: urlscheme:" + AppConfigs.appUrlScheme);
+        //Debug.Log("GameCommunitySocialController:startFacebookPhotoUploadProcess:Logging in facebook: urlscheme:" + AppConfigs.appUrlScheme);
 
-        Debug.Log("GameCommunitySocialController:startFacebookPhotoUploadProcess:" 
-            + " loggedIn:" + loggedIn);
+        //Debug.Log("GameCommunitySocialController:startFacebookPhotoUploadProcess:" 
+        //    + " loggedIn:" + loggedIn);
+
+        facebookPhotoUploadProgress = GameCommunityItemProgress.Started;
+
+        currentMessageFacebook = GetGameStateMessage(SocialNetworkTypes.facebook);
 
         if (loggedIn) {
-            displayPendingUploadAnimation();
             uploadCurrentPhotoToFacebook();
         }
         else {      
@@ -349,9 +374,12 @@ public class GameCommunitySocialController : GameObjectBehavior {
     public void startTwitterPhotoUploadProcess() {
                 
         bool loggedIn = GameCommunity.IsLoggedIn(SocialNetworkTypes.twitter);
+        
+        currentMessageTwitter = GetGameStateMessage(SocialNetworkTypes.twitter);
+
+        twitterPhotoUploadProgress = GameCommunityItemProgress.Started;
 
         if (loggedIn) {//SocialNetworks.IsTwitterAvailable()) {
-            displayPendingUploadAnimation();
             uploadCurrentPhotoToTwitter();
         }
         else {
@@ -405,6 +433,8 @@ public class GameCommunitySocialController : GameObjectBehavior {
             bytes, 
             currentMessageFacebook,
             onFacebookUploadComplete);     
+        
+        facebookPhotoUploadProgress = GameCommunityItemProgress.Completed;
     }
 
     public void onFacebookUploadComplete(string error, object result) {        
@@ -436,9 +466,14 @@ public class GameCommunitySocialController : GameObjectBehavior {
     }
     
     public void uploadPhotoToTwitter(string filePathToUpload) {
+
+        displayPendingUploadAnimation();
+
         SocialNetworks.ShowComposerTwitter(
             currentMessageTwitter, 
             filePathToUpload);
+
+        twitterPhotoUploadProgress = GameCommunityItemProgress.Completed;
     }
 
     public void displayPendingSaveAnimation() {
@@ -497,58 +532,116 @@ public class GameCommunitySocialController : GameObjectBehavior {
         );
     }
 
+    public string GetGameAdjective() {
+        List<string> words = new List<string>();
+        words.Add(Locos.Get(LocoKeys.game_action_adverb_1));
+        words.Add(Locos.Get(LocoKeys.game_action_adverb_2));
+        words.Add(Locos.Get(LocoKeys.game_action_adverb_3));
+        words.Add(Locos.Get(LocoKeys.game_action_adverb_4));
+        words.Add(Locos.Get(LocoKeys.game_action_adverb_5));
+        words.Add(Locos.Get(LocoKeys.game_action_adverb_6));
+        words.Add(Locos.Get(LocoKeys.game_action_adverb_7));
+        
+        words.Shuffle();
+        
+        string word = words[0];
+
+        return word;
+    }
+
     // GAME
 
     // COMMUNITY - RESULTS
 
     public string GetGameStateMessage(string networkType) {
 
-        string message = "";
-        string messagePre = "";//"results! " + currentPanel;
-        string messagePost = "";//"results! " + currentPanel;
+        System.Text.StringBuilder sb = new System.Text.StringBuilder();
 
+        if (networkType == SocialNetworkTypes.facebook) {
+
+            sb.Append(getGameStatePanelMessage(networkType));
+            sb.Append(" ");
+            sb.Append(Locos.Get(LocoKeys.social_facebook_game_action_append));
+        }
+        else if (networkType == SocialNetworkTypes.twitter) {
+                        
+            sb.Append(getGameStatePanelMessage(networkType));
+            sb.Append(" ");
+            sb.Append(Locos.Get(LocoKeys.app_default_append));
+        }
+                
+        return sb.ToString().Replace("  ", " ");
+    }
+
+    public string getGameStatePanelMessage(string networkType) {
+        
         string currentPanel = GameUIController.Instance.currentPanel;
+        
+        System.Text.StringBuilder sb = new System.Text.StringBuilder();
 
-        if(networkType == SocialNetworkTypes.facebook) {
-
-            message = Locos.Get(LocoKeys.social_facebook_game_results_message);
-
-            if(currentPanel == GameUIPanel.panelResults) {
-                // 
-                
-                messagePre += "Score: " + GameController.CurrentGamePlayerController.runtimeData.totalScoreValue;
-            }
-            else if(currentPanel == GameUIPanel.panelCustomizeCharacter) {
-                // 
-                
-                messagePre += "My character in Barrow Brainball. ";
-            }
-            else if(currentPanel == GameUIPanel.panelCustomizeCharacterColors) {
-                // 
-                
-                messagePre += "My character colors in Barrow Brainball. ";
-            }
-            else if(currentPanel == GameUIPanel.panelCustomizeCharacterRPG) {
-                // 
-                
-                messagePre += "My character skills in Barrow Brainball. ";
-            }
+        if (currentPanel == GameUIPanel.panelResults) {            // 
             
-            messagePost += "Play Barrow Brainball! " + 
-                "on iTunes:https://itunes.apple.com/us/app/barrow-brainball/id725328485?ls=1&mt=8 " + "" +
-                    "or Google Play:https://play.google.com/store/apps/details?id=com.barrow.barrowbrainball" + "" +
-                    " or online: http://barrowbrainball.com/play ";
-        }
-        else if(networkType == SocialNetworkTypes.twitter) {
-            message = Locos.Get(LocoKeys.social_twitter_game_results_message);
-        }
-        
-        //Locos.Get(LocoKeys.social_twitter_post_message
-        // TODO base on current game state / scores etc.
+            if (AppContentStates.Instance.isAppContentStateGameTrainingChoiceQuiz) {
+                
+                sb.Append(Locos.Get(LocoKeys.game_action_results_choice_quiz_message));
+                
+            }
+            else {
 
-        message = messagePre + message + messagePost;
-        
-        return message;
+                string score = Locos.Get(LocoKeys.game_type_score);
+                string scores = Locos.Get(LocoKeys.game_type_scores);
+                string coins = Locos.Get(LocoKeys.game_type_coins);
+
+                string adjective = GameCommunitySocialController.Instance.GetGameAdjective();
+
+                sb.Append(adjective);
+                sb.Append(" ");
+                sb.Append(Locos.Get(LocoKeys.game_action_results_arcade_message));
+                sb.Append(" ");
+                sb.Append(score);
+                sb.Append(": ");
+                sb.Append(GameController.CurrentGamePlayerController.runtimeData.totalScoreValue);
+                sb.Append(" ");
+                sb.Append(scores);
+                sb.Append(": ");
+                sb.Append(GameController.CurrentGamePlayerController.runtimeData.scores);
+                sb.Append(" ");
+                sb.Append(coins);
+                sb.Append(": ");
+                sb.Append(GameController.CurrentGamePlayerController.runtimeData.coins);
+            }
+        }
+        else if (currentPanel == GameUIPanel.panelCustomizeCharacter
+                 || currentPanel == GameUIPanel.panelCustomize 
+                 || currentPanel == GameUIPanel.panelEquipment) {
+            // 
+            sb.Append(Locos.Get(LocoKeys.game_action_panel_character_customize_message));
+        }
+        else if (currentPanel == GameUIPanel.panelCustomizeCharacterColors) {
+            // 
+            sb.Append(Locos.Get(LocoKeys.game_action_panel_character_colors_message));
+        }
+        else if (currentPanel == GameUIPanel.panelCustomizeCharacterRPG) {
+            // 
+            sb.Append(Locos.Get(LocoKeys.game_action_panel_character_rpg_message));
+        }
+        else if (currentPanel == GameUIPanel.panelAchievements) {
+            // 
+            sb.Append(Locos.Get(LocoKeys.game_action_panel_achievements_message));
+        }
+        else if (currentPanel == GameUIPanel.panelStatistics) {
+            // 
+            sb.Append(Locos.Get(LocoKeys.game_action_panel_statistics_message));
+        }
+        else {
+            sb.Append(Locos.Get(LocoKeys.game_action_default_message));
+        }
+
+        if (sb.Length == 0) {
+            sb.Append(Locos.Get(LocoKeys.game_action_default_message));
+        }
+
+        return sb.ToString();
     }
 
     // FACEBOOK
