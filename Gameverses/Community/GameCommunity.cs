@@ -197,6 +197,10 @@ public class GameCommunity {
         }
         else if (networkType == SocialNetworkTypes.twitter) {
             bool isLoggedInTwitter = SocialNetworks.IsLoggedInTwitter();
+            
+            Debug.Log(">>>>>>> isLoggedIn:networkType: " + networkType + "\r\n\r\n\r\n");     
+            Debug.Log(">>>>>>> isLoggedIn:networkUserName: " + networkUserName + "\r\n\r\n\r\n");
+            Debug.Log(">>>>>>> isLoggedIn:isLoggedInTwitter: " + isLoggedInTwitter + "\r\n\r\n\r\n");
                         
             if (!string.IsNullOrEmpty(networkType)) {
                 if (!string.IsNullOrEmpty(networkUserName)) {

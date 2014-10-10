@@ -191,7 +191,8 @@ public class GameCommunitySocialController : GameObjectBehavior {
         
         yield return new WaitForEndOfFrame();
         
-        fileName = key.ToLower() + "-screenshot-" + System.DateTime.Now.Ticks.ToString() + ".png";
+        fileName = "screenshot.png";
+        //fileName = key.ToLower() + "-screenshot-" + System.DateTime.Now.Ticks.ToString() + ".png";
         filePath = Application.persistentDataPath + "/" + fileName;
         
         //File.Delete(filePath);
@@ -415,24 +416,12 @@ public class GameCommunitySocialController : GameObjectBehavior {
 
     public void uploadPhotoToFacebook(Texture2D tex) {
 
-        // normally, we would just encode the Texture to a PNG but Facebook does not like Unity created PNG's since 3.4.0 came out
-        //var bytes = tex.EncodeToPNG();        
-        //var tex = new Texture2D( Screen.width, Screen.height, TextureFormat.RGB24, false );
-        //tex.ReadPixels( new Rect( 0, 0, Screen.width, Screen.height ), 0, 0, false );
-        //var bytes = tex.EncodeToPNG();
-        //Destroy( tex );
-        
-        // We will instead make a JPG and upload that
-        var encoder = new ImageJPGEncoder(tex, 95.0f);
-        encoder.doEncoding();
-        var bytes = encoder.GetBytes();     
+        byte[] bytes = GetImageBytes(tex);
         
         displayPendingUploadAnimation();
 
-        Facebook.instance.postImage(
-            bytes, 
-            currentMessageFacebook,
-            onFacebookUploadComplete);     
+        SocialNetworks.PostMessageFacebook(
+            currentMessageFacebook, bytes, onFacebookUploadComplete);
         
         facebookPhotoUploadProgress = GameCommunityItemProgress.Completed;
     }
@@ -462,7 +451,7 @@ public class GameCommunitySocialController : GameObjectBehavior {
     }
     
     public void uploadCurrentPhotoToTwitter() {
-        uploadPhotoToTwitter(filePath);
+        uploadPhotoToTwitter(photoMaterial);
     }
     
     public void uploadPhotoToTwitter(string filePathToUpload) {
@@ -474,6 +463,38 @@ public class GameCommunitySocialController : GameObjectBehavior {
             filePathToUpload);
 
         twitterPhotoUploadProgress = GameCommunityItemProgress.Completed;
+    }
+
+    public void uploadPhotoToTwitter(Material photoMaterialPlaceholder) {
+        
+        Texture2D tex = (Texture2D)photoMaterialPlaceholder.mainTexture;
+        uploadPhotoToTwitter(tex);
+    }
+    
+    public void uploadPhotoToTwitter(Texture2D tex) {
+
+        byte[] bytes = GetImageBytes(tex);
+        
+        displayPendingUploadAnimation();
+
+        SocialNetworks.PostMessageTwitter(currentMessageTwitter, bytes);
+        
+        twitterPhotoUploadProgress = GameCommunityItemProgress.Completed;
+    }
+
+    public byte[] GetImageBytes(Texture2D tex, float quality = 95.0f) {
+
+        // normally, we would just encode the Texture to a PNG but Facebook does not like Unity created PNG's since 3.4.0 came out
+        //var bytes = tex.EncodeToPNG();        
+        //var tex = new Texture2D( Screen.width, Screen.height, TextureFormat.RGB24, false );
+        //tex.ReadPixels( new Rect( 0, 0, Screen.width, Screen.height ), 0, 0, false );
+        //var bytes = tex.EncodeToPNG();
+        //Destroy( tex );
+
+        var encoder = new ImageJPGEncoder(tex, quality);
+        encoder.doEncoding();
+        var bytes = encoder.GetBytes(); 
+        return bytes;
     }
 
     public void displayPendingSaveAnimation() {
@@ -612,8 +633,8 @@ public class GameCommunitySocialController : GameObjectBehavior {
             }
         }
         else if (currentPanel == GameUIPanel.panelCustomizeCharacter
-                 || currentPanel == GameUIPanel.panelCustomize 
-                 || currentPanel == GameUIPanel.panelEquipment) {
+            || currentPanel == GameUIPanel.panelCustomize 
+            || currentPanel == GameUIPanel.panelEquipment) {
             // 
             sb.Append(Locos.Get(LocoKeys.game_action_panel_character_customize_message));
         }
