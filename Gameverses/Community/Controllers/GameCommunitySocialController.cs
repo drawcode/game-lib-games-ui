@@ -311,6 +311,62 @@ public class GameCommunitySocialController : GameObjectBehavior {
         }
     }
 
+    // TAKE PHOTO WEB
+
+    string imageData64 = "";
+    public Texture2D imageData2D;
+
+    public static void TakePhotoWeb() {
+        if (Instance != null) {
+            Instance.takePhotoWeb();
+        }
+    }
+
+    public void takePhotoWeb() {
+        StartCoroutine(takePhotoWebCo());
+    }
+
+    IEnumerator takePhotoWebCo() {
+        yield return new WaitForEndOfFrame();
+        var newTexture = TakePhoto(Camera.main, Screen.width, Screen.height);
+        LerpTexture(imageData2D, ref newTexture);
+        imageData64 = System.Convert.ToBase64String(newTexture.EncodeToPNG());
+        Application.ExternalEval("document.location.href='data:image/octet-stream;base64," + imageData64 + "'");
+    }
+    
+    public static Texture2D TakePhoto(Camera cam, int width, int height) {
+        if (Instance != null) {
+            return Instance.takePhoto(cam, width, height);
+        }
+        return null;
+    }
+
+    public Texture2D takePhoto(Camera cam, int width, int height) {
+        var renderTexture = new RenderTexture(width, height, 0);
+        var targetTexture = new Texture2D(width, height, TextureFormat.RGB24, false);
+        cam.targetTexture = renderTexture;
+        cam.Render();
+        
+        RenderTexture.active = renderTexture;
+        targetTexture.ReadPixels(new Rect(0, 0, width, height), 0, 0);
+        targetTexture.Apply();
+        
+        cam.targetTexture = null;
+        RenderTexture.active = null;
+        cam.ResetAspect();
+        
+        return targetTexture;
+    }
+    
+    private static void LerpTexture(Texture2D alphaTexture, ref Texture2D texture) {
+        var bgColors = alphaTexture.GetPixels();
+        var tarCols = texture.GetPixels();
+        for (var i = 0; i < tarCols.Length; i++)
+            tarCols[i] = bgColors[i].a > 0.99f ? bgColors[i] : Color.Lerp(tarCols[i], bgColors[i], bgColors[i].a);
+        texture.SetPixels(tarCols);
+        texture.Apply();
+    }
+
     public static void UpdatePhotoPreview() {
         if (Instance != null) {
             Instance.updatePhotoPreview();
@@ -745,5 +801,19 @@ public class GameCommunitySocialController : GameObjectBehavior {
             message,
             urlImage
         );
+    }
+
+    public void Update() {
+    
+        if(Input.GetKey(KeyCode.LeftControl)) {        
+        
+            if(Input.GetKey(KeyCode.LeftShift)) {
+                if(Input.GetKeyDown(KeyCode.S)) {
+
+                    TakePhotoWeb();
+                }
+            }
+        }
+    
     }
 }

@@ -4,9 +4,15 @@ using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 
-public class GameCommunityUIController : GameObjectBehavior {
+public class GameCommunityUIShares {
+    public static string shareCenter = "share-center";
+}
+
+public class GameCommunityUIController : UIPanelBase {
     
     public static GameCommunityUIController Instance;
+    
+    public GameObject containerShares;   
             
     public void Awake() {
         
@@ -19,17 +25,122 @@ public class GameCommunityUIController : GameObjectBehavior {
         Instance = this;    
     }
     
-    void OnEnable() {
-        
+    
+    public static bool isInst {
+        get {
+            if (Instance != null) {
+                return true;
+            }
+            return false;
+        }
     }
     
-    void OnDisable() {
-        
+    public override void OnEnable() {
+        base.OnEnable();
     }
     
-    void Start() {
-        
+    public override void OnDisable() {
+        base.OnDisable();
     }
+    
+    public override void Start() {
+        base.Start();
+    }
+
+    public override void Init() {
+
+        base.Init();
+    }
+    
+    // -------------------------------------------------------------------
+    
+    // GAME COMMUNITY
+    
+    public static void ShowGameCommunity() {
+        //GameCommunityUIPanelAll.ShowGameCommunity();
+        //////AppViewerUIController.NavigateProgress();
+        
+        GameCommunity.TrackGameView("Game Community", "game-community");
+        GameCommunity.TrackGameEvent("game-community", "action", 1);
+        //ProcessTrackers();
+    }
+    
+    public static void HideGameCommunity() {
+        //GameCommunityUIPanelAll.HideGameCommunity();
+        if(Instance != null) {
+            Instance.hideGameCommunityPanels();
+        }
+    }
+    
+    public virtual void hideGameCommunityPanels() {        
+        //Debug.Log("hideGameCommunity");
+        
+        UIPanelCommunityBroadcast.HideAll();
+        UIPanelCommunityCamera.HideAll();
+        UIPanelCommunityBackground.HideBackground();
+        
+        UIPanelCommunityBroadcast.HideBroadcastRecordPlayShare();
+        //GameUIController.HideBroadcastRecordingReplayShare();        
+    }
+    
+    //
+    
+    public static void ShowGameCommunityLogin() {
+        GameCommunityUIPanelLogin.ShowGameCommunityLogin();
+        GameCommunity.TrackGameView("Login", "game-community-login");
+        GameCommunity.TrackGameEvent("game-community-login", "action", 1);
+    }
+    
+    public static void HideGameCommunityLogin() {
+        GameCommunityUIPanelLogin.HideGameCommunityLogin();
+    }
+
+
+    //
+
+    public static void ShowBroadcastRecordPlayShare() {
+        UIPanelCommunityBroadcast.ShowBroadcastRecordPlayShare();
+    }
+    
+    public static void HideBroadcastRecordPlayShare() {
+        UIPanelCommunityBroadcast.HideBroadcastRecordPlayShare();
+    }
+
+    //
+
+    // SHARES
+    
+    public static void ShowSharesCenter() {
+        UIPanelCommunityShare.ShowSharesCenter();
+    }
+    
+    public static void HideSharesCenter() {
+        UIPanelCommunityShare.HideSharesCenter();
+    }
+        
+    // ACTIONS
+    
+    public static void ShowActionTools() {
+        UIPanelCommunityShare.ShowActionTools();
+    }
+    
+    public static void HideActionTools() {
+        UIPanelCommunityShare.HideActionTools();
+    }
+
+    //
+
+    public static void ShowActionAppRate() {
+        UIPanelCommunityShare.ShowActionAppRate();
+    }
+    
+    public static void HideActionAppRate() {
+        UIPanelCommunityShare.HideActionAppRate();
+    }
+
+    // -------------------------------------------------------------------
+
+    //
     
     public static void LoadFacebookProfileImageByUsername(
         string username, UITexture textureSpriteProfilePicture, int width, int height, float delay) {
@@ -75,6 +186,8 @@ public class GameCommunityUIController : GameObjectBehavior {
         }
     }
     
+    // -------------------------------------------------------------------
+        
     public static List<string> urls404 = new List<string>();
     
     public static IEnumerator LoadUITextureImageCo(UITexture textureSprite, string url, int width, int height, float delay) {

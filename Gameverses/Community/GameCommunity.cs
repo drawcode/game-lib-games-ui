@@ -295,32 +295,7 @@ public class GameCommunity {
         
         return loggedIn;
     }
-    
-    // ui
-    
-    public static void ShowGameCommunity() {
-        //GameCommunityUIPanelAll.ShowGameCommunity();
-        //////AppViewerUIController.NavigateProgress();
-        
-        GameCommunity.TrackGameView("Game Community", "game-community");
-        GameCommunity.TrackGameEvent("game-community", "action", 1);
-        ProcessTrackers();
-    }
-    
-    public static void HideGameCommunity() {
-        //GameCommunityUIPanelAll.HideGameCommunity();
-    }
-    
-    public static void ShowGameCommunityLogin() {
-        GameCommunityUIPanelLogin.ShowGameCommunityLogin();
-        GameCommunity.TrackGameView("Login", "game-community-login");
-        GameCommunity.TrackGameEvent("game-community-login", "action", 1);
-    }
-    
-    public static void HideGameCommunityLogin() {
-        GameCommunityUIPanelLogin.HideGameCommunityLogin();
-    }
-    
+
     // attributes
     
     
@@ -459,6 +434,10 @@ public class GameCommunity {
         GameState.SaveProfile();
     }
     
+    // --------------------------------------------------------------
+
+    // PROGRESS
+
     // points   
     
     public static void SetPoints(int points) {
@@ -756,6 +735,10 @@ public class GameCommunity {
         GameNetworks.GetScoresFacebookFriends();
     }
     
+    // --------------------------------------------------------------
+
+    // PROGRESS
+
     // statistics
     
     
@@ -878,7 +861,11 @@ public class GameCommunity {
         
         return statisticData;
     }
-        
+    
+    // --------------------------------------------------------------
+
+    // SYNC
+
     // sync to server/network
     
     public static void SyncProfileProgress() {
@@ -1012,6 +999,8 @@ public class GameCommunity {
         }
     }
     
+    // --------------------------------------------------------------
+
     // LIKES
     
     public static void LikeCurrentApp(string networkType) {
@@ -1021,7 +1010,75 @@ public class GameCommunity {
     public static void LikeUrl(string networkType, string urlToLike) {
         GameCommunityController.LikeUrl(networkType, urlToLike);
     }
+
+    // --------------------------------------------------------------
+
+    // UI
+
+    // UI - GAME COMMUNITY
         
+    public static void ShowGameCommunity() {
+        GameCommunityUIController.ShowGameCommunity(); 
+    }
+
+    public static void HideGameCommunity() {
+        GameCommunityUIController.HideGameCommunity();
+    }
+
+    //
+    
+    public static void ShowGameCommunityLogin() {
+        GameCommunityUIPanelLogin.ShowGameCommunityLogin();
+        GameCommunity.TrackGameView("Login", "game-community-login");
+        GameCommunity.TrackGameEvent("game-community-login", "action", 1);
+    }
+    
+    public static void HideGameCommunityLogin() {
+        GameCommunityUIPanelLogin.HideGameCommunityLogin();
+    }
+
+    // SHARES
+    
+    public static void ShowSharesCenter() {
+        GameCommunityUIController.ShowSharesCenter();
+    }
+    
+    public static void HideSharesCenter() {
+        GameCommunityUIController.HideSharesCenter();
+    }
+    
+    // BROADCAST REPLAY
+    
+    public static void ShowBroadcastRecordPlayShare() {
+        GameCommunityUIController.ShowBroadcastRecordPlayShare();
+    }
+    
+    public static void HideBroadcastRecordPlayShare() {
+        GameCommunityUIController.HideBroadcastRecordPlayShare();
+    }
+
+    // ACTIONS
+
+    public static void ShowActionTools() {
+        GameCommunityUIController.ShowActionTools();
+    }
+    
+    public static void HideActionTools() {
+        GameCommunityUIController.HideActionTools();
+    }
+
+    //
+
+    public static void ShowActionAppRate() {
+        GameCommunityUIController.ShowActionAppRate();
+    }
+    
+    public static void HideActionAppRate() {
+        GameCommunityUIController.HideActionAppRate();
+    }
+    
+    // --------------------------------------------------------------
+
     // TRACKING
     
     //
