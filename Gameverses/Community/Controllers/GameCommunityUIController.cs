@@ -80,6 +80,8 @@ public class GameCommunityUIController : UIPanelBase {
         UIPanelCommunityBackground.HideBackground();
         
         UIPanelCommunityBroadcast.HideBroadcastRecordPlayShare();
+        UIPanelCommunityShare.HideSharesCenter();
+        //UIPanelCommunityShare.HideActionAppRate();
         //GameUIController.HideBroadcastRecordingReplayShare();        
     }
     
