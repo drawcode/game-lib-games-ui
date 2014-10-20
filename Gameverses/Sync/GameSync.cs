@@ -79,7 +79,7 @@ public class GameSyncObject : GameDataObject {
     // uuid
     // email
     // code
-    // username@@ryn@pcstein00BB--!!!
+    // username
 
     public GameSyncObject() {
         Reset();
