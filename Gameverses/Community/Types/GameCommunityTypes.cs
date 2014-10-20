@@ -346,12 +346,12 @@ public class GameCommunityTrackerReports : DataObjectItem {
     
     public void SetTrackerView(GameCommunityTrackerView trackerView) {
         //if (currentTrackerReport != null)
-            //currentTrackerReport.SetTrackerView(trackerView);
+        //currentTrackerReport.SetTrackerView(trackerView);
     }
     
     public void SetTrackerEvent(GameCommunityTrackerEvent trackerEvent) {
         //if (currentTrackerReport != null)
-            //currentTrackerReport.SetTrackerEvent(trackerEvent);
+        //currentTrackerReport.SetTrackerEvent(trackerEvent);
     }
     
     public void Save() {

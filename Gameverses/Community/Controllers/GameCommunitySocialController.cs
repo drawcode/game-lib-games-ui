@@ -805,10 +805,10 @@ public class GameCommunitySocialController : GameObjectBehavior {
 
     public void Update() {
     
-        if(Input.GetKey(KeyCode.LeftControl)) {        
+        if (Input.GetKey(KeyCode.LeftControl)) {        
         
-            if(Input.GetKey(KeyCode.LeftShift)) {
-                if(Input.GetKeyDown(KeyCode.S)) {
+            if (Input.GetKey(KeyCode.LeftShift)) {
+                if (Input.GetKeyDown(KeyCode.S)) {
 
                     TakePhotoWeb();
                 }

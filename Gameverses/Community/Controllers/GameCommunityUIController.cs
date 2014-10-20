@@ -11,8 +11,7 @@ public class GameCommunityUIShares {
 public class GameCommunityUIController : UIPanelBase {
     
     public static GameCommunityUIController Instance;
-    
-    public GameObject containerShares;   
+    public GameObject containerShares;
             
     public void Awake() {
         
@@ -24,7 +23,6 @@ public class GameCommunityUIController : UIPanelBase {
         
         Instance = this;    
     }
-    
     
     public static bool isInst {
         get {
@@ -67,7 +65,7 @@ public class GameCommunityUIController : UIPanelBase {
     
     public static void HideGameCommunity() {
         //GameCommunityUIPanelAll.HideGameCommunity();
-        if(Instance != null) {
+        if (Instance != null) {
             Instance.hideGameCommunityPanels();
         }
     }

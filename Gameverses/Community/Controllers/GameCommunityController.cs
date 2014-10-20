@@ -82,7 +82,7 @@ public class GameCommunityController : GameObjectBehavior {
         
         Debug.Log("GameCommunityController: OnProfileLoggedIn");
 
-        if(networkType == SocialNetworkTypes.facebook) {
+        if (networkType == SocialNetworkTypes.facebook) {
             // If they logged in to like
             
             if (GameCommunityController.Instance.likeActionClicked) {
@@ -98,8 +98,8 @@ public class GameCommunityController : GameObjectBehavior {
     void OnProfileData(string networkType, string dataType, object data) {
         
         Debug.Log("OnProfileData: networkType: " + networkType);
-        Debug.Log("OnProfileData: dataType: "+ dataType);
-        Debug.Log("OnProfileData: data: "+ data);        
+        Debug.Log("OnProfileData: dataType: " + dataType);
+        Debug.Log("OnProfileData: data: " + data);        
         
         GameCommunityUIPanelLoading.HideGameCommunityLoading();
         
