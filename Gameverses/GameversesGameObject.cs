@@ -58,7 +58,7 @@ namespace Gameverses {
             string uid = UniqueUtil.Instance.currentUniqueId;
 
             if (rpcObject == null) {
-                foreach(GameNetworkPhotonRPC rpcItem in ObjectUtil.FindObjects<GameNetworkPhotonRPC>()) {
+                foreach(GameNetworkPhotonRPC rpcItem in UnityObjectUtil.FindObjects<GameNetworkPhotonRPC>()) {
                     if(rpcItem.uniqueId == uid && !string.IsNullOrEmpty(uid)) {
                         rpcObject = rpcItem.gameObject;
                         if(rpc == null) {

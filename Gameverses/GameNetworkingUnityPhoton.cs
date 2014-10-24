@@ -116,11 +116,11 @@ namespace Gameverses {
 
         private void FindNetworkView() {
             if (photonView == null) {
-                Gameverses.GameversesGameObject gameversesGameObject = ObjectUtil.FindObject<Gameverses.GameversesGameObject>();
+                Gameverses.GameversesGameObject gameversesGameObject = UnityObjectUtil.FindObject<Gameverses.GameversesGameObject>();
                 if (gameversesGameObject != null) {
                     gameversesGameObject.SetupNetworkView();
 
-                    foreach (Gameverses.GameNetworkPhotonRPC rpcContainer in ObjectUtil.FindObjects<Gameverses.GameNetworkPhotonRPC>()) {
+                    foreach (Gameverses.GameNetworkPhotonRPC rpcContainer in UnityObjectUtil.FindObjects<Gameverses.GameNetworkPhotonRPC>()) {
                         if (rpcContainer.uniqueId.ToLower() == UniqueUtil.Instance.currentUniqueId.ToLower()) {
                             photonView = rpcContainer.photonView;
                             LogUtil.Log("FindNetworkView::photonView:" + photonView.viewID);//.ID);

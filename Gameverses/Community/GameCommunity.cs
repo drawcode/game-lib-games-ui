@@ -773,15 +773,15 @@ public class GameCommunity {
     
     
     public static GameCommunityAchievementData GetProfileAchievementData(
-        string appPackCode, string appContentState) {
+        string appPackCode, string app_content_state) {
         
         LogUtil.Log("GameCommunityAchievementData:appPackCode:", appPackCode);
-        LogUtil.Log("GameCommunityAchievementData:appContentState:", appContentState);
+        LogUtil.Log("GameCommunityAchievementData:app_content_state:", app_content_state);
         
         GameCommunityAchievementData achievementData = new GameCommunityAchievementData();
-        //string appState = AppContentStates.Instance.GetById(appContentState).appStates[0];
+        //string app_state = AppContentStates.Instance.GetById(app_content_state).app_states[0];
         
-        foreach (GameAchievement achievement in GameAchievements.Instance.GetListByPackByAppContentState(appPackCode, appContentState)) {
+        foreach (GameAchievement achievement in GameAchievements.Instance.GetListByPackByAppContentState(appPackCode, app_content_state)) {
                     
             if (achievement.active) {
             
@@ -789,8 +789,8 @@ public class GameCommunity {
                 
                 //achievement.description 
                 //  = GameAchievements.Instance.FormatAchievementTags(
-                //      appState, 
-                //      appContentState, 
+                //      app_state, 
+                //      app_content_state, 
                 //      achievement.description);
                         
                 item.code = achievement.code;
@@ -800,8 +800,8 @@ public class GameCommunity {
                 
             
                 LogUtil.Log("GetProfileAchievementData:achievement.code:", achievement.code);
-                LogUtil.Log("GetProfileAchievementData:appContentState:", appContentState);
-                string achievementCode = achievement.code + "-" + appContentState;
+                LogUtil.Log("GetProfileAchievementData:app_content_state:", app_content_state);
+                string achievementCode = achievement.code + "-" + app_content_state;
                 LogUtil.Log("GetProfileAchievementData:achievementCode:", achievementCode);
             
                 bool completed = GameProfileAchievements.Current.GetAchievementValue(achievementCode);
@@ -820,15 +820,15 @@ public class GameCommunity {
     }
     
     public static GameCommunityStatisticData GetProfileStatisticData(
-        string appPackCode, string appContentState) {
+        string appPackCode, string app_content_state) {
         
-        LogUtil.Log("GetProfileStatisticData:appContentState:", appContentState);
+        LogUtil.Log("GetProfileStatisticData:app_content_state:", app_content_state);
         
         GameCommunityStatisticData statisticData = new GameCommunityStatisticData();
         
         /*
         foreach(GameStatistic statistic in GameStatistics.Instance.GetListByPackAndContentState(
-            appPackCode, appContentState)) {
+            appPackCode, app_content_state)) {
             
             if(statistic.active) {
                 
@@ -839,8 +839,8 @@ public class GameCommunity {
                 item.description = statistic.description;           
             
                 LogUtil.Log("GetProfileStatisticData:statistic.code:", statistic.code);
-                LogUtil.Log("GetProfileStatisticData:appContentState:", appContentState);
-                string statisticCode = statistic.code + "-" + appContentState;
+                LogUtil.Log("GetProfileStatisticData:app_content_state:", app_content_state);
+                string statisticCode = statistic.code + "-" + app_content_state;
                 LogUtil.Log("GetProfileStatisticData:statisticCode:", statisticCode);
             
                 double statValue = GameProfileStatistics.Current.GetStatisticValue(statisticCode);
