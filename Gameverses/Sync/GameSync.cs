@@ -368,11 +368,11 @@ public class GameSync : GameObjectBehavior {
         string game_id, 
         object data) {
         
-        yield return new WaitForEndOfFrame();
+        //yield return new WaitForEndOfFrame();
         
         WWWs.RequestItem requestItem = new WWWs.RequestItem();
         
-        requestItem.url = url;
+        requestItem.url = url;// + "?r=" + UnityEngine.Random.Range(0,99999).ToString();
         //http://localhost:3330/api/v1/sync/profile/test
         requestItem.SetRequestType(WWWs.RequestType.post);
         requestItem.paramHash.Set("key", key);
@@ -383,11 +383,11 @@ public class GameSync : GameObjectBehavior {
         if (data != null) {
             dataValue = data.ToJson();
             if (!string.IsNullOrEmpty(dataValue)) {
-                dataValue = dataValue.Replace("\\\"", "\"").TrimStart('"').TrimEnd('"');
+                dataValue = dataValue.TrimStart('"').TrimEnd('"').Replace("\\\"", "\"");
             }
         }
         
-        requestItem.paramHash.Set("data", dataValue);        
+        requestItem.paramHash.Set("data", data);        
         
         Debug.Log("requestItem.paramHash" + requestItem.paramHash.ToJson());
         
