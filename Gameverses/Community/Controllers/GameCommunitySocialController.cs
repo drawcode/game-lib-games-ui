@@ -328,10 +328,12 @@ public class GameCommunitySocialController : GameObjectBehavior {
 
     IEnumerator takePhotoWebCo() {
         yield return new WaitForEndOfFrame();
+#if UNITY_WEB_PLAYER
         var newTexture = TakePhoto(Camera.main, Screen.width, Screen.height);
         LerpTexture(imageData2D, ref newTexture);
         imageData64 = System.Convert.ToBase64String(newTexture.EncodeToPNG());
         Application.ExternalEval("document.location.href='data:image/octet-stream;base64," + imageData64 + "'");
+#endif
     }
     
     public static Texture2D TakePhoto(Camera cam, int width, int height) {
