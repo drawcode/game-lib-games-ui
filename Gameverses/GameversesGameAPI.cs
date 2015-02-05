@@ -265,9 +265,9 @@ namespace Gameverses {
             LogUtil.Log("GameversesService.Instance: " + uuid);
         }
 #endif
-
+        #if NETWORK_UNITY
         public void SetupNetworkGameSession(string uuid, NetworkPlayer player, HostData hostData) {
-#if NETWORK_UNITY
+
             if(!Network.isServer)
                 return;
 
@@ -301,8 +301,9 @@ namespace Gameverses {
             SetGameSession(currentSession);
 
             LogUtil.Log("GameversesService.Instance: " + currentPlayer.externalPort);
-#endif
+
         }
+#endif
 
         public void SendActionMessage(GameNetworkingAction action, Vector3 pos, Vector3 direction) {
             GameNetworking.Instance.SendActionMessage(action, pos, direction);

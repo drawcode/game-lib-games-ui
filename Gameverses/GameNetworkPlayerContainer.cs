@@ -306,7 +306,13 @@ namespace Gameverses {
 
         // This only runs where the component is enabled, which is only on remote peers (server/clients)
         private void Update() {
-            double currentTime = Network.time;
+
+
+            //TODO get correct by network type
+            double currentTime = Time.time;//Network.time;
+#if NETWORK_UNITY
+            currentTime = Network.time;
+#endif
             double interpolationTime = currentTime - interpolationBackTime;
 
             // We have a window of interpolationBackTime where we basically play
