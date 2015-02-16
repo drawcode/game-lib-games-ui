@@ -216,12 +216,12 @@ public class GameCommunityTrackingController : GameObjectBehavior {
                 trackerReports.SetTrackerView(trackerView);     
             }
             
-            TestFlight.CheckpointExit(currentCheckPointTitle, currentCheckPointUrl);
+            //TestFlight.CheckpointExit(currentCheckPointTitle, currentCheckPointUrl);
             
             currentCheckPointTitle = title;     
             currentCheckPointUrl = url;     
-            
-            TestFlight.CheckpointEnter(currentCheckPointTitle, currentCheckPointUrl);
+            //
+            //TestFlight.CheckpointEnter(currentCheckPointTitle, currentCheckPointUrl);
         }
     }
     
