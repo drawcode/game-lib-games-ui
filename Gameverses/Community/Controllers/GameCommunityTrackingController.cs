@@ -283,7 +283,7 @@ public class GameCommunityTrackingController : GameObjectBehavior {
 #if UNITY_IPHONE
         GameProfileTrackers.Current.SetAttributeStringValue(
             GameProfileTrackerAttributes.infoSystemDeviceGeneration, 
-            iPhone.generation.ToString());
+            UnityEngine.iOS.Device.generation.ToString());
 #endif
         GameProfileTrackers.Current.SetAttributeStringValue(
             GameProfileTrackerAttributes.infoSystemDeviceModel, 
