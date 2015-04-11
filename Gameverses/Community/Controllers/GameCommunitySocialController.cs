@@ -313,7 +313,6 @@ public class GameCommunitySocialController : GameObjectBehavior {
 
     // TAKE PHOTO WEB
 
-    string imageData64 = "";
     public Texture2D imageData2D;
 
     public static void TakePhotoWeb() {
@@ -328,7 +327,8 @@ public class GameCommunitySocialController : GameObjectBehavior {
 
     IEnumerator takePhotoWebCo() {
         yield return new WaitForEndOfFrame();
-#if UNITY_WEB_PLAYER
+        #if UNITY_WEB_PLAYER
+        string imageData64 = "";
         var newTexture = TakePhoto(Camera.main, Screen.width, Screen.height);
         LerpTexture(imageData2D, ref newTexture);
         imageData64 = System.Convert.ToBase64String(newTexture.EncodeToPNG());

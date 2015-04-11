@@ -191,7 +191,7 @@ public class GameCommunityAchievementItem {
     public string displayName = "";
     public string description = "";
     public bool completed = false;
-    public int points = 1;
+    public double points = 1;
     public string urlImage = "";
     public string type = "";
 }
@@ -514,7 +514,7 @@ public class GameCommunitySystemTracking {
         graphicsDeviceVendorID = SystemInfo.graphicsDeviceVendorID.ToString();
         graphicsDeviceVersion = SystemInfo.graphicsDeviceVersion;
         graphicsMemorySize = SystemInfo.graphicsMemorySize.ToString("N0");
-        graphicsPixelFillrate = SystemInfo.graphicsPixelFillrate.ToString("N0");
+        //graphicsPixelFillrate = SystemInfo.graphicsPixelFillrate.ToString("N0");
         graphicsShaderLevel = SystemInfo.graphicsShaderLevel.ToString("N0");
         operatingSystem = SystemInfo.operatingSystem;
         processorCount = SystemInfo.processorCount.ToString("N0");
@@ -526,7 +526,7 @@ public class GameCommunitySystemTracking {
         supportsLocationService = SystemInfo.supportsLocationService.ToString();
         supportsRenderTextures = SystemInfo.supportsRenderTextures.ToString();
         supportsShadows = SystemInfo.supportsShadows.ToString();
-        supportsVertexPrograms = SystemInfo.supportsVertexPrograms.ToString();
+        //supportsVertexPrograms = SystemInfo.supportsVertexPrograms.ToString();
         supportsVibration = SystemInfo.supportsVibration.ToString();
         systemMemorySize = SystemInfo.systemMemorySize.ToString();
     }

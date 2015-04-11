@@ -201,8 +201,8 @@ public class GameCommunityTrackingController : GameObjectBehavior {
         }
     }
     
-    string currentCheckPointTitle = "";
-    string currentCheckPointUrl = "";
+    //string currentCheckPointTitle = "";
+    //string currentCheckPointUrl = "";
     
     public void trackView(string title, string url) {
 
@@ -218,8 +218,8 @@ public class GameCommunityTrackingController : GameObjectBehavior {
             
             //TestFlight.CheckpointExit(currentCheckPointTitle, currentCheckPointUrl);
             
-            currentCheckPointTitle = title;     
-            currentCheckPointUrl = url;     
+            //currentCheckPointTitle = title;     
+            //currentCheckPointUrl = url;     
             //
             //TestFlight.CheckpointEnter(currentCheckPointTitle, currentCheckPointUrl);
         }
