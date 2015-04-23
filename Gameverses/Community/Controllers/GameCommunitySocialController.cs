@@ -7,6 +7,8 @@ using Engine.Data.Json;
 using Engine.Events;
 using Engine.Networking;
 
+using Prime31;
+
 public enum GameCommunityItemProgress {
     NotStarted,
     Started,
