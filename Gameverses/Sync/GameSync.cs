@@ -308,7 +308,9 @@ public class GameSync : GameObjectBehavior {
         
     public void syncProfile() {
 
-        if (string.IsNullOrEmpty(GameProfiles.Current.uuid)) {
+        string uuid = GameProfiles.Current.uuid;
+
+        if (string.IsNullOrEmpty(uuid)) {
             GameProfiles.Current.uuid = UniqueUtil.Instance.CreateUUID4();
             GameState.SaveProfile();
         }
@@ -374,11 +376,16 @@ public class GameSync : GameObjectBehavior {
         
         requestItem.url = url;// + "?r=" + UnityEngine.Random.Range(0,99999).ToString();
         //http://localhost:3330/api/v1/sync/profile/test
+
         requestItem.SetRequestType(WWWs.RequestType.post);
         requestItem.paramHash.Set("key", key);
         requestItem.paramHash.Set("uid", uid);
         requestItem.paramHash.Set("profile_id", profile_id);
         requestItem.paramHash.Set("game_id", game_id);
+
+        requestItem.paramHash.Set("compressed", ProfileConfigs.useStorageCompression);
+        requestItem.paramHash.Set("encrypted", ProfileConfigs.useStorageEncryption);
+
         string dataValue = "";//data.ToJson();
         if (data != null) {
             dataValue = data.ToJson();
