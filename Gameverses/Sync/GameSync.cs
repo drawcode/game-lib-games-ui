@@ -138,6 +138,11 @@ public class GameSyncNetwork : GameDataObject {
     // username
 }
 
+public class GameSyncActions {
+    public static string syncProfile = "sync/profile/";
+}
+
+
 public class GameSync : GameObjectBehavior { 
     
     public static bool gameCloudSyncEnabled = AppConfigs.gameCloudSyncEnabled;
@@ -214,7 +219,7 @@ public class GameSync : GameObjectBehavior {
 
     public void OnWWWRequestItemSuccess(WWWs.RequestItem requestItem) {
         
-        Debug.Log("OnWWWRequestItemSuccess:" + requestItem.ToJson());
+        //Debug.Log("OnWWWRequestItemSuccess:" + requestItem.ToJson());
 
         //Dictionary<string,object> files = new Dictionary<string, object>();
 
@@ -222,6 +227,16 @@ public class GameSync : GameObjectBehavior {
         //foreach(var file in requestItem.
 
         //profileSyncObject.Add(key:, ValueType);
+
+        if(requestItem.IsAction(GameSyncActions.syncProfile)) {
+            
+            Debug.Log("OnWWWRequestItemSuccess:" + requestItem.ToJson());
+        }
+
+    }
+
+    public void HandleActionSyncProfile() {
+        
     }
     
     //
@@ -316,7 +331,7 @@ public class GameSync : GameObjectBehavior {
         }
 
         syncProfile(
-            Path.Combine(GameversesConfig.apiPath, "sync/profile/"),
+                Path.Combine(GameversesConfig.apiPath, GameSyncActions.syncProfile),
             AppConfigs.gameCloudSyncKey, // key
             UniqueUtil.Instance.currentUniqueId, // uid
             GameProfiles.Current.uuid, // profile_id
