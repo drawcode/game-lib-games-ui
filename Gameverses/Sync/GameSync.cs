@@ -326,8 +326,14 @@ public class GameSync : GameObjectBehavior {
         string uuid = GameProfiles.Current.uuid;
 
         if (string.IsNullOrEmpty(uuid)) {
-            GameProfiles.Current.uuid = UniqueUtil.Instance.CreateUUID4();
-            GameState.SaveProfile();
+
+            GameState.LoadProfile();
+            
+            if (string.IsNullOrEmpty(uuid)) {
+
+                GameProfiles.Current.uuid = UniqueUtil.Instance.CreateUUID4();
+                GameState.SaveProfile();
+            }
         }
 
         syncProfile(
@@ -365,6 +371,10 @@ public class GameSync : GameObjectBehavior {
         string profile_id, 
         string game_id, 
         object data) {
+
+        if(string.IsNullOrEmpty(profile_id)) {
+            return;
+        }
         
         CoroutineUtil.Start(syncProfileCo(
             url, 
