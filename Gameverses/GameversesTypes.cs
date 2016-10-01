@@ -7,10 +7,10 @@ namespace Gameverses {
     // config
     /*
     public class GameversesConfig {
-        public static string currentContentUrlRoot = "http://v3.gameverses.com/";
+        public static string currentContentUrlRoot = "http://v3.test.com/";
         public static string currentContentUrlCDN = "http://s3.amazonaws.com/";
 
-        public static string apiPath = "http://v3.gameverses.com/api/";
+        public static string apiPath = "http://v3.test.com/api/";
         public static string apiGame = "game-demo-1";
         public static string apiGamePath = "game";
         public static string apiGameFullPath = "";
@@ -20,8 +20,8 @@ namespace Gameverses {
         public static int currentContentIncrement = 1;
         public static string currentContentVersion = "1.0";
         public static string currentContentRootAppCode = "gameverses";
-        public static string currentContentAppCode = "drawlabs-game-1";
-        public static string currentContentPackCode = "drawlabs-game-1-pack-1";
+        public static string currentContentAppCode = "game-1";
+        public static string currentContentPackCode = "game-1-pack-1";
         public static string currentContentPlatformCode = "ios";
     }
     */
