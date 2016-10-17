@@ -323,6 +323,10 @@ public class GameSync : GameObjectBehavior {
         
     public void syncProfile() {
 
+        if (!AppConfigs.gameCloudSyncEnabled) {
+            return;
+        }
+
         string uuid = GameProfiles.Current.uuid;
 
         if (string.IsNullOrEmpty(uuid)) {
