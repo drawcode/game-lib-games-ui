@@ -46,8 +46,8 @@ public class GameCommunitySocialController : GameObjectBehavior {
             GameCommunityMessages.gameCommunityResultMessage, OnGameCommunityResultMessage);
                 
         Messenger<string>.AddListener(SocialNetworksMessages.socialLoggedIn, OnSocialNetworkLoggedIn);
-                
-        #if UNITY_ANDROID || UNITY_IPHONE
+
+#if (UNITY_ANDROID || UNITY_IPHONE) && SOCIAL_USE_TWITTER_PRIME31
         //TwitterManager.loginSucceededEvent += twitterLoginSucceededEvent;
         //TwitterManager.loginFailedEvent += twitterLoginFailedEvent;
         TwitterManager.requestDidFinishEvent += twitterRequestDidFinishEvent;
@@ -55,7 +55,7 @@ public class GameCommunitySocialController : GameObjectBehavior {
         TwitterManager.requestDidFailEvent += twitterRequestDidFailEvent;
         TwitterManager.tweetSheetCompletedEvent += twitterTweetSheetCompletedEvent;
         //TwitterManager.tweetSheetFailedEvent += twitterTweetSheetFailedEvent;
-        #endif
+#endif
     }
     
     void OnDisable() {
@@ -63,8 +63,8 @@ public class GameCommunitySocialController : GameObjectBehavior {
             GameCommunityMessages.gameCommunityResultMessage, OnGameCommunityResultMessage); 
         
         Messenger<string>.RemoveListener(SocialNetworksMessages.socialLoggedIn, OnSocialNetworkLoggedIn);
-        
-        #if UNITY_ANDROID || UNITY_IPHONE
+
+#if (UNITY_ANDROID || UNITY_IPHONE) && SOCIAL_USE_TWITTER_PRIME31
         //TwitterManager.loginSucceededEvent -= twitterLoginSucceededEvent;
         //TwitterManager.loginFailedEvent -= twitterLoginFailedEvent;
         TwitterManager.requestDidFinishEvent -= twitterRequestDidFinishEvent;
@@ -72,7 +72,7 @@ public class GameCommunitySocialController : GameObjectBehavior {
         TwitterManager.requestDidFailEvent -= twitterRequestDidFailEvent;
         TwitterManager.tweetSheetCompletedEvent -= twitterTweetSheetCompletedEvent;
         //TwitterManager.tweetSheetFailedEvent -= twitterTweetSheetFailedEvent;
-        #endif
+#endif
     }
 
     void OnSocialNetworkLoggedIn(string networkType) {
@@ -88,7 +88,7 @@ public class GameCommunitySocialController : GameObjectBehavior {
             }
         }
     }
-
+#if (UNITY_ANDROID || UNITY_IPHONE) && SOCIAL_USE_TWITTER_PRIME31
     void twitterTweetSheetCompletedEvent(bool completed) {
 
         if (completed) {
@@ -118,6 +118,7 @@ public class GameCommunitySocialController : GameObjectBehavior {
             Locos.Get(LocoKeys.social_twitter_upload_error_message));
         
     }
+#endif
 
     void OnGameCommunityResultMessage(GameCommunityMessageResult result) {
         
@@ -329,7 +330,7 @@ public class GameCommunitySocialController : GameObjectBehavior {
 
     IEnumerator takePhotoWebCo() {
         yield return new WaitForEndOfFrame();
-        #if UNITY_WEB_PLAYER
+#if UNITY_WEB_PLAYER
         string imageData64 = "";
         var newTexture = TakePhoto(Camera.main, Screen.width, Screen.height);
         LerpTexture(imageData2D, ref newTexture);
@@ -605,7 +606,7 @@ public class GameCommunitySocialController : GameObjectBehavior {
         EtceteraBinding.saveImageToPhotoAlbum(fileToSave);
 #elif UNITY_ANDROID
         EtceteraAndroid.saveImageToGallery(fileToSave, name);
-#endif  
+#endif
         
         GameCommunityController.SendResultMessage(
             Locos.Get(LocoKeys.social_photo_library_photo_saved_title),
