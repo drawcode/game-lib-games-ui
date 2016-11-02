@@ -4,6 +4,7 @@ using System.Collections.Generic;
 
 using UnityEngine;
 
+#if ENABLE_FEATURE_NETWORKING
 namespace Gameverses {
     public class GameversesKeys {
         public static string ProfileList = "gv-profile-list";
@@ -42,10 +43,11 @@ namespace Gameverses {
 #elif NETWORK_PHOTON
         public PhotonPlayer currentPlayer;
 #endif
+
         public HostData currentHostData;
         public HostData currentClientHostData;
 
-        public static GameversesGameAPI Instance {
+public static GameversesGameAPI Instance {
             get {
                 if (instance == null) {
                     lock (syncRoot) {
@@ -231,7 +233,7 @@ namespace Gameverses {
         public void DisconnectGameSession() {
             GameNetworking.Instance.DisconnectNetwork();
         }
-        #if NETWORK_PHOTON
+#if NETWORK_PHOTON
         public void SetupNetworkGameSession(string uuid, PhotonPlayer player, HostData hostData) {
             currentPlayer = player;
             currentHostData = hostData;
@@ -265,7 +267,7 @@ namespace Gameverses {
             LogUtil.Log("GameversesService.Instance: " + uuid);
         }
 #endif
-        #if NETWORK_UNITY
+#if NETWORK_UNITY
         public void SetupNetworkGameSession(string uuid, NetworkPlayer player, HostData hostData) {
 
             if(!Network.isServer)
@@ -312,3 +314,4 @@ namespace Gameverses {
         // ##################################################################################################
     }
 }
+#endif

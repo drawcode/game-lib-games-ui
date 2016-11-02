@@ -5,8 +5,9 @@ using System.Collections.Generic;
 
 using UnityEngine;
 
+
 namespace Gameverses {
-    public class GameNetworkingPlayerTypeMessages {
+public class GameNetworkingPlayerTypeMessages {
         public static string PlayerTypeHero = "type-hero";
         public static string PlayerTypeEnemy = "type-enemy";
         public static string PlayerTypeProjectile = "type-projectile";
@@ -52,6 +53,7 @@ namespace Gameverses {
             attributes = new Dictionary<string, string>();
         }
     }
+#if ENABLE_FEATURE_NETWORKING
 
     public class GameNetworkingPlayerInfo {
 #if NETWORK_UNITY
@@ -77,7 +79,7 @@ namespace Gameverses {
         public void Reset() {
 #if NETWORK_UNITY
             networkPlayer = Network.player;
-            #elif NETWORK_PHOTON
+#elif NETWORK_PHOTON
             networkPlayer = PhotonNetwork.player;
 #endif
             name = "default";
@@ -105,11 +107,13 @@ namespace Gameverses {
 
     public class GameNetworking : GameObjectBehavior {
         public static GameNetworking Instance;
+#if ENABLE_FEATURE_NETWORKING
         public HostData currentHostData;
         public HostData currentGameSessionHostData;
-        public int connectedPlayerCount = 0;
         public HostData[] hostDataMasterServer;
         public HostData hostDataGameSession;
+#endif
+        public int connectedPlayerCount = 0;
         private float currentTimeBlock = 0.0f;
         private float currentTimeBlockDelayed = 0.0f;
         private float actionInterval = 1.0f;
@@ -182,7 +186,7 @@ namespace Gameverses {
                 return GameNetworkingUnityPhoton.Instance.isNetworkRunning;
 #elif NETWORK_UNITY
                 return GameNetworkingUnity.Instance.isNetworkRunning;
-#else 
+#else
                 return false;
 #endif
             }
@@ -194,7 +198,7 @@ namespace Gameverses {
                 return GameNetworkingUnityPhoton.Instance.isServer;
 #elif NETWORK_UNITY
                 return GameNetworkingUnity.Instance.isServer;
-                #else 
+#else
                 return false;
 #endif
             }
@@ -206,7 +210,7 @@ namespace Gameverses {
                 return GameNetworkingUnityPhoton.Instance.isClient;
 #elif NETWORK_UNITY
                 return GameNetworkingUnity.Instance.isClient;
-                #else 
+#else
                 return false;
 #endif
             }
@@ -218,7 +222,7 @@ namespace Gameverses {
                 return GameNetworkingUnityPhoton.Instance.isConnected;
 #elif NETWORK_UNITY
                 return GameNetworkingUnity.Instance.isConnected;
-                #else 
+#else
                 return false;
 #endif
             }
@@ -230,7 +234,7 @@ namespace Gameverses {
                 return GameNetworkingUnityPhoton.Instance.isConnecting;
 #elif NETWORK_UNITY
                 return GameNetworkingUnity.Instance.isConnecting;
-                #else 
+#else
                 return false;
 #endif
             }
@@ -242,7 +246,7 @@ namespace Gameverses {
                 return GameNetworkingUnityPhoton.Instance.isDisconnected;
 #elif NETWORK_UNITY
                 return GameNetworkingUnity.Instance.isDisconnected;
-                #else 
+#else
                 return true;
 #endif
             }
@@ -254,7 +258,7 @@ namespace Gameverses {
                 return GameNetworkingUnityPhoton.Instance.isMessageQueueRunning;
 #elif NETWORK_UNITY
                 return GameNetworkingUnity.Instance.isMessageQueueRunning;
-                #else 
+#else
                 return false;
 #endif
             }
@@ -335,11 +339,11 @@ namespace Gameverses {
         // SERVER
 
         public void StartSession() {
-            #if NETWORK_PHOTON
+#if NETWORK_PHOTON
             GameNetworkingUnityPhoton.Instance.ServerStart();
-            #elif NETWORK_UNITY
+#elif NETWORK_UNITY
             GameNetworkingUnity.Instance.ServerStart();
-            #endif
+#endif
         }
 
         public void ServerStart() {
@@ -361,7 +365,6 @@ namespace Gameverses {
             GameNetworkingUnity.Instance.SetGameSessionComplete();
 #endif
         }
-
         public void ConnectGameSession(HostData hostData) {
             DisconnectNetwork();
 #if NETWORK_PHOTON
@@ -372,14 +375,14 @@ namespace Gameverses {
         }
 
         public void ConnectNetwork() {
-            #if NETWORK_PHOTON
+#if NETWORK_PHOTON
             
             Debug.Log("GameNetworking:ConnectNetwork:GameNetworkingUnityPhoton");
             GameNetworkingUnityPhoton.Instance.ConnectNetwork();
-            #elif NETWORK_UNITY
+#elif NETWORK_UNITY
             Debug.Log("GameNetworking:ConnectNetwork:GameNetworkingUnity");
             GameNetworkingUnity.Instance.ConnectNetwork();
-            #endif
+#endif
         }
 
         public static void Connect() {
@@ -403,11 +406,11 @@ namespace Gameverses {
         }
 
         public void join(string name) {
-            #if NETWORK_PHOTON
+#if NETWORK_PHOTON
             GameNetworkingUnityPhoton.Instance.Join(name);
-            #elif NETWORK_UNITY
+#elif NETWORK_UNITY
             ////GameNetworkingUnity.Instance.ConnectNetwork(hostData);
-            #endif
+#endif
         }
 
         public static void Create(string name) {
@@ -419,11 +422,11 @@ namespace Gameverses {
         }
         
         public void create(string name) {
-            #if NETWORK_PHOTON
+#if NETWORK_PHOTON
             GameNetworkingUnityPhoton.Instance.Create(name);
-            #elif NETWORK_UNITY
+#elif NETWORK_UNITY
             ////GameNetworkingUnity.Instance.ConnectNetwork(hostData);
-            #endif
+#endif
         }
         
         public static void Leave() {
@@ -435,13 +438,12 @@ namespace Gameverses {
         }
         
         public void leave() {
-            #if NETWORK_PHOTON
+#if NETWORK_PHOTON
             GameNetworkingUnityPhoton.Instance.Leave();
-            #elif NETWORK_UNITY
+#elif NETWORK_UNITY
             ////GameNetworkingUnity.Instance.ConnectNetwork();
-            #endif
+#endif
         }
-
         public void ConnectNetwork(HostData hostData) {
 #if NETWORK_PHOTON
             GameNetworkingUnityPhoton.Instance.ConnectNetwork(hostData);
@@ -468,12 +470,13 @@ namespace Gameverses {
             GameNetworkingUnity.Instance.DisconnectNetwork();
 #endif
         }
-
+#if NETWORK_UNITY
         public void ConnectGameversesMultiuserGameSession(HostData hostData) {
+
             hostDataGameSession = hostData;
             ConnectNetwork(hostData);
         }
-
+#endif
         public void ConnectMasterServerGameSession(HostData hostData) {
 #if NETWORK_PHOTON
             GameNetworkingUnityPhoton.Instance.DisconnectNetwork();
@@ -876,4 +879,5 @@ namespace Gameverses {
     }
     */
     }
+#endif
 }
