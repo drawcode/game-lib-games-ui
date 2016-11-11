@@ -335,7 +335,7 @@ public class GameSync : GameObjectBehavior {
             
             if (string.IsNullOrEmpty(uuid)) {
 
-                GameProfiles.Current.uuid = UniqueUtil.Instance.CreateUUID4();
+                GameProfiles.Current.uuid = UniqueUtil.CreateUUID4();
                 GameState.SaveProfile();
             }
         }
