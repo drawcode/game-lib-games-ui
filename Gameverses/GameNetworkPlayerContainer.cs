@@ -1,3 +1,5 @@
+#pragma warning disable CS0649
+
 #define NETWORK_PHOTON_OFF
 using System;
 using System.Collections;
