@@ -259,7 +259,7 @@ public static GameversesGameAPI Instance {
 
             currentSession.status = "";
             currentSession.uuid = uuid;
-            currentSession.profile_id = UniqueUtil.Instance.CreateUUID4();
+            currentSession.profile_id = UniqueUtil.CreateUUID4();
             currentSession.game_id = "11111111-1111-1111-1111-111111111111";
 
             SetGameSession(currentSession);

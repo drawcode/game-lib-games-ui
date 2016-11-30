@@ -383,7 +383,7 @@ namespace Gameverses {
 
                 LogUtil.Log("currentPlayer.externalPort: " + currentPlayer.ID.ToString());
 
-                string sessionId = UniqueUtil.Instance.CreateUUID4();
+                string sessionId = UniqueUtil.CreateUUID4();
 
                 GameversesGameAPI.Instance.SetupNetworkGameSession(sessionId, currentPlayer, currentHostData);
 
