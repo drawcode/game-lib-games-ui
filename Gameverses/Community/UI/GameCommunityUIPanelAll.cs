@@ -384,17 +384,17 @@ public class GameCommunityUIPanelAll : UIAppPanelBaseList {
                     item.name = "AStatisticItem" + i;               
                                         
                     string displayValue = leaderboardItem.valueFormatted;               
-                    item.transform.FindChild("LabelValue").GetComponent<UILabel>().text = displayValue; 
+                    item.transform.Find("LabelValue").GetComponent<UILabel>().text = displayValue; 
                     
-                    item.transform.FindChild("LabelUsername").GetComponent<UILabel>().text = leaderboardItem.username;
-                    UILabel labelRank = item.transform.FindChild("LabelName").GetComponent<UILabel>();
+                    item.transform.Find("LabelUsername").GetComponent<UILabel>().text = leaderboardItem.username;
+                    UILabel labelRank = item.transform.Find("LabelName").GetComponent<UILabel>();
                     int rank = (((i) + ((currentPage * currentPageSize) - currentPageSize)) + 1);
                     leaderboardItem.rank = rank;
                     string rankText = "#" + rank.ToString("N0");
                     labelRank.text = rankText;
                     
                     
-                    UITexture profilePic = item.transform.FindChild("TextureProfilePic").GetComponent<UITexture>();
+                    UITexture profilePic = item.transform.Find("TextureProfilePic").GetComponent<UITexture>();
                     
                     //if (leaderboardItem.network == GameProfiles.Current.GetSocialNetworkType() 
                     //    && leaderboardItem.username == GameProfiles.Current.GetSocialNetworkUserName()) {
@@ -556,9 +556,9 @@ public class GameCommunityUIPanelAll : UIAppPanelBaseList {
         GameObject item = NGUITools.AddChild(listGridRoot, listItemPrefabStatistic);
         item.name = "AStatisticItem" + increment;               
         
-        item.transform.FindChild("LabelName").GetComponent<UILabel>().text = statistic.displayName;
-        item.transform.FindChild("LabelDescription").GetComponent<UILabel>().text = statistic.description;              
-        item.transform.FindChild("LabelValue").GetComponent<UILabel>().text = statistic.valueFormatted;     
+        item.transform.Find("LabelName").GetComponent<UILabel>().text = statistic.displayName;
+        item.transform.Find("LabelDescription").GetComponent<UILabel>().text = statistic.description;              
+        item.transform.Find("LabelValue").GetComponent<UILabel>().text = statistic.valueFormatted;     
     }
     
 }

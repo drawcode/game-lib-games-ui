@@ -86,12 +86,12 @@ public class GameCommunityUIPanelAchievements : UIAppPanelBaseList {
                 //      AppContentStates.Current.code, 
                 //      achievement.description);
                 
-                item.transform.FindChild("LabelName").GetComponent<UILabel>().text 
+                item.transform.Find("LabelName").GetComponent<UILabel>().text 
                     = achievement.display_name;
-                item.transform.FindChild("LabelDescription").GetComponent<UILabel>().text 
+                item.transform.Find("LabelDescription").GetComponent<UILabel>().text 
                     = achievement.description;
                 
-                Transform icon = item.transform.FindChild("Icon");
+                Transform icon = item.transform.Find("Icon");
                 UISprite iconSprite = null;
                 
                 if (icon != null) {
@@ -129,7 +129,7 @@ public class GameCommunityUIPanelAchievements : UIAppPanelBaseList {
                     points = "+" + points;
                 }
                     
-                item.transform.FindChild("LabelValue").GetComponent<UILabel>().text = points;           
+                item.transform.Find("LabelValue").GetComponent<UILabel>().text = points;           
                                             
                 i++;
             }

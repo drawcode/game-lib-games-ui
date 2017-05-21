@@ -356,8 +356,8 @@ public class GameCommunityUIPanelLogin : UIAppPanelBaseList {
                     GameObject item = NGUITools.AddChild(listGridRoot, listItemPrefabLeaderboard);
                     item.name = "AStatisticItem" + i;               
                     
-                    item.transform.FindChild("LabelUsername").GetComponent<UILabel>().text = leaderboardItem.username;
-                    UILabel labelUsername = item.transform.FindChild("LabelName").GetComponent<UILabel>();
+                    item.transform.Find("LabelUsername").GetComponent<UILabel>().text = leaderboardItem.username;
+                    UILabel labelUsername = item.transform.Find("LabelName").GetComponent<UILabel>();
                     labelUsername.text = "#" + (i + 1) * currentPage;
                     
                     //if(leaderboardItem.name != leaderboardItem.username) {
@@ -369,9 +369,9 @@ public class GameCommunityUIPanelLogin : UIAppPanelBaseList {
                     
                     string displayValue = leaderboardItem.value.ToString("N0");
                     
-                    item.transform.FindChild("LabelValue").GetComponent<UILabel>().text = displayValue;     
+                    item.transform.Find("LabelValue").GetComponent<UILabel>().text = displayValue;     
                     
-                    UITexture profilePic = item.transform.FindChild("TextureProfilePic").GetComponent<UITexture>();
+                    UITexture profilePic = item.transform.Find("TextureProfilePic").GetComponent<UITexture>();
                 
                     string url = String.Format("http://graph.facebook.com/{0}/picture", leaderboardItem.username);  
                     GameCommunityUIController.LoadUITextureImage(profilePic, url, 48, 48, i + 1);
