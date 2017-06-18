@@ -524,7 +524,7 @@ public class GameCommunitySystemTracking {
         supportsGyroscope = SystemInfo.supportsGyroscope.ToString();
         supportsImageEffects = SystemInfo.supportsImageEffects.ToString();
         supportsLocationService = SystemInfo.supportsLocationService.ToString();
-        supportsRenderTextures = SystemInfo.supportsRenderTextures.ToString();
+        //supportsRenderTextures = SystemInfo.supportsRenderTextures.ToString();
         supportsShadows = SystemInfo.supportsShadows.ToString();
         //supportsVertexPrograms = SystemInfo.supportsVertexPrograms.ToString();
         supportsVibration = SystemInfo.supportsVibration.ToString();
