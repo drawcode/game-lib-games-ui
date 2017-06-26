@@ -108,10 +108,10 @@ public class GameNetworkingPlayerTypeMessages {
     public class GameNetworking : GameObjectBehavior {
         public static GameNetworking Instance;
 #if ENABLE_FEATURE_NETWORKING
-        public HostData currentHostData;
-        public HostData currentGameSessionHostData;
-        public HostData[] hostDataMasterServer;
-        public HostData hostDataGameSession;
+        public GameNetworkHostData currentHostData;
+        public GameNetworkHostData currentGameSessionHostData;
+        public GameNetworkHostData[] hostDataMasterServer;
+        public GameNetworkHostData hostDataGameSession;
 #endif
         public int connectedPlayerCount = 0;
         private float currentTimeBlock = 0.0f;
@@ -365,7 +365,8 @@ public class GameNetworkingPlayerTypeMessages {
             GameNetworkingUnity.Instance.SetGameSessionComplete();
 #endif
         }
-        public void ConnectGameSession(HostData hostData) {
+
+        public void ConnectGameSession(GameNetworkHostData hostData) {
             DisconnectNetwork();
 #if NETWORK_PHOTON
             GameNetworkingUnityPhoton.Instance.ConnectGameSession(hostData);
@@ -444,7 +445,8 @@ public class GameNetworkingPlayerTypeMessages {
             ////GameNetworkingUnity.Instance.ConnectNetwork();
 #endif
         }
-        public void ConnectNetwork(HostData hostData) {
+        
+        public void ConnectNetwork(GameNetworkHostData hostData) {
 #if NETWORK_PHOTON
             GameNetworkingUnityPhoton.Instance.ConnectNetwork(hostData);
 #elif NETWORK_UNITY
@@ -470,14 +472,13 @@ public class GameNetworkingPlayerTypeMessages {
             GameNetworkingUnity.Instance.DisconnectNetwork();
 #endif
         }
-#if NETWORK_UNITY
-        public void ConnectGameversesMultiuserGameSession(HostData hostData) {
+        public void ConnectGameversesMultiuserGameSession(GameNetworkHostData hostData) {
 
             hostDataGameSession = hostData;
             ConnectNetwork(hostData);
         }
-#endif
-        public void ConnectMasterServerGameSession(HostData hostData) {
+
+        public void ConnectMasterServerGameSession(GameNetworkHostData hostData) {
 #if NETWORK_PHOTON
             GameNetworkingUnityPhoton.Instance.DisconnectNetwork();
 #elif NETWORK_UNITY
@@ -880,4 +881,4 @@ public class GameNetworkingPlayerTypeMessages {
     */
     }
 #endif
-}
+    }

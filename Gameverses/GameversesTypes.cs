@@ -25,6 +25,63 @@ namespace Gameverses {
         public static string currentContentPlatformCode = "ios";
     }
     */
+    
+    public class GameNetworkHostData {
+
+        public GameNetworkHostData() {
+
+        }
+
+        public bool useNat {
+            get;
+            set;
+        }
+
+        public string gameType {
+            get;
+            set;
+        }
+
+        public string gameName {
+            get;
+            set;
+        }
+
+        public int connectedPlayers {
+            get;
+            set;
+        }
+
+        public int playerLimit {
+            get;
+            set;
+        }
+
+        public string[] ip {
+            get;
+            set;
+        }
+
+        public int port {
+            get;
+            set;
+        }
+
+        public bool passwordProtected {
+            get;
+            set;
+        }
+
+        public string comment {
+            get;
+            set;
+        }
+
+        public string guid {
+            get;
+            set;
+        }
+    }
 
     // base
     public class GameversesBaseEntity {

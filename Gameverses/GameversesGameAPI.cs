@@ -44,8 +44,8 @@ namespace Gameverses {
         public PhotonPlayer currentPlayer;
 #endif
 
-        public HostData currentHostData;
-        public HostData currentClientHostData;
+        public GameNetworkHostData currentHostData;
+        public GameNetworkHostData currentClientHostData;
 
 public static GameversesGameAPI Instance {
             get {
@@ -213,7 +213,7 @@ public static GameversesGameAPI Instance {
             currentSession = gameSession;
             currentSessionData = new GameversesGameSessionData();
 
-            currentClientHostData = new HostData();
+            currentClientHostData = new GameNetworkHostData();
             currentClientHostData.connectedPlayers = gameSession.game_players_connected;
             currentClientHostData.gameName = gameSession.uuid;
             currentClientHostData.gameType = gameSession.uuid;
@@ -227,7 +227,9 @@ public static GameversesGameAPI Instance {
             currentClientHostData.port = gameSession.network_external_port;
             currentClientHostData.useNat = gameSession.network_use_nat;
 
+#if NETWORK_UNITY
             GameNetworking.Instance.ConnectGameSession(currentClientHostData);
+#endif
         }
 
         public void DisconnectGameSession() {
