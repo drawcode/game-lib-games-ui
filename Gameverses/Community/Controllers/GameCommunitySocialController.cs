@@ -265,7 +265,7 @@ public class GameCommunitySocialController : GameObjectBehavior {
         File.Delete(filePath);
 
 #if UNITY_EDITOR
-        Application.CaptureScreenshot(filePath);
+        ScreenCapture.CaptureScreenshot(filePath);
 #else
         /**
          * For iOS you have to pass in just the name, while it seems like
