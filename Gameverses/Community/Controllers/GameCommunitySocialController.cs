@@ -272,7 +272,7 @@ public class GameCommunitySocialController : GameObjectBehavior {
          * an absolute path is necessary/ or it puts it in a location that is
          * different than persistentDataPath.
         **/
-        Application.CaptureScreenshot(fileName);
+        ScreenCapture.CaptureScreenshot(fileName);
 #endif
 
         /**
