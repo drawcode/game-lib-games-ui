@@ -604,10 +604,10 @@ public class GameCommunitySocialController : GameObjectBehavior {
     public void saveImageToLibrary(string name, string fileToSave) {
 #if UNITY_IPHONE
         EtceteraBinding.saveImageToPhotoAlbum(fileToSave);
-#elif UNITY_ANDROID
+#elif UNITY_ANDROID && USE_FEATURE_ETCETERA
         EtceteraAndroid.saveImageToGallery(fileToSave, name);
 #endif
-        
+
         GameCommunityController.SendResultMessage(
             Locos.Get(LocoKeys.social_photo_library_photo_saved_title),
             Locos.Get(LocoKeys.social_photo_library_photo_saved_message)
