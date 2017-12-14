@@ -7,7 +7,7 @@ using System.Text;
 
 using UnityEngine;
 
-using Engine.Data.Json;
+// using Engine.Data.Json;
 using Engine.Events;
 using Engine.Networking;
 
@@ -216,65 +216,110 @@ public class GameCommunityService {
         }
         
         List<GameCommunityLeaderboardItem> leaderboardItems = new List<GameCommunityLeaderboardItem>();
+
+        string json = responseText.Replace("\\\"", "\"");
         
-        JsonData jsonData = JsonMapper.ToObject(responseText.Replace("\\\"", "\""));
-        
-        if (jsonData != null && jsonData.IsObject) {
-        
-            JsonData dataNode = jsonData["data"];
-            
-            if (dataNode != null && dataNode.IsObject) {
-                
-                JsonData totalRows = dataNode["total_rows"];
-                if (totalRows != null) {                            
-                    if (totalRows.IsDouble || totalRows.IsInt || totalRows.IsLong) {
-                        leaderboardData.totalCount = int.Parse(totalRows.ToString());                       
-                    }
-                }
-                
-                JsonData dataItems = dataNode["data"];                  
-                
-                if (dataItems != null && dataItems.IsArray) {
-                    
-                    for (int i = 0; i < dataItems.Count; i++) {
-                    
-                        var data = dataItems[i];                
-                    
+        Dictionary<string, object> jsonData = json.FromJson<Dictionary<string, object>>();
+
+        if(jsonData != null && jsonData.Count > 0) {
+
+            Dictionary<string, object> dataNode = jsonData.Get<Dictionary<string, object>>("data");
+
+            if(dataNode != null && dataNode.Count > 0) {
+
+                double totalRows = dataNode.Get<double>("total_rows");
+
+                leaderboardData.totalCount = int.Parse(totalRows.ToString());
+
+                List<Dictionary<string, object>> dataItems = dataNode.Get<List<Dictionary<string, object>>>("data");
+
+                if(dataItems != null && dataItems.Count > 0) {
+
+                    for(int i = 0; i < dataItems.Count; i++) {
+
+                        Dictionary<string, object> data = dataItems[i];
+
                         GameCommunityLeaderboardItem leaderboardItem = new GameCommunityLeaderboardItem();
-                                                
-                        JsonData username = data["username"];
-                        if (username != null) {                         
-                            if (username.IsString) {
-                                leaderboardItem.username = username.ToString();                     
-                            }
-                        }
-                        
-                        JsonData profile_id = data["profile_id"];
-                        if (profile_id != null) {                           
-                            if (profile_id.IsString) {
-                                leaderboardItem.userId = profile_id.ToString();                     
-                            }
-                        }
-                        
-                        JsonData score = data["absolute_value"];
-                        if (score != null) {                            
-                            if (score.IsDouble) {
-                                leaderboardItem.value = float.Parse(score.ToString());
-                                leaderboardItem.valueFormatted = leaderboardItem.value.ToString("N0");                      
-                            }
-                        }   
-                        
+
+                        string username = data.Get<string>("username");
+                        leaderboardItem.username = username;
+
+                        string profile_id = data.Get<string>("profile_id");
+                        leaderboardItem.userId = profile_id;
+
+                        double score = data.Get<double>("absolute_value");
+                        leaderboardItem.value = float.Parse(score.ToString());
+                        leaderboardItem.valueFormatted = leaderboardItem.value.ToString("N0");
+
                         leaderboardItem.network = "facebook";
                         leaderboardItem.name = leaderboardItem.username;
                         leaderboardItem.type = "int";
                         leaderboardItem.urlImage = String.Format("http://graph.facebook.com/{0}/picture", leaderboardItem.username);
-                            
-                    
+                        
                         leaderboardItems.Add(leaderboardItem);
                     }
                 }
             }
         }
+        
+        //JsonData jsonData = responseText.Replace("\\\"", "\"").FromJson();
+        
+        //if (jsonData != null && jsonData.IsObject) {
+        
+        //    JsonData dataNode = jsonData["data"];
+            
+        //    if (dataNode != null && dataNode.IsObject) {
+                
+        //        JsonData totalRows = dataNode["total_rows"];
+        //        if (totalRows != null) {                            
+        //            if (totalRows.IsDouble || totalRows.IsInt || totalRows.IsLong) {
+        //                leaderboardData.totalCount = int.Parse(totalRows.ToString());                       
+        //            }
+        //        }
+                
+        //        JsonData dataItems = dataNode["data"];                  
+                
+        //        if (dataItems != null && dataItems.IsArray) {
+                    
+        //            for (int i = 0; i < dataItems.Count; i++) {
+                    
+        //                var data = dataItems[i];                
+                    
+        //                GameCommunityLeaderboardItem leaderboardItem = new GameCommunityLeaderboardItem();
+                                                
+        //                JsonData username = data["username"];
+        //                if (username != null) {                         
+        //                    if (username.IsString) {
+        //                        leaderboardItem.username = username.ToString();                     
+        //                    }
+        //                }
+                        
+        //                JsonData profile_id = data["profile_id"];
+        //                if (profile_id != null) {                           
+        //                    if (profile_id.IsString) {
+        //                        leaderboardItem.userId = profile_id.ToString();                     
+        //                    }
+        //                }
+                        
+        //                JsonData score = data["absolute_value"];
+        //                if (score != null) {                            
+        //                    if (score.IsDouble) {
+        //                        leaderboardItem.value = float.Parse(score.ToString());
+        //                        leaderboardItem.valueFormatted = leaderboardItem.value.ToString("N0");                      
+        //                    }
+        //                }   
+                        
+        //                leaderboardItem.network = "facebook";
+        //                leaderboardItem.name = leaderboardItem.username;
+        //                leaderboardItem.type = "int";
+        //                leaderboardItem.urlImage = String.Format("http://graph.facebook.com/{0}/picture", leaderboardItem.username);
+                            
+                    
+        //                leaderboardItems.Add(leaderboardItem);
+        //            }
+        //        }
+        //    }
+        //}
         
         leaderboardData.leaderboards.Add("high-score", leaderboardItems);
 
@@ -309,8 +354,8 @@ public class GameCommunityService {
         
         data.Add("check", "gamecommunity01");
         data.Add("api_key", "gamecommunity01");
-        
-        string syncDataJson = JsonMapper.ToJson(syncData);
+
+        string syncDataJson = syncData.ToJson();
         data.Add("data", syncDataJson);
                 
         string url = GetGameApiRoute(apiPathGameSync);
@@ -369,42 +414,25 @@ public class GameCommunityService {
         if (string.IsNullOrEmpty(responseText)) {
             return syncDataResponse;
         }
+
+        Dictionary<string, object> jsonData = responseText.FromJson<Dictionary<string, object>>();
         
-        JsonData jsonData = JsonMapper.ToObject(responseText);
-        
-        if (jsonData != null && jsonData.IsObject) {
-        
-            JsonData dataNode = jsonData["data"];
+        if (jsonData != null && jsonData.Count > 0) {
+
+            Dictionary<string, object> dataNode = jsonData.Get<Dictionary<string, object>>("data");
             
-            if (dataNode != null && dataNode.IsObject) {
+            if (dataNode != null && dataNode.Count > 0) {
+
+                string message = dataNode.Get<string>("message");
+                syncDataResponse.message = message;
                 
-                JsonData message = dataNode["message"];
-                if (message != null) {                          
-                    if (message.IsString) {
-                        syncDataResponse.message = message.ToString();                      
-                    }
-                }
-                
-                JsonData data = dataNode["data"];
-                if (data != null) {                         
-                    if (data.IsString) {
-                        syncDataResponse.data = data.ToString().Replace("\\\"", "\"");                      
-                    }
-                }
+                string data = dataNode.Get<string>("data");
+                syncDataResponse.data = data.Replace("\\\"", "\"");
             }
         }
         
         return syncDataResponse;
     }
-    
-    
-    
-    
-    
-    
-    
-    
-    
     
     /* 
      * 

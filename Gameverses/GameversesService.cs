@@ -2,7 +2,6 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 
-using Engine.Data.Json;
 using Engine.Networking;
 
 namespace Gameverses {
@@ -114,31 +113,28 @@ namespace Gameverses {
 
             try {
                 if (responseObject != null) {
-                    if (responseObject.www != null) {
-                        if (string.IsNullOrEmpty(responseObject.www.error)) {
-                            if (!string.IsNullOrEmpty(responseObject.www.text)) {
-                                JsonData data = JsonMapper.ToObject(responseObject.www.text);
 
-                                if (data.IsObject) {
+                    if (responseObject.www != null) {
+
+                        if (string.IsNullOrEmpty(responseObject.www.error)) {
+
+                            if (!string.IsNullOrEmpty(responseObject.www.text)) {
+                                
+                                Dictionary<string, object> data = 
+                                    responseObject.www.text.FromJson<Dictionary<string, object>>();
+                                
+                                if (data != null && data.Count > 0) {
                                     int error = -1;
                                     try {
-                                        if (data["error"] != null) {
-                                            if (data["error"].IsInt) {
-                                                error = (int)data["error"];
-                                            }
-                                        }
+                                        error = data.Get<int>("error");
                                     }
-                                    catch (Exception e) {
+                                    catch(Exception e) {
                                         LogUtil.Log("ERROR parsing error key: error:" + e.Message + e.StackTrace);
                                     }
 
                                     string message = "Problem parsing service container";
                                     try {
-                                        if (data["message"] != null) {
-                                            if (data["message"].IsString) {
-                                                message = (string)data["message"];
-                                            }
-                                        }
+                                        message = data.Get<string>("message");
                                     }
                                     catch (Exception e) {
                                         LogUtil.Log("ERROR parsing error key: message:" + e.Message + e.StackTrace);
@@ -146,9 +142,7 @@ namespace Gameverses {
 
                                     object dataValue = null;
                                     try {
-                                        if (data["data"] != null) {
-                                            dataValue = data["data"];
-                                        }
+                                        dataValue = data.Get<object>("data");
                                     }
                                     catch (Exception e) {
                                         LogUtil.Log("ERROR parsing error key: data" + e.Message + e.StackTrace);
@@ -167,7 +161,7 @@ namespace Gameverses {
 
                                         if (!string.IsNullOrEmpty(responseObject.www.text))
                                             responseObject.data = responseObject.www.text;////data["data"].ToString(); // contains object
-                                        responseObject.dataValue = (JsonData)dataValue; // contains object
+                                        responseObject.dataValue = dataValue; // contains object
                                         responseObject.validResponse = true;
                                     }
                                     else {
@@ -176,6 +170,66 @@ namespace Gameverses {
                                         responseObject.validResponse = false;
                                     }
                                 }
+
+                                //JsonData data = JsonMapper.ToObject(responseObject.www.text);
+
+                                //if(data.IsObject) {
+                                //    int error = -1;
+                                //    try {
+                                //        if(data["error"] != null) {
+                                //            if(data["error"].IsInt) {
+                                //                error = (int)data["error"];
+                                //            }
+                                //        }
+                                //    }
+                                //    catch(Exception e) {
+                                //        LogUtil.Log("ERROR parsing error key: error:" + e.Message + e.StackTrace);
+                                //    }
+
+                                //    string message = "Problem parsing service container";
+                                //    try {
+                                //        if(data["message"] != null) {
+                                //            if(data["message"].IsString) {
+                                //                message = (string)data["message"];
+                                //            }
+                                //        }
+                                //    }
+                                //    catch(Exception e) {
+                                //        LogUtil.Log("ERROR parsing error key: message:" + e.Message + e.StackTrace);
+                                //    }
+
+                                //    object dataValue = null;
+                                //    try {
+                                //        if(data["data"] != null) {
+                                //            dataValue = data["data"];
+                                //        }
+                                //    }
+                                //    catch(Exception e) {
+                                //        LogUtil.Log("ERROR parsing error key: data" + e.Message + e.StackTrace);
+                                //    }
+
+                                //    responseObject.error = error;
+                                //    responseObject.message = message;
+
+                                //    LogUtil.Log("STATUS/ERROR:" + error);
+                                //    LogUtil.Log("STATUS/ERROR MESSAGE:" + message);
+
+                                //    if(error == 0) {
+
+                                //        //JsonData dataNode = (JsonData)data["data"];
+                                //        LogUtil.Log("STATUS/DATA NODE:" + dataValue);
+
+                                //        if(!string.IsNullOrEmpty(responseObject.www.text))
+                                //            responseObject.data = responseObject.www.text;////data["data"].ToString(); // contains object
+                                //        responseObject.dataValue = (JsonData)dataValue; // contains object
+                                //        responseObject.validResponse = true;
+                                //    }
+                                //    else {
+                                //        LogUtil.LogError("ERROR - Good response but problem with data, see message.");
+                                //        LogUtil.LogError("RESPONSE:" + responseObject.www.text);
+                                //        responseObject.validResponse = false;
+                                //    }
+                                //}
                             }
                             else {
                                 LogUtil.LogError("ERROR - NO DATA");
@@ -331,7 +385,7 @@ namespace Gameverses {
             // Since this is a real-time update, ensure cache on the url to bypass Unity's WWW caching.
             //url = serviceUtil.EnsureUrlUniqueByTime(url);
 
-            string dataValue = JsonMapper.ToJson(gameSession);
+            string dataValue = gameSession.ToJson();
 
             LogUtil.Log("PostGameSession::dataValue:" + dataValue);
 
@@ -397,7 +451,7 @@ namespace Gameverses {
             // Since this is a real-time update, ensure cache on the url to bypass Unity's WWW caching.
             //url = serviceUtil.EnsureUrlUniqueByTime(url);
 
-            string dataValue = JsonMapper.ToJson(gameSession);
+            string dataValue = gameSession.ToJson();
 
             LogUtil.Log("PostGameSession::dataValue:" + dataValue);
 
@@ -439,7 +493,7 @@ namespace Gameverses {
             GameversesProfile profile = new GameversesProfile();
             if (!string.IsNullOrEmpty(data)) {
                 try {
-                    profile = JsonMapper.ToObject<GameversesProfile>(data);
+                    profile = data.FromJson<GameversesProfile>();
                 }
                 catch (Exception e) {
                     LogUtil.Log("ERROR:" + e);
@@ -452,7 +506,7 @@ namespace Gameverses {
             GameversesGameListResponse response = new GameversesGameListResponse();
             if (!string.IsNullOrEmpty(data)) {
                 try {
-                    response = JsonMapper.ToObject<GameversesGameListResponse>(data);
+                    response = data.FromJson<GameversesGameListResponse>();
                 }
                 catch (Exception e) {
                     LogUtil.Log("ERROR:" + e);
@@ -465,7 +519,7 @@ namespace Gameverses {
             GameversesGameSessionListResponse response = new GameversesGameSessionListResponse();
             if (!string.IsNullOrEmpty(data)) {
                 try {
-                    response = JsonMapper.ToObject<GameversesGameSessionListResponse>(data);
+                    response = data.FromJson<GameversesGameSessionListResponse>();
                 }
                 catch (Exception e) {
                     LogUtil.Log("ERROR:" + e);
@@ -478,7 +532,7 @@ namespace Gameverses {
             GameversesGameSessionResponse response = new GameversesGameSessionResponse();
             if (!string.IsNullOrEmpty(data)) {
                 try {
-                    response = JsonMapper.ToObject<GameversesGameSessionResponse>(data);
+                    response = data.FromJson<GameversesGameSessionResponse>();
                 }
                 catch (Exception e) {
                     LogUtil.Log("ERROR:" + e);
@@ -493,7 +547,7 @@ namespace Gameverses {
             GameversesGameSessionData gameSessionData = new GameversesGameSessionData();
             if (!string.IsNullOrEmpty(data)) {
                 try {
-                    gameSessionData = JsonMapper.ToObject<GameversesGameSessionData>(data);
+                    gameSessionData = data.FromJson<GameversesGameSessionData>();
                 }
                 catch (Exception e) {
                     LogUtil.Log("ERROR:" + e);

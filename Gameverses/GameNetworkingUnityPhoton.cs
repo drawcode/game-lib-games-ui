@@ -13,7 +13,7 @@ using Photon.SocketServer.Security;
 #endif
 using UnityEngine;
 
-using Engine.Data.Json;
+// using Engine.Data.Json;
 
 namespace Gameverses {
     public class GameNetworkingUnityPhoton : GameObjectBehavior {

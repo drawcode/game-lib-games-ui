@@ -6,7 +6,7 @@ using System.Collections.Generic;
 #if !UNITY_WEBPLAYER
 using System.IO;
 #endif
-using Engine.Data.Json;
+// using Engine.Data.Json;
 using Engine.Events;
 using Engine.Networking;
 
