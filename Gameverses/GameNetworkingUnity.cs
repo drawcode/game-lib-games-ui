@@ -13,9 +13,9 @@ using ExitGames.Client.Photon.Lite;
 using Photon.SocketServer;
 using Photon.SocketServer.Security;
 
-#elif NETWORK_UNITY
+#elif NETWORK_USE_UNITY
 #endif
-#if NETWORK_UNITY && !UNITY_FLASH
+#if NETWORK_USE_UNITY && !UNITY_FLASH
 namespace Gameverses {
     public class GameNetworkingUnity : GameObjectBehavior {
         public static GameNetworkingUnity Instance;

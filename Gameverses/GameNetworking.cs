@@ -56,7 +56,7 @@ public class GameNetworkingPlayerTypeMessages {
 #if ENABLE_FEATURE_NETWORKING
 
     public class GameNetworkingPlayerInfo {
-#if NETWORK_UNITY
+#if NETWORK_USE_UNITY
         public NetworkPlayer networkPlayer;
 #elif NETWORK_PHOTON
         public PhotonPlayer networkPlayer;
@@ -77,7 +77,7 @@ public class GameNetworkingPlayerTypeMessages {
         }
 
         public void Reset() {
-#if NETWORK_UNITY
+#if NETWORK_USE_UNITY
             networkPlayer = Network.player;
 #elif NETWORK_PHOTON
             networkPlayer = PhotonNetwork.player;
@@ -140,7 +140,7 @@ public class GameNetworkingPlayerTypeMessages {
 
 #if NETWORK_PHOTON
             gameObject.AddComponent<GameNetworkingUnityPhoton>();
-#elif NETWORK_UNITY
+#elif NETWORK_USE_UNITY
             gameObject.AddComponent<GameNetworkingUnity>();
 #endif
             DontDestroyOnLoad(gameObject);
@@ -184,7 +184,7 @@ public class GameNetworkingPlayerTypeMessages {
             get {
 #if NETWORK_PHOTON
                 return GameNetworkingUnityPhoton.Instance.isNetworkRunning;
-#elif NETWORK_UNITY
+#elif NETWORK_USE_UNITY
                 return GameNetworkingUnity.Instance.isNetworkRunning;
 #else
                 return false;
@@ -196,7 +196,7 @@ public class GameNetworkingPlayerTypeMessages {
             get {
 #if NETWORK_PHOTON
                 return GameNetworkingUnityPhoton.Instance.isServer;
-#elif NETWORK_UNITY
+#elif NETWORK_USE_UNITY
                 return GameNetworkingUnity.Instance.isServer;
 #else
                 return false;
@@ -208,7 +208,7 @@ public class GameNetworkingPlayerTypeMessages {
             get {
 #if NETWORK_PHOTON
                 return GameNetworkingUnityPhoton.Instance.isClient;
-#elif NETWORK_UNITY
+#elif NETWORK_USE_UNITY
                 return GameNetworkingUnity.Instance.isClient;
 #else
                 return false;
@@ -220,7 +220,7 @@ public class GameNetworkingPlayerTypeMessages {
             get {
 #if NETWORK_PHOTON
                 return GameNetworkingUnityPhoton.Instance.isConnected;
-#elif NETWORK_UNITY
+#elif NETWORK_USE_UNITY
                 return GameNetworkingUnity.Instance.isConnected;
 #else
                 return false;
@@ -232,7 +232,7 @@ public class GameNetworkingPlayerTypeMessages {
             get {
 #if NETWORK_PHOTON
                 return GameNetworkingUnityPhoton.Instance.isConnecting;
-#elif NETWORK_UNITY
+#elif NETWORK_USE_UNITY
                 return GameNetworkingUnity.Instance.isConnecting;
 #else
                 return false;
@@ -244,7 +244,7 @@ public class GameNetworkingPlayerTypeMessages {
             get {
 #if NETWORK_PHOTON
                 return GameNetworkingUnityPhoton.Instance.isDisconnected;
-#elif NETWORK_UNITY
+#elif NETWORK_USE_UNITY
                 return GameNetworkingUnity.Instance.isDisconnected;
 #else
                 return true;
@@ -256,7 +256,7 @@ public class GameNetworkingPlayerTypeMessages {
             get {
 #if NETWORK_PHOTON
                 return GameNetworkingUnityPhoton.Instance.isMessageQueueRunning;
-#elif NETWORK_UNITY
+#elif NETWORK_USE_UNITY
                 return GameNetworkingUnity.Instance.isMessageQueueRunning;
 #else
                 return false;
@@ -341,7 +341,7 @@ public class GameNetworkingPlayerTypeMessages {
         public void StartSession() {
 #if NETWORK_PHOTON
             GameNetworkingUnityPhoton.Instance.ServerStart();
-#elif NETWORK_UNITY
+#elif NETWORK_USE_UNITY
             GameNetworkingUnity.Instance.ServerStart();
 #endif
         }
@@ -349,7 +349,7 @@ public class GameNetworkingPlayerTypeMessages {
         public void ServerStart() {
 #if NETWORK_PHOTON
             GameNetworkingUnityPhoton.Instance.ServerStart();
-#elif NETWORK_UNITY
+#elif NETWORK_USE_UNITY
             GameNetworkingUnity.Instance.ServerStart();
 #endif
         }
@@ -361,7 +361,7 @@ public class GameNetworkingPlayerTypeMessages {
             GameversesGameAPI.Instance.SetGameSessionState("complete");
 #if NETWORK_PHOTON
             GameNetworkingUnityPhoton.Instance.SetGameSessionComplete();
-#elif NETWORK_UNITY
+#elif NETWORK_USE_UNITY
             GameNetworkingUnity.Instance.SetGameSessionComplete();
 #endif
         }
@@ -370,7 +370,7 @@ public class GameNetworkingPlayerTypeMessages {
             DisconnectNetwork();
 #if NETWORK_PHOTON
             GameNetworkingUnityPhoton.Instance.ConnectGameSession(hostData);
-#elif NETWORK_UNITY
+#elif NETWORK_USE_UNITY
             GameNetworkingUnity.Instance.ConnectGameSession(hostData);
 #endif
         }
@@ -380,7 +380,7 @@ public class GameNetworkingPlayerTypeMessages {
             
             Debug.Log("GameNetworking:ConnectNetwork:GameNetworkingUnityPhoton");
             GameNetworkingUnityPhoton.Instance.ConnectNetwork();
-#elif NETWORK_UNITY
+#elif NETWORK_USE_UNITY
             Debug.Log("GameNetworking:ConnectNetwork:GameNetworkingUnity");
             GameNetworkingUnity.Instance.ConnectNetwork();
 #endif
@@ -409,7 +409,7 @@ public class GameNetworkingPlayerTypeMessages {
         public void join(string name) {
 #if NETWORK_PHOTON
             GameNetworkingUnityPhoton.Instance.Join(name);
-#elif NETWORK_UNITY
+#elif NETWORK_USE_UNITY
             ////GameNetworkingUnity.Instance.ConnectNetwork(hostData);
 #endif
         }
@@ -425,7 +425,7 @@ public class GameNetworkingPlayerTypeMessages {
         public void create(string name) {
 #if NETWORK_PHOTON
             GameNetworkingUnityPhoton.Instance.Create(name);
-#elif NETWORK_UNITY
+#elif NETWORK_USE_UNITY
             ////GameNetworkingUnity.Instance.ConnectNetwork(hostData);
 #endif
         }
@@ -441,7 +441,7 @@ public class GameNetworkingPlayerTypeMessages {
         public void leave() {
 #if NETWORK_PHOTON
             GameNetworkingUnityPhoton.Instance.Leave();
-#elif NETWORK_UNITY
+#elif NETWORK_USE_UNITY
             ////GameNetworkingUnity.Instance.ConnectNetwork();
 #endif
         }
@@ -449,7 +449,7 @@ public class GameNetworkingPlayerTypeMessages {
         public void ConnectNetwork(GameNetworkHostData hostData) {
 #if NETWORK_PHOTON
             GameNetworkingUnityPhoton.Instance.ConnectNetwork(hostData);
-#elif NETWORK_UNITY
+#elif NETWORK_USE_UNITY
             GameNetworkingUnity.Instance.ConnectNetwork(hostData);
 #endif
         }
@@ -468,7 +468,7 @@ public class GameNetworkingPlayerTypeMessages {
         public void DisconnectNetwork() {
 #if NETWORK_PHOTON
             GameNetworkingUnityPhoton.Instance.DisconnectNetwork();
-#elif NETWORK_UNITY
+#elif NETWORK_USE_UNITY
             GameNetworkingUnity.Instance.DisconnectNetwork();
 #endif
         }
@@ -481,7 +481,7 @@ public class GameNetworkingPlayerTypeMessages {
         public void ConnectMasterServerGameSession(GameNetworkHostData hostData) {
 #if NETWORK_PHOTON
             GameNetworkingUnityPhoton.Instance.DisconnectNetwork();
-#elif NETWORK_UNITY
+#elif NETWORK_USE_UNITY
             GameNetworkingUnity.Instance.DisconnectNetwork();
 #endif
         }
@@ -489,7 +489,7 @@ public class GameNetworkingPlayerTypeMessages {
         public void SendActionMessage(GameNetworkingAction action, Vector3 pos, Vector3 direction) {
 #if NETWORK_PHOTON
             GameNetworkingUnityPhoton.Instance.SendActionMessage(action, pos, direction);
-#elif NETWORK_UNITY
+#elif NETWORK_USE_UNITY
             GameNetworkingUnity.Instance.SendActionMessage(action, pos, direction);
 #endif
         }

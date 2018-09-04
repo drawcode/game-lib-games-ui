@@ -38,7 +38,7 @@ namespace Gameverses {
         public string currentProfileId = "";
         public GameversesGameSession currentSession;
         public GameversesGameSessionData currentSessionData;
-#if NETWORK_UNITY
+#if NETWORK_USE_UNITY
         public NetworkPlayer currentPlayer;
 #elif NETWORK_PHOTON
         public PhotonPlayer currentPlayer;
@@ -227,7 +227,7 @@ public static GameversesGameAPI Instance {
             currentClientHostData.port = gameSession.network_external_port;
             currentClientHostData.useNat = gameSession.network_use_nat;
 
-#if NETWORK_UNITY
+#if NETWORK_USE_UNITY
             GameNetworking.Instance.ConnectGameSession(currentClientHostData);
 #endif
         }
@@ -269,7 +269,7 @@ public static GameversesGameAPI Instance {
             LogUtil.Log("GameversesService.Instance: " + uuid);
         }
 #endif
-#if NETWORK_UNITY
+#if NETWORK_USE_UNITY
         public void SetupNetworkGameSession(string uuid, NetworkPlayer player, HostData hostData) {
 
             if(!Network.isServer)

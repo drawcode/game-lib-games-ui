@@ -14,7 +14,7 @@ namespace Gameverses {
         public GameNetworking gameNetworking;
         public WebRequests requests;
 
-#if NETWORK_UNITY
+#if NETWORK_USE_UNITY
         public NetworkView networkViewObject;
 #elif NETWORK_PHOTON
         public PhotonView networkViewObject;
@@ -24,7 +24,7 @@ namespace Gameverses {
 
         private void Start() {
             requests = gameObject.AddComponent<WebRequests>();
-#if NETWORK_UNITY
+#if NETWORK_USE_UNITY
             networkViewObject = gameObject.AddComponent<NetworkView>();
             networkViewObject.stateSynchronization = NetworkStateSynchronization.Unreliable;
             gameNetworking = gameObject.AddComponent<GameNetworking>();
@@ -46,7 +46,7 @@ namespace Gameverses {
         }
 
         private void OnLeftRoom() {
-#if NETWORK_UNITY || NETWORK_PHOTON
+#if NETWORK_USE_UNITY || NETWORK_PHOTON
             rpcObject = null;
             networkViewObject = null;
 #endif

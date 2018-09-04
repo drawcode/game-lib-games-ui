@@ -49,7 +49,7 @@ namespace Gameverses {
     }
 
     public class GameNetworkPlayerContainer : GameObjectBehavior {
-#if NETWORK_UNITY
+#if NETWORK_USE_UNITY
         public NetworkView networkViewObject;
 #elif NETWORK_PHOTON
         public PhotonView networkViewObject;
@@ -92,7 +92,7 @@ namespace Gameverses {
             //}
         }
 
-#if NETWORK_UNITY
+#if NETWORK_USE_UNITY
         public void AddNetworkView(NetworkViewID idl, string uniqueId) {
             networkViewObject = gameObject.AddComponent<NetworkView>();
             networkViewObject.stateSynchronization = NetworkStateSynchronization.ReliableDeltaCompressed;
@@ -131,7 +131,7 @@ namespace Gameverses {
             currentAnimation = (GameNetworkAniStates)Enum.Parse(typeof(GameNetworkAniStates), animationValue);
         }
 
-#if NETWORK_UNITY
+#if NETWORK_USE_UNITY
         void OnSerializeNetworkView(BitStream stream, NetworkMessageInfo info) {
 
             // Always send transform (depending on reliability of the network view)
@@ -312,7 +312,7 @@ namespace Gameverses {
 
             //TODO get correct by network type
             double currentTime = Time.time;//Network.time;
-#if NETWORK_UNITY
+#if NETWORK_USE_UNITY
             currentTime = Network.time;
 #endif
             double interpolationTime = currentTime - interpolationBackTime;

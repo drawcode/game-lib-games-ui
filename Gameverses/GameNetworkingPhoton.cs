@@ -13,7 +13,7 @@ using ExitGames.Client.Photon.Lite;
 using Photon.SocketServer;
 using Photon.SocketServer.Security;
 
-#elif NETWORK_UNITY
+#elif NETWORK_USE_UNITY
 #endif
 
 #if NETWORK_PHOTON_CUSTOM
