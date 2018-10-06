@@ -602,7 +602,7 @@ public class GameCommunitySocialController : GameObjectBehavior {
     }
 
     public void saveImageToLibrary(string name, string fileToSave) {
-#if UNITY_IPHONE
+#if UNITY_IPHONE && USE_FEATURE_ETCETERA
         EtceteraBinding.saveImageToPhotoAlbum(fileToSave);
 #elif UNITY_ANDROID && USE_FEATURE_ETCETERA
         EtceteraAndroid.saveImageToGallery(fileToSave, name);
