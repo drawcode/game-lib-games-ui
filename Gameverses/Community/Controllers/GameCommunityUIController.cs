@@ -143,6 +143,8 @@ public class GameCommunityUIController : UIPanelBase {
 
     //
 
+#if USE_UI_NGUI_2_7 || USE_UI_NGUI_3
+
     public static void LoadFacebookProfileImageByUsername(
         string username, UITexture textureSpriteProfilePicture, int width, int height, float delay) {
         if(Instance != null) {
@@ -231,4 +233,5 @@ public class GameCommunityUIController : UIPanelBase {
             }
         }
     }
+#endif
 }

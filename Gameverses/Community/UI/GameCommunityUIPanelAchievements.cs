@@ -10,9 +10,15 @@ using Engine.Networking;
 public class GameCommunityUIPanelAchievements : UIAppPanelBaseList {
 
     public GameObject listItemPrefab;
-    public UILabel labelPoints;
+
     public List<GameAchievement> currentAchievements;
     public static GameCommunityUIPanelAchievements Instance;
+
+#if USE_UI_NGUI_2_7 || USE_UI_NGUI_3
+    public UILabel labelPoints;
+#else
+    public GameObject labelPoints;
+#endif
 
     public override void Awake() {
         base.Awake();
@@ -65,8 +71,10 @@ public class GameCommunityUIPanelAchievements : UIAppPanelBaseList {
 
             listGridRoot.DestroyChildren();
 
+#if USE_UI_NGUI_2_7 || USE_UI_NGUI_3
             yield return new WaitForEndOfFrame();
             listGridRoot.transform.parent.gameObject.GetComponent<UIDraggablePanel>().ResetPosition();
+#endif
             yield return new WaitForEndOfFrame();
 
             List<GameAchievement> achievements = GetAchievements();
@@ -78,6 +86,7 @@ public class GameCommunityUIPanelAchievements : UIAppPanelBaseList {
             foreach(GameAchievement achievement in achievements) {
 
                 GameObject item = NGUITools.AddChild(listGridRoot, listItemPrefab);
+
                 item.name = "AchievementItem" + i;
 
                 // TODO ACHIEVEMENTS
@@ -136,17 +145,22 @@ public class GameCommunityUIPanelAchievements : UIAppPanelBaseList {
             }
 
             if(labelPoints != null) {
+
                 string formatted = totalPoints.ToString("N0");
+
                 if(totalPoints > 0) {
                     formatted = "+" + formatted;
                 }
-                labelPoints.text = formatted;
+
+                UIUtil.SetLabelValue(labelPoints, formatted);
             }
 
+#if USE_UI_NGUI_2_7 || USE_UI_NGUI_3
             yield return new WaitForEndOfFrame();
             listGridRoot.GetComponent<UIGrid>().Reposition();
             yield return new WaitForEndOfFrame();
             listGridRoot.transform.parent.gameObject.GetComponent<UIDraggablePanel>().ResetPosition();
+#endif
             yield return new WaitForEndOfFrame();
 
         }

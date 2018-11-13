@@ -105,152 +105,156 @@ public class GameCommunityBasicSceneAppViewerUIButtonNames {
 }
 
 public class GameCommunityBasicScene : GameObjectBehavior {
-    
+
     public static GameCommunityBasicScene Instance;
-            
+
     public void Awake() {
-        
-        if (Instance != null && this != Instance) {
+
+        if(Instance != null && this != Instance) {
             //There is already a copy of this script running
             //Destroy(gameObject);
             return;
         }
-        
-        Instance = this;    
+
+        Instance = this;
     }
-    
+
     // facebook uses an int for score for some reason, 
     // and only descending, no time, fastest time, lowest score etc.
     int highScore = 0;
-    public UILabel labelHighScore;
+
     public GameObject containerMainObject;
     public GameObject containerStatisticsListObject;
     public GameObject containerLeaderboardsObject;
     public GameObject containerLeaderboardFriendsObject;
-    
+
+#if USE_UI_NGUI_2_7 || USE_UI_NGUI_3
+    public UILabel labelHighScore;
+#else
+    public GameObject labelHighScore;
+#endif
+
     void OnEnable() {
         //Messenger<string>.AddListener(ButtonEvents.EVENT_BUTTON_CLICK, OnButtonClickEventHandler);
-        
+
         //Messenger.AddListener(GameCommunityMessages.gameCommunityReady, OnGameCommunityReady);
         //Messenger<GameCommunityNetworkUser>.AddListener(GameCommunityMessages.gameCommunityLoggedIn, OnProfileLoggedIn);
     }
-    
+
     void OnDisable() {
         //Messenger<string>.RemoveListener(ButtonEvents.EVENT_BUTTON_CLICK, OnButtonClickEventHandler);
-        
+
         //Messenger.RemoveListener(GameCommunityMessages.gameCommunityReady, OnGameCommunityReady);
         //Messenger<GameCommunityNetworkUser>.RemoveListener(GameCommunityMessages.gameCommunityLoggedIn, OnProfileLoggedIn);
     }
-    
+
     void OnGameCommunityReady() {
         // gameCommunity is ready, use this instead of Start() as it has 
         // some parallel coroutine operations at start.
         //Init();   
     }
-    
-    void Init() {       
+
+    void Init() {
         //UpdateHighScore();
     }
-    
+
     void OnProfileLoggedIn(GameCommunityNetworkUser user) {
-        
+
         // See PlatformProfileInfo and GameCommunityUIPanelUserState for login handling.
     }
-        
+
     void Start() {
-        
+
     }
-        
+
     void UpdateHighScore() {
         highScore = GameCommunity.GetHighScore();
-        
-        if (labelHighScore != null) {
-            labelHighScore.text = GameCommunity.GetHighScoreFormatted();
-        }       
+
+        UIUtil.SetLabelValue(labelHighScore, GameCommunity.GetHighScoreFormatted());
     }
-    
+
     void Update() {
-        
+
     }
-    
+
     void OnButtonClickEventHandler(string buttonName) {
-        
-        if (buttonName 
+
+        if(buttonName
             == GameCommunityBasicSceneAppViewerUIButtonNames.ButtonLeaderboards) {
-            
+
             HideAllDialogs();
-            
+
             ShowLeaderboards();
-            
+
             GameCommunityUIPanelLeaderboards.LoadDataFull();
-            
+
         }
-        else if (buttonName 
+        else if(buttonName
             == GameCommunityBasicSceneAppViewerUIButtonNames.ButtonLeaderboardFriends) {
-            
+
             HideAllDialogs();
-            
+
             ShowLeaderboardFriends();
-            
+
             GameCommunityUIPanelLeaderboards.LoadDataFriends();
-            
+
         }
-        else if (buttonName 
+        else if(buttonName
             == GameCommunityBasicSceneAppViewerUIButtonNames.ButtonStatistics) {
-            
+
             HideAllDialogs();
-            
+
             ShowStatisticsList();
-            
+
             GameCommunityUIPanelStatistics.Instance.LoadData();
         }
-        else if (buttonName 
+        else if(buttonName
             == GameCommunityBasicSceneAppViewerUIButtonNames.ButtonStatisticHighScoreAddOne) {
-            
+
             // Here we are adding a score to the current.  IN actual use at the end of a level just send the
             // game score.  If higher than the current it will send to facebook.
-            
+
             highScore += 1;
-            
+
             GameCommunity.SetHighScore(highScore);
-            
+
             UpdateHighScore();
-            
+
             FinishGameSession();
-            
+
         }
-        else if (buttonName 
+        else if(buttonName
             == GameCommunityBasicSceneAppViewerUIButtonNames.ButtonStatisticHighScoreAddTen) {
-            
+
             // Here we are adding a score to the current.  IN actual use at the end of a level just send the
             // game score.  If higher than the current it will send to facebook.
-            
+
             highScore += 10;
-            
+
             GameCommunity.SetHighScore(highScore);
-            
+
             UpdateHighScore();
-            
+
             FinishGameSession();
-            
+
         }
-        else if (buttonName 
+        else if(buttonName
             == GameCommunityBasicSceneAppViewerUIButtonNames.ButtonSendStatistics) {
-            
+
             // Set high score automatically calls this, for other stats that may be set this method
             // is required after setting all stats for non facebook networks i.e. custom or gamecenter.
-            
+
             GameCommunity.SyncProfileProgress();
-            
+
         }
-        else if (buttonName == GameCommunityBasicSceneAppViewerUIButtonNames.ButtonCloseDialogs) {
-            
+        else if(buttonName == GameCommunityBasicSceneAppViewerUIButtonNames.ButtonCloseDialogs) {
+
             HideAllDialogs();
-            
-            ShowMain();         
+
+            ShowMain();
         }
     }
-    
+
     public void FinishGameSession() {
         GameCommunity.SetStatisticValue("times-played", 1);
         GameCommunity.SetStatisticValue("time-played", UnityEngine.Random.Range(5f, 50f));
@@ -258,44 +262,43 @@ public class GameCommunityBasicScene : GameObjectBehavior {
         GameCommunity.SetStatisticValue("shots-missed", UnityEngine.Random.Range(0f, 8f));
         GameCommunity.SyncProfileProgress();
     }
-        
+
     public void HideAllDialogs() {
         HideStatisticsList();
         HideLeaderboards();
         HideLeaderboardFriends();
         HideMain();
     }
-    
+
     public void ShowMain() {
         containerMainObject.Show();
     }
-    
+
     public void HideMain() {
         containerMainObject.Hide();
     }
-        
+
     public void ShowStatisticsList() {
         containerStatisticsListObject.Show();
     }
-    
+
     public void HideStatisticsList() {
         containerStatisticsListObject.Hide();
     }
-        
+
     public void ShowLeaderboards() {
         containerLeaderboardsObject.Show();
     }
-            
+
     public void HideLeaderboards() {
         containerLeaderboardsObject.Hide();
     }
-        
+
     public void ShowLeaderboardFriends() {
         containerLeaderboardFriendsObject.Show();
     }
-            
+
     public void HideLeaderboardFriends() {
         containerLeaderboardFriendsObject.Hide();
     }
-    
 }
