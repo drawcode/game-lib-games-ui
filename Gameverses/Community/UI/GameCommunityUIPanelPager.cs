@@ -17,21 +17,40 @@ public class GameCommunityUIPanelPager : UIAppPanelBaseList {
 
     // next
     public GameObject nextObject;
+#if USE_UI_NGUI_2_7 || USE_UI_NGUI_3
     public UIImageButton buttonNext;
+#else
+    public GameObject buttonNext;
+#endif
 
     // previous
     public GameObject previousObject;
+#if USE_UI_NGUI_2_7 || USE_UI_NGUI_3
     public UIImageButton buttonPrevious;
+#else
+    public GameObject buttonPrevious;
+#endif
 
     // logged
     public GameObject infoObject;
+#if USE_UI_NGUI_2_7 || USE_UI_NGUI_3
     public UILabel labelInfo;
     public UILabel labelInfoMore;
+#else
+    public GameObject labelInfo;
+    public GameObject labelInfoMore;
+#endif
     public int currentPage = 1;
     public int currentPageSize = 25;
     public int currentTotalCount = 25;
     public int currentStart = 1;
     public int currentEnd = 25;
+
+
+#if USE_UI_NGUI_2_7 || USE_UI_NGUI_3
+#else
+
+#endif
 
     public int currentTotalPages {
         get {
@@ -103,13 +122,22 @@ public class GameCommunityUIPanelPager : UIAppPanelBaseList {
         }
 
         if(labelInfo != null) {
-            labelInfo.text = String.Format("SHOWING {0}-{1} of {2}",
-                currentStart.ToString("N0"), currentEnd.ToString("N0"), currentTotalCount.ToString("N0"));
+
+            UIUtil.SetLabelValue(
+                labelInfo,
+                String.Format("SHOWING {0}-{1} of {2}",
+                currentStart.ToString("N0"), 
+                currentEnd.ToString("N0"), 
+                currentTotalCount.ToString("N0")));
         }
 
         if(labelInfoMore != null) {
-            labelInfoMore.text = String.Format("PAGE {0} of {1}",
-                currentPage.ToString("N0"), currentTotalPages.ToString("N0"));
+
+            UIUtil.SetLabelValue(
+                labelInfoMore,
+                String.Format("PAGE {0} of {1}",
+                currentPage.ToString("N0"), 
+                currentTotalPages.ToString("N0")));
         }
     }
 

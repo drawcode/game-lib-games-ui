@@ -7,8 +7,13 @@ using UnityEngine;
 using Engine.Events;
 using Engine.Networking;
 
+using UnityEngine.UI;
+
 public class GameCommunityUIPanelLogin : UIAppPanelBaseList {
 
+    public static GameCommunityUIPanelLogin Instance;
+    public int currentPage = 1;
+    public int currentPageSize = 25;
 
     public GameObject listItemPrefabLeaderboard;
     public GameObject listItemPrefabLoading;
@@ -16,15 +21,22 @@ public class GameCommunityUIPanelLogin : UIAppPanelBaseList {
     public GameObject containerLoggedInButtons;
     public GameObject containerNonLoggedInButtons;
     public GameCommunityLeaderboardData leaderboardDataFull = null;
+
+#if USE_UI_NGUI || USE_UI_NGUI_2_7 || USE_UI_NGUI_3
     public UILabel labelTitle;
     public UILabel labelStatus;
     public UIImageButton buttonLoginPanelLike;
     public UIImageButton buttonLoginPanelJoin;
     public UIImageButton buttonLoginPanelClose;
     public UIImageButton buttonLoginPanelNoThanks;
-    public static GameCommunityUIPanelLogin Instance;
-    public int currentPage = 1;
-    public int currentPageSize = 25;
+#else
+    public GameObject labelTitle;
+    public GameObject labelStatus;
+    public Button buttonLoginPanelLike;
+    public Button buttonLoginPanelJoin;
+    public Button buttonLoginPanelClose;
+    public Button buttonLoginPanelNoThanks;
+#endif
 
     public override void Awake() {
         base.Awake();
@@ -54,7 +66,8 @@ public class GameCommunityUIPanelLogin : UIAppPanelBaseList {
             GameCommunityMessages.gameCommunityLeaderboardData,
             OnGameCommunityLeaderboards);
 
-        Messenger<GameCommunityNetworkUser>.AddListener(GameCommunityMessages.gameCommunityLoggedIn, OnProfileLoggedIn);
+        Messenger<GameCommunityNetworkUser>.AddListener(
+            GameCommunityMessages.gameCommunityLoggedIn, OnProfileLoggedIn);
 
         Messenger.AddListener(
             GameCommunityMessages.gameCommunityLoginDefer,
@@ -73,7 +86,8 @@ public class GameCommunityUIPanelLogin : UIAppPanelBaseList {
             GameCommunityMessages.gameCommunityLeaderboardData,
             OnGameCommunityLeaderboards);
 
-        Messenger<GameCommunityNetworkUser>.RemoveListener(GameCommunityMessages.gameCommunityLoggedIn, OnProfileLoggedIn);
+        Messenger<GameCommunityNetworkUser>.RemoveListener(
+            GameCommunityMessages.gameCommunityLoggedIn, OnProfileLoggedIn);
 
         Messenger.RemoveListener(
             GameCommunityMessages.gameCommunityLoginDefer,
@@ -138,12 +152,12 @@ public class GameCommunityUIPanelLogin : UIAppPanelBaseList {
 
         if(GameCommunity.IsLoggedIn(networkType)) {
             if(labelStatus != null) {
-                labelStatus.text = "Logged in, GAME ON!";
+                UIUtil.SetLabelValue(labelStatus, "Logged in, GAME ON!");
             }
         }
         else {
             if(labelStatus != null) {
-                labelStatus.text = "Logging in...";
+                UIUtil.SetLabelValue(labelStatus, "Logged in, GAME ON!");
             }
         }
     }
@@ -197,7 +211,9 @@ public class GameCommunityUIPanelLogin : UIAppPanelBaseList {
         }
         else if(buttonName == buttonLoginPanelLike.name) {
 
+#if SOCIAL_USE_FACEBOOK
             GameCommunity.LikeUrl(networkType, AppConfigs.socialFacebookBrandPage);
+#endif
 
         }
         else if(buttonName == buttonLoginPanelClose.name) {
@@ -263,7 +279,7 @@ public class GameCommunityUIPanelLogin : UIAppPanelBaseList {
 
     public void SetTitle(string title) {
         if(labelTitle != null) {
-            labelTitle.text = title;
+            UIUtil.SetLabelValue(labelTitle, title);
         }
     }
 
@@ -292,9 +308,21 @@ public class GameCommunityUIPanelLogin : UIAppPanelBaseList {
     }
 
     public void LoadLoadingItem() {
+
         ClearList();
+
         if(listItemPrefabLoading != null) {
-            NGUITools.AddChild(listGridRoot, listItemPrefabLoading);
+
+#if USE_UI_NGUI_2_7 || USE_UI_NGUI_3
+                GameObject item = NGUITools.AddChild(listGridRoot, listItemPrefabLoading);
+#else
+            GameObject item = GameObjectHelper.CreateGameObject(
+                listItemPrefabLoading, Vector3.zero, Quaternion.identity, false);
+            // NGUITools.AddChild(listGridRoot, listItemPrefab);
+
+            item.transform.parent = listGridRoot.transform;
+            item.ResetLocalPosition();
+#endif
         }
     }
 
@@ -303,7 +331,6 @@ public class GameCommunityUIPanelLogin : UIAppPanelBaseList {
     }
 
     public IEnumerator LoadDataCo(GameCommunityLeaderboardData leaderboardData) {
-
 
         if(!container.activeInHierarchy) {
             GameCommunity.HideGameCommunityLogin();
@@ -325,22 +352,26 @@ public class GameCommunityUIPanelLogin : UIAppPanelBaseList {
                 yield break;
             }
 
-            if(listGridRoot.transform.parent.gameObject.GetComponent<UIDraggablePanel>() == null) {
-                yield break;
-            }
+            ListReposition();
 
-            yield return new WaitForEndOfFrame();
-            try {
-                UIDraggablePanel draggablePanel = listGridRoot.transform.parent.gameObject.GetComponent<UIDraggablePanel>();
-                if(draggablePanel != null) {
-                    draggablePanel.ResetPosition();
-                }
-            }
-            catch(Exception e) {
-                LogUtil.Log(e);
-                yield break;
-            }
-            yield return new WaitForEndOfFrame();
+            //if(listGridRoot.transform.parent.gameObject.GetComponent<UIDraggablePanel>() == null) {
+            //    yield break;
+            //}
+
+            //yield return new WaitForEndOfFrame();
+            //try {
+            //    UIDraggablePanel draggablePanel = listGridRoot.transform.parent.gameObject.GetComponent<UIDraggablePanel>();
+            //    if(draggablePanel != null) {
+            //        draggablePanel.ResetPosition();
+            //    }
+            //}
+            //catch(Exception e) {
+            //    LogUtil.Log(e);
+            //    yield break;
+            //}
+            //RepositionList()
+
+            //yield return new WaitForEndOfFrame();
 
             if(leaderboardData != null) {
 
@@ -354,12 +385,30 @@ public class GameCommunityUIPanelLogin : UIAppPanelBaseList {
 
                 foreach(GameCommunityLeaderboardItem leaderboardItem in leaderboardItems) {
 
-                    GameObject item = NGUITools.AddChild(listGridRoot, listItemPrefabLeaderboard);
+#if USE_UI_NGUI_2_7 || USE_UI_NGUI_3
+                GameObject item = NGUITools.AddChild(listGridRoot, listItemPrefabLeaderboard);
+#else
+                    GameObject item = GameObjectHelper.CreateGameObject(
+                        listItemPrefabLeaderboard, Vector3.zero, Quaternion.identity, false);
+                    // NGUITools.AddChild(listGridRoot, listItemPrefab);
+
+                    item.transform.parent = listGridRoot.transform;
+                    item.ResetLocalPosition();
+#endif
+
                     item.name = "AStatisticItem" + i;
 
-                    item.transform.Find("LabelUsername").GetComponent<UILabel>().text = leaderboardItem.username;
-                    UILabel labelUsername = item.transform.Find("LabelName").GetComponent<UILabel>();
-                    labelUsername.text = "#" + (i + 1) * currentPage;
+                    Transform labelUsernameObject = item.transform.Find("LabelUsername");
+
+                    if(labelUsernameObject != null) {
+                        UIUtil.SetLabelValue(labelUsernameObject.gameObject, leaderboardItem.username);
+                    }
+
+                    Transform labelNameObject = item.transform.Find("LabelName");
+
+                    if(labelNameObject != null) {
+                        UIUtil.SetLabelValue(labelNameObject.gameObject, "#" + (i + 1) * currentPage);
+                    }
 
                     //if(leaderboardItem.name != leaderboardItem.username) {
                     //  labelUsername.text = leaderboardItem.username;
@@ -368,23 +417,29 @@ public class GameCommunityUIPanelLogin : UIAppPanelBaseList {
                     //  labelUsername.text = "";                    
                     //}
 
+                    string url = String.Format("http://graph.facebook.com/{0}/picture", leaderboardItem.username);
                     string displayValue = leaderboardItem.value.ToString("N0");
 
-                    item.transform.Find("LabelValue").GetComponent<UILabel>().text = displayValue;
+                    Transform labelValueObject = item.transform.Find("LabelValue");
 
+                    if(labelValueObject != null) {
+                        UIUtil.SetLabelValue(labelValueObject.gameObject, displayValue);
+                    }
+
+#if USE_UI_NGUI_2_7 || USE_UI_NGUI_3
                     UITexture profilePic = item.transform.Find("TextureProfilePic").GetComponent<UITexture>();
 
-                    string url = String.Format("http://graph.facebook.com/{0}/picture", leaderboardItem.username);
                     GameCommunityUIController.LoadUITextureImage(profilePic, url, 48, 48, i + 1);
+#else 
+
+#endif
 
                     i++;
                 }
             }
 
             yield return new WaitForEndOfFrame();
-            listGridRoot.GetComponent<UIGrid>().Reposition();
-            yield return new WaitForEndOfFrame();
-            listGridRoot.transform.parent.gameObject.GetComponent<UIDraggablePanel>().ResetPosition();
+            ListReposition(listGrid, listGridRoot);
             yield return new WaitForEndOfFrame();
 
             if(!container.activeInHierarchy) {

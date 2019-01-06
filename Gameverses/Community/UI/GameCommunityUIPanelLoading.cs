@@ -9,11 +9,19 @@ using Engine.Networking;
 
 public class GameCommunityUIPanelLoading : UIAppPanelBaseList {
 
+    public static GameCommunityUIPanelLoading Instance = null;
+
+    public GameObject container;
+
+#if USE_UI_NGUI || USE_UI_NGUI_2_7 || USE_UI_NGUI_3
     public UILabel labelTitle;
     public UILabel labelStatus;
-    public GameObject container;
     public UIImageButton buttonCloseLoading;
-    public static GameCommunityUIPanelLoading Instance = null;
+#else
+    public GameObject labelTitle;
+    public GameObject labelStatus;
+    public GameObject buttonCloseLoading;
+#endif
 
     public override void Awake() {
         base.Awake();
@@ -89,10 +97,10 @@ public class GameCommunityUIPanelLoading : UIAppPanelBaseList {
 
     void setLoadingMessage(string title, string message) {
         if(labelTitle != null) {
-            labelTitle.text = title;
+            UIUtil.SetLabelValue(labelTitle, title);
         }
         if(labelStatus != null) {
-            labelStatus.text = message;
+            UIUtil.SetLabelValue(labelStatus, message);
         }
     }
 

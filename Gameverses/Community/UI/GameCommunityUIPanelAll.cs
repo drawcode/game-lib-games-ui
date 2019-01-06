@@ -6,6 +6,7 @@ using UnityEngine;
 // using Engine.Data.Json;
 using Engine.Events;
 using Engine.Networking;
+using UnityEngine.UI;
 
 public class GameCommunityUIPanelAll : UIAppPanelBaseList {
 
@@ -19,12 +20,22 @@ public class GameCommunityUIPanelAll : UIAppPanelBaseList {
     public GameCommunityLeaderboardData leaderboardDataFull = null;
     public GameCommunityLeaderboardData leaderboardDataFriends = null;
     public GameCommunityStatisticData statisticData = null;
+
+#if USE_UI_NGUI || USE_UI_NGUI_2_7 || USE_UI_NGUI_3
     public UILabel labelTitle;
     public UIImageButton buttonFull;
     public UIImageButton buttonFriends;
     public UIImageButton buttonStats;
     public UIImageButton buttonOnline;
     public UIImageButton buttonClose;
+#else
+    public GameObject labelTitle;
+    public GameObject buttonFull;
+    public GameObject buttonFriends;
+    public GameObject buttonStats;
+    public GameObject buttonOnline;
+    public GameObject buttonClose;
+#endif
     public LeaderboardFilterType leaderboardType = LeaderboardFilterType.FULL;
     public static GameCommunityUIPanelAll Instance;
     public GameCommunityUIPanelPager pagerObject;
@@ -237,9 +248,8 @@ public class GameCommunityUIPanelAll : UIAppPanelBaseList {
     }
 
     public void SetTitle(string title) {
-        if(labelTitle != null) {
-            labelTitle.text = title;
-        }
+
+        UIUtil.SetLabelValue(labelTitle, title);
     }
 
     public static void LoadDataFull() {

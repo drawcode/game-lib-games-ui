@@ -7,6 +7,7 @@ using System.IO;
 // using Engine.Data.Json;
 using Engine.Events;
 using Engine.Networking;
+using UnityEngine.UI;
 
 public class GameCommunityUIPanelUserState : UIAppPanelBaseList {
 
@@ -16,15 +17,29 @@ public class GameCommunityUIPanelUserState : UIAppPanelBaseList {
 
     // not logged
     public GameObject notLoggedInObject;
+
+#if USE_UI_NGUI || USE_UI_NGUI_2_7 || USE_UI_NGUI_3
     public UIImageButton buttonFacebookLogin;
+#else
+    public Button buttonFacebookLogin;
+#endif
 
     // logged
     public GameObject loggedInObject;
+
+#if USE_UI_NGUI || USE_UI_NGUI_2_7 || USE_UI_NGUI_3
     public UILabel labelUsername;
     public UILabel labelFirstname;
     public UILabel labelScore;
     public UILabel labelRank;
     public UITexture textureSpriteProfilePicture;
+#else
+    public GameObject labelUsername;
+    public GameObject labelFirstname;
+    public GameObject labelScore;
+    public GameObject labelRank;
+    public GameObject textureSpriteProfilePicture;
+#endif
     bool imageLoaded = false;
 
     public override void Awake() {
@@ -40,16 +55,20 @@ public class GameCommunityUIPanelUserState : UIAppPanelBaseList {
     }
 
     public override void OnEnable() {
+
         Messenger<string>.AddListener(ButtonEvents.EVENT_BUTTON_CLICK, OnButtonClickEventHandler);
 
         Messenger.AddListener(GameCommunityMessages.gameCommunityReady, OnGameCommunityReady);
+
         Messenger<GameCommunityNetworkUser>.AddListener(GameCommunityMessages.gameCommunityLoggedIn, OnProfileLoggedIn);
     }
 
     public override void OnDisable() {
+
         Messenger<string>.RemoveListener(ButtonEvents.EVENT_BUTTON_CLICK, OnButtonClickEventHandler);
 
         Messenger.RemoveListener(GameCommunityMessages.gameCommunityReady, OnGameCommunityReady);
+
         Messenger<GameCommunityNetworkUser>.RemoveListener(GameCommunityMessages.gameCommunityLoggedIn, OnProfileLoggedIn);
     }
 
@@ -123,8 +142,12 @@ public class GameCommunityUIPanelUserState : UIAppPanelBaseList {
     public void LoadProfileInfo(string networkType) {
         if(GameCommunity.IsLoggedIn(networkType)) {
 
-            string username = GameProfiles.Current.GetNetworkValueUsername(networkType);//GameCommunity.networkUserName;
-            string firstname = GameProfiles.Current.GetNetworkValueFirstName(networkType);//GameCommunity.networkFirstName;
+            string username = 
+                GameProfiles.Current.GetNetworkValueUsername(networkType);//GameCommunity.networkUserName;
+
+            string firstname = 
+                GameProfiles.Current.GetNetworkValueFirstName(networkType);//GameCommunity.networkFirstName;
+
             int highScore = GameCommunity.GetHighScore();
             int rank = GameCommunity.GetRank();
             int rankTotal = GameCommunity.GetRankTotal();
@@ -158,36 +181,43 @@ public class GameCommunityUIPanelUserState : UIAppPanelBaseList {
             }
 
             if(labelRank != null) {
-                labelRank.text = rankDisplay;
+                UIUtil.SetLabelValue(labelRank, rankDisplay);
             }
 
             if(labelScore != null) {
-                labelScore.text = highScore.ToString("N0");
+                UIUtil.SetLabelValue(labelScore, highScore.ToString("N0"));
             }
 
             if(labelUsername != null) {
-                labelUsername.text = username;
+                UIUtil.SetLabelValue(labelUsername, username);
             }
 
             if(labelFirstname != null) {
                 if(username != firstname) {
-                    labelFirstname.text = firstname;
+                    UIUtil.SetLabelValue(labelFirstname, firstname);
                 }
                 else {
-                    labelFirstname.text = "";
+                    UIUtil.SetLabelValue(labelFirstname, "");
                 }
             }
+
             if(networkType == SocialNetworkTypes.facebook) {
                 LoadFacebookProfileImage(username);
             }
         }
-
     }
 
     public void LoadFacebookProfileImage(string username) {
+
         if(!imageLoaded) {
+
+#if USE_UI_NGUI || USE_UI_NGUI_2_7 || USE_UI_NGUI_3
             GameCommunityUIController.LoadFacebookProfileImageByUsername(username, textureSpriteProfilePicture, 48, 48, 1);
             imageLoaded = true;
+#else
+            //GameCommunityUIController.LoadFacebookProfileImageByUsername(username, textureSpriteProfilePicture, 48, 48, 1);
+            imageLoaded = true;
+#endif
         }
     }
 }
