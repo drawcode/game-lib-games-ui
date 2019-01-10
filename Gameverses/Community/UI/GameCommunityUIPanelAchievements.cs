@@ -85,9 +85,31 @@ public class GameCommunityUIPanelAchievements : UIAppPanelBaseList {
 
             foreach(GameAchievement achievement in achievements) {
 
+#if USE_UI_NGUI_2_7 || USE_UI_NGUI_3
                 GameObject item = NGUITools.AddChild(listGridRoot, listItemPrefab);
+#else
+                GameObject item = GameObjectHelper.CreateGameObject(
+                    listItemPrefab, Vector3.zero, Quaternion.identity, false);
+                // NGUITools.AddChild(listGridRoot, listItemPrefab);
+
+                item.transform.parent = listGridRoot.transform;
+                item.ResetLocalPosition();
+#endif
 
                 item.name = "AchievementItem" + i;
+
+                Transform labelItemName = item.transform.Find("LabelName");
+
+                if(labelItemName != null) {
+                    UIUtil.SetLabelValue(labelItemName.gameObject, achievement.display_name);
+                }
+
+                Transform labelItemDescription = item.transform.Find("LabelDescription");
+
+                if(labelItemName != null) {
+                    UIUtil.SetLabelValue(labelItemDescription.gameObject, achievement.display_name);
+                }
+
 
                 // TODO ACHIEVEMENTS
                 //achievement.description 
@@ -96,17 +118,15 @@ public class GameCommunityUIPanelAchievements : UIAppPanelBaseList {
                 //      AppContentStates.Current.code, 
                 //      achievement.description);
 
-                item.transform.Find("LabelName").GetComponent<UILabel>().text
-                    = achievement.display_name;
-                item.transform.Find("LabelDescription").GetComponent<UILabel>().text
-                    = achievement.description;
+                Transform iconItem = item.transform.Find("Icon");
 
-                Transform icon = item.transform.Find("Icon");
-                UISprite iconSprite = null;
+                GameObject iconSprite = null;
 
-                if(icon != null) {
-                    GameObject iconObject = icon.gameObject;
-                    iconSprite = iconObject.GetComponent<UISprite>();
+                if(iconItem != null) {
+
+                    GameObject iconObject = iconItem.gameObject;
+
+                    iconSprite = iconObject;
                 }
 
                 string achievementCode = achievement.code;
@@ -121,17 +141,19 @@ public class GameCommunityUIPanelAchievements : UIAppPanelBaseList {
                 string points = "";
 
                 if(completed) {
+
                     double currentPoints = achievement.data.points;
+
                     totalPoints += currentPoints;
                     points = currentPoints.ToString();
 
                     if(iconSprite != null) {
-                        iconSprite.alpha = 1f;
+                        SpriteUtil.SetColorAlpha(iconSprite, 1f);
                     }
                 }
                 else {
                     if(iconSprite != null) {
-                        iconSprite.alpha = .33f;
+                        SpriteUtil.SetColorAlpha(iconSprite, .33f);
                     }
                 }
 
@@ -139,7 +161,7 @@ public class GameCommunityUIPanelAchievements : UIAppPanelBaseList {
                     points = "+" + points;
                 }
 
-                item.transform.Find("LabelValue").GetComponent<UILabel>().text = points;
+                UIUtil.UpdateLabelObject(item.transform, "LabelValue", points);
 
                 i++;
             }

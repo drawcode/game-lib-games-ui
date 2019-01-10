@@ -147,8 +147,10 @@ public class GameCommunityUIPanelLeaderboards : UIAppPanelBaseList {
             ClearList();
 
             yield return new WaitForEndOfFrame();
+#if USE_UI_NGUI_2_7 || USE_UI_NGUI_3
             listGridRoot.transform.parent.gameObject.GetComponent<UIDraggablePanel>().ResetPosition();
             yield return new WaitForEndOfFrame();
+#endif
 
             if(leaderboardData != null) {
 
@@ -162,35 +164,56 @@ public class GameCommunityUIPanelLeaderboards : UIAppPanelBaseList {
 
                 foreach(GameCommunityLeaderboardItem leaderboardItem in leaderboardItems) {
 
+
+#if USE_UI_NGUI_2_7 || USE_UI_NGUI_3
                     GameObject item = NGUITools.AddChild(listGridRoot, listItemPrefab);
+#else
+                    GameObject item = GameObjectHelper.CreateGameObject(
+                        listItemPrefab, Vector3.zero, Quaternion.identity, false);
+                    // NGUITools.AddChild(listGridRoot, listItemPrefab);
+                    item.transform.parent = listGridRoot.transform;
+                    item.ResetLocalPosition();
+#endif
+
                     item.name = "AStatisticItem" + i;
 
-                    item.transform.Find("LabelUsername").GetComponent<UILabel>().text = leaderboardItem.name;
-                    UILabel labelUsername = item.transform.Find("LabelName").GetComponent<UILabel>();
+                    UIUtil.UpdateLabelObject(item.transform, "LabelUsername", leaderboardItem.name);
+
+                    string username = "";
+
                     if(leaderboardItem.name != leaderboardItem.username) {
-                        labelUsername.text = leaderboardItem.username;
+                        username = leaderboardItem.username;
                     }
                     else {
-                        labelUsername.text = "";
+                        username = "";
                     }
+
+                    UIUtil.UpdateLabelObject(item.transform, "LabelName", username);
+
 
                     string displayValue = leaderboardItem.value.ToString("N0");
 
-                    item.transform.Find("LabelValue").GetComponent<UILabel>().text = displayValue;
+                    UIUtil.UpdateLabelObject(item.transform, "LabelValue", displayValue);
 
+#if USE_UI_NGUI_2_7 || USE_UI_NGUI_3
                     UITexture profilePic = item.transform.Find("TextureProfilePic").GetComponent<UITexture>();
 
                     GameCommunityUIController.LoadFacebookProfileImage(leaderboardItem.userId, profilePic, 48, 48, i + 1);
+#else
+                    // TODO UI
+#endif
 
                     i++;
                 }
             }
 
             yield return new WaitForEndOfFrame();
+#if USE_UI_NGUI_2_7 || USE_UI_NGUI_3
             listGridRoot.GetComponent<UIGrid>().Reposition();
             yield return new WaitForEndOfFrame();
             listGridRoot.transform.parent.gameObject.GetComponent<UIDraggablePanel>().ResetPosition();
             yield return new WaitForEndOfFrame();
+#endif
         }
     }
 }

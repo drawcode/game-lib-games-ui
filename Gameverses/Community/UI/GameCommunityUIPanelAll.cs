@@ -325,9 +325,20 @@ public class GameCommunityUIPanelAll : UIAppPanelBaseList {
     }
 
     public void LoadLoadingItem() {
+
         ClearList();
+
         if(listItemPrefabLoading != null) {
-            NGUITools.AddChild(listGridRoot, listItemPrefabLoading);
+#if USE_UI_NGUI_2_7 || USE_UI_NGUI_3
+                GameObject item = NGUITools.AddChild(listGridRoot, listItemPrefabLoading);
+#else
+            GameObject item = GameObjectHelper.CreateGameObject(
+                listItemPrefabLoading, Vector3.zero, Quaternion.identity, false);
+            // NGUITools.AddChild(listGridRoot, listItemPrefab);
+
+            item.transform.parent = listGridRoot.transform;
+            item.ResetLocalPosition();
+#endif
         }
     }
 
@@ -361,11 +372,13 @@ public class GameCommunityUIPanelAll : UIAppPanelBaseList {
                 yield break;
             }
 
+#if USE_UI_NGUI_2_7 || USE_UI_NGUI_3
             if(listGridRoot.transform.parent.gameObject.GetComponent<UIDraggablePanel>() == null) {
                 yield break;
             }
 
             yield return new WaitForEndOfFrame();
+
             try {
                 foreach(UIDraggablePanel panel in listGridRoot.transform.parent.gameObject.GetComponentsInChildren<UIDraggablePanel>()) {
                     //listGridRoot.transform.parent.gameObject.GetComponent<UIDraggablePanel>().ResetPosition();
@@ -377,6 +390,8 @@ public class GameCommunityUIPanelAll : UIAppPanelBaseList {
                 LogUtil.Log(e);
                 yield break;
             }
+#endif
+
             yield return new WaitForEndOfFrame();
 
             if(leaderboardData != null) {
@@ -391,20 +406,32 @@ public class GameCommunityUIPanelAll : UIAppPanelBaseList {
 
                 foreach(GameCommunityLeaderboardItem leaderboardItem in leaderboardItems) {
 
-                    GameObject item = NGUITools.AddChild(listGridRoot, listItemPrefabLeaderboard);
+
+#if USE_UI_NGUI_2_7 || USE_UI_NGUI_3
+                GameObject item = NGUITools.AddChild(listGridRoot, listItemPrefabLeaderboard);
+#else
+                    GameObject item = GameObjectHelper.CreateGameObject(
+                        listItemPrefabLeaderboard, Vector3.zero, Quaternion.identity, false);
+                    // NGUITools.AddChild(listGridRoot, listItemPrefab);
+                    item.transform.parent = listGridRoot.transform;
+                    item.ResetLocalPosition();
+#endif
                     item.name = "AStatisticItem" + i;
 
                     string displayValue = leaderboardItem.valueFormatted;
-                    item.transform.Find("LabelValue").GetComponent<UILabel>().text = displayValue;
 
-                    item.transform.Find("LabelUsername").GetComponent<UILabel>().text = leaderboardItem.username;
-                    UILabel labelRank = item.transform.Find("LabelName").GetComponent<UILabel>();
+                    UIUtil.UpdateLabelObject(item.transform, "LabelValue", displayValue);
+                    UIUtil.UpdateLabelObject(item.transform, "LabelUsername", leaderboardItem.username);
+
                     int rank = (((i) + ((currentPage * currentPageSize) - currentPageSize)) + 1);
                     leaderboardItem.rank = rank;
                     string rankText = "#" + rank.ToString("N0");
-                    labelRank.text = rankText;
 
 
+                    UIUtil.UpdateLabelObject(item.transform, "LabelName", rankText);
+
+
+#if USE_UI_NGUI_2_7 || USE_UI_NGUI_3
                     UITexture profilePic = item.transform.Find("TextureProfilePic").GetComponent<UITexture>();
 
                     //if (leaderboardItem.network == GameProfiles.Current.GetSocialNetworkType() 
@@ -414,12 +441,25 @@ public class GameCommunityUIPanelAll : UIAppPanelBaseList {
 
                     string url = String.Format("http://graph.facebook.com/{0}/picture", leaderboardItem.username);
                     GameCommunityUIController.LoadUITextureImage(profilePic, url, 48, 48, i + 1);
+#else
+                    // TODO UI
+#endif
 
                     i++;
                 }
 
                 if(leaderboardType == LeaderboardFilterType.FULL) {
-                    GameObject itemPager = NGUITools.AddChild(listGridRoot, listItemPrefabPaging);
+
+#if USE_UI_NGUI_2_7 || USE_UI_NGUI_3
+                GameObject itemPager = NGUITools.AddChild(listGridRoot, listItemPrefabPaging);
+#else
+                    GameObject itemPager = GameObjectHelper.CreateGameObject(
+                        listItemPrefabPaging, Vector3.zero, Quaternion.identity, false);
+                    // NGUITools.AddChild(listGridRoot, listItemPrefab);
+                    itemPager.transform.parent = listGridRoot.transform;
+                    itemPager.ResetLocalPosition();
+#endif
+
                     itemPager.name = "AStatisticItem" + i++;
 
                     foreach(GameCommunityUIPanelPager pager in itemPager.GetComponentsInChildren<GameCommunityUIPanelPager>()) {
@@ -433,6 +473,8 @@ public class GameCommunityUIPanelAll : UIAppPanelBaseList {
             }
 
             yield return new WaitForEndOfFrame();
+
+#if USE_UI_NGUI_2_7 || USE_UI_NGUI_3
             listGridRoot.GetComponent<UIGrid>().Reposition();
             yield return new WaitForEndOfFrame();
             foreach(UIDraggablePanel panel in listGridRoot.transform.parent.gameObject.GetComponentsInChildren<UIDraggablePanel>()) {
@@ -440,7 +482,7 @@ public class GameCommunityUIPanelAll : UIAppPanelBaseList {
                 break;
             }
             yield return new WaitForEndOfFrame();
-
+#endif
 
             if(!containerLists.activeInHierarchy) {
                 GameCommunityUIPanelAll.HideGameCommunity();
@@ -474,6 +516,7 @@ public class GameCommunityUIPanelAll : UIAppPanelBaseList {
                 yield break;
             }
 
+#if USE_UI_NGUI_2_7 || USE_UI_NGUI_3
             if(listGridRoot.transform.parent.gameObject.GetComponent<UIDraggablePanel>() == null) {
                 yield break;
             }
@@ -488,6 +531,8 @@ public class GameCommunityUIPanelAll : UIAppPanelBaseList {
                 LogUtil.Log(e);
                 yield break;
             }
+#endif
+
             yield return new WaitForEndOfFrame();
 
             int i = 0;
@@ -536,10 +581,12 @@ public class GameCommunityUIPanelAll : UIAppPanelBaseList {
                 i++);
 
             yield return new WaitForEndOfFrame();
+#if USE_UI_NGUI_2_7 || USE_UI_NGUI_3
             listGridRoot.GetComponent<UIGrid>().Reposition();
             yield return new WaitForEndOfFrame();
             listGridRoot.transform.parent.gameObject.GetComponent<UIDraggablePanel>().ResetPosition();
             yield return new WaitForEndOfFrame();
+#endif
 
             if(!containerLists.activeInHierarchy) {
                 GameCommunityUIPanelAll.HideGameCommunity();
@@ -564,11 +611,20 @@ public class GameCommunityUIPanelAll : UIAppPanelBaseList {
 
     public void AddListItem(GameCommunityStatisticItem statistic, int increment) {
 
+#if USE_UI_NGUI_2_7 || USE_UI_NGUI_3
         GameObject item = NGUITools.AddChild(listGridRoot, listItemPrefabStatistic);
+#else
+        GameObject item = GameObjectHelper.CreateGameObject(
+            listItemPrefabStatistic, Vector3.zero, Quaternion.identity, false);
+        // NGUITools.AddChild(listGridRoot, listItemPrefab);
+        item.transform.parent = listGridRoot.transform;
+        item.ResetLocalPosition();
+#endif
         item.name = "AStatisticItem" + increment;
 
-        item.transform.Find("LabelName").GetComponent<UILabel>().text = statistic.displayName;
-        item.transform.Find("LabelDescription").GetComponent<UILabel>().text = statistic.description;
-        item.transform.Find("LabelValue").GetComponent<UILabel>().text = statistic.valueFormatted;
+
+        UIUtil.UpdateLabelObject(item.transform, "LabelName", statistic.displayName);
+        UIUtil.UpdateLabelObject(item.transform, "LabelDescription", statistic.description);
+        UIUtil.UpdateLabelObject(item.transform, "LabelValue", statistic.valueFormatted);
     }
 }

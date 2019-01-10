@@ -74,8 +74,10 @@ public class GameCommunityUIPanelStatistics : UIAppPanelBaseList {
             listGridRoot.DestroyChildren();
 
             yield return new WaitForEndOfFrame();
+#if USE_UI_NGUI_2_7 || USE_UI_NGUI_3
             listGridRoot.transform.parent.gameObject.GetComponent<UIDraggablePanel>().ResetPosition();
             yield return new WaitForEndOfFrame();
+#endif
 
             GetStatistics();
 
@@ -83,25 +85,36 @@ public class GameCommunityUIPanelStatistics : UIAppPanelBaseList {
 
             foreach(GameStatistic statistic in currentStatistics) {
 
+#if USE_UI_NGUI_2_7 || USE_UI_NGUI_3
                 GameObject item = NGUITools.AddChild(listGridRoot, listItemPrefab);
+#else
+                GameObject item = GameObjectHelper.CreateGameObject(
+                    listItemPrefab, Vector3.zero, Quaternion.identity, false);
+                // NGUITools.AddChild(listGridRoot, listItemPrefab);
+                item.transform.parent = listGridRoot.transform;
+                item.ResetLocalPosition();
+#endif
+
                 item.name = "AStatisticItem" + i;
 
-                item.transform.Find("LabelName").GetComponent<UILabel>().text = statistic.display_name;
-                item.transform.Find("LabelDescription").GetComponent<UILabel>().text = statistic.description;
+                UIUtil.UpdateLabelObject(item.transform, "LabelName", statistic.display_name);
+                UIUtil.UpdateLabelObject(item.transform, "LabelDescription", statistic.description);
 
                 double statValue = GameProfileStatistics.Current.GetStatisticValue(statistic.code);
                 string displayValue = GameStatistics.Instance.GetStatisticDisplayValue(statistic, statValue);
 
-                item.transform.Find("LabelValue").GetComponent<UILabel>().text = displayValue;
+                UIUtil.UpdateLabelObject(item.transform, "LabelValue", displayValue);
 
                 i++;
             }
 
             yield return new WaitForEndOfFrame();
+#if USE_UI_NGUI_2_7 || USE_UI_NGUI_3
             listGridRoot.GetComponent<UIGrid>().Reposition();
             yield return new WaitForEndOfFrame();
             listGridRoot.transform.parent.gameObject.GetComponent<UIDraggablePanel>().ResetPosition();
             yield return new WaitForEndOfFrame();
+#endif
 
         }
     }

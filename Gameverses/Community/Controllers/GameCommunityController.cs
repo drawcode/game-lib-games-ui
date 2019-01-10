@@ -366,9 +366,13 @@ public class GameCommunityController : GameObjectBehavior {
         //}
         //else {
         if (GameCommunity.IsLoggedIn(networkType) || Application.isEditor) {
+
             likeActionClicked = false;
+
             GameCommunitySocialController.LikeUrl(networkType, urlToLike);
-                
+            
+            // TODO loco localize
+            
             GameCommunityUIPanelLoading.ShowGameCommunityLoading(
                     "THANK YOU", AppConfigs.appGameDisplayName + " successfully liked!");
                 
@@ -386,6 +390,9 @@ public class GameCommunityController : GameObjectBehavior {
     }
     
     public void LeaderboardsShowOnline() {
+
+        // TODO loco localize
+
         Platforms.ShowWebView(
             AppConfigs.appGameDisplayName 
             + " Online Leaderboards + Competitions", 
