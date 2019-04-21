@@ -20,6 +20,9 @@ public class UISettingsAudio : GameObjectBehavior {
     public Slider sliderMusicVolume;
     public Slider sliderEffectsVolume;
 #endif
+    
+    public GameObject sliderMusicVolumeObject;
+    public GameObject sliderEffectsVolumeObject;
 
     public void Awake() {
         

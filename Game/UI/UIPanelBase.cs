@@ -584,46 +584,55 @@ public class UIPanelBase : UIAppPanel {
     }
 
     public void ListContainerScale(GameObject listObject, float scaleTo) {
-        if(listObject != null) {
-            Vector3 currentScale = listObject.transform.localScale;
 
-            float screenWidth = 640;
-            float screenHeight = 960;
-
-            scaleTo = Mathf.Clamp(scaleTo / (screenWidth / screenHeight), .5f, 2f);
-
-            currentScale = currentScale.WithX(scaleTo).WithY(scaleTo).WithZ(scaleTo);
-
-            listObject.transform.localScale = currentScale;
+        if(listObject == null) {
+            return;
         }
+
+        Vector3 currentScale = listObject.transform.localScale;
+
+        float screenWidth = 640;
+        float screenHeight = 960;
+
+        scaleTo = Mathf.Clamp(scaleTo / (screenWidth / screenHeight), .5f, 2f);
+
+        currentScale = currentScale.WithX(scaleTo).WithY(scaleTo).WithZ(scaleTo);
+
+        listObject.transform.localScale = currentScale;
     }
 
     public void ListScale(GameObject listObject, float scaleTo) {
-        if(listObject != null) {
-            Vector3 currentScale = listObject.transform.localScale;
 
-            float screenWidth = 640;
-            float screenHeight = 960;
-
-            scaleTo = Mathf.Clamp(scaleTo / (screenWidth / screenHeight), .5f, 2f);
-
-            currentScale = currentScale.WithX(scaleTo).WithY(scaleTo).WithZ(scaleTo);
-
-            listObject.transform.localScale = currentScale;
+        if(listObject == null) {
+            return;
         }
+
+        Vector3 currentScale = listObject.transform.localScale;
+
+        float screenWidth = 640;
+        float screenHeight = 960;
+
+        scaleTo = Mathf.Clamp(scaleTo / (screenWidth / screenHeight), .5f, 2f);
+
+        currentScale = currentScale.WithX(scaleTo).WithY(scaleTo).WithZ(scaleTo);
+
+        listObject.transform.localScale = currentScale;
     }
 
 #if USE_UI_NGUI_2_7 || USE_UI_NGUI_3
     public void PanelScale(UIPanel panel) {
-        if(panelClipped != null) {
-            Vector4 range = panelClipped.clipRange;
-            range.x = 0f;
-            //range.y = 0f;
-            range.z = 2500f;
-            //range.y = 2500f;
-            //range.w = 380f;
-            panelClipped.clipRange = range;
+
+        if(panelClipped == null) {
+            return;
         }
+
+        Vector4 range = panelClipped.clipRange;
+        range.x = 0f;
+        //range.y = 0f;
+        range.z = 2500f;
+        //range.y = 2500f;
+        //range.w = 380f;
+        panelClipped.clipRange = range;
     }
 #else
     public void PanelScale(GameObject panel) {
@@ -641,6 +650,7 @@ public class UIPanelBase : UIAppPanel {
 #endif
 
     public void ListScale(float scaleTo) {
+
         if(listGridRoot != null) {
             ListScale(listGridRoot, scaleTo);
         }
@@ -651,15 +661,21 @@ public class UIPanelBase : UIAppPanel {
     }
 
     public void ListClear() {
-        if(listGridRoot != null && isVisible) {
-            ListClear(listGridRoot);
+
+        if(listGridRoot == null && !isVisible) {
+            return;
         }
+
+        ListClear(listGridRoot);
     }
 
     public void ListClear(GameObject listObject) {
-        if(listObject != null && isVisible) {
-            listObject.DestroyChildren();
+
+        if(listObject == null && !isVisible) {
+            return;
         }
+
+        listObject.DestroyChildren();
     }
 
     public void ListReposition() {
@@ -671,60 +687,82 @@ public class UIPanelBase : UIAppPanel {
 
 #if USE_UI_NGUI_2_7 || USE_UI_NGUI_3
     public void ListReposition(UIGrid grid, GameObject gridObject) {
+
         increment = 0;
-        if(grid != null) {
-            RepositionList(grid, gridObject);
+
+        if(grid == null) {
+            return;
         }
-    }
-#else
-    public void ListReposition(GameObject grid, GameObject gridObject) {
-        increment = 0;
-        if(grid != null) {
-            RepositionList(grid, gridObject);
-        }
+        
+        RepositionList(grid, gridObject);
     }
 #endif
+
+    public void ListReposition(GameObject grid, GameObject gridObject) {
+        increment = 0;
+
+        if(grid == null) {
+            return;
+        }
+        
+        RepositionList(grid, gridObject);
+    }
 
 #if USE_UI_NGUI_2_7 || USE_UI_NGUI_3
     public void RepositionList(UIGrid grid, GameObject gridObject) {
-        if(grid != null) {
-            grid.Reposition();
-            if(gridObject.transform.parent != null) {
 
-                UIDraggablePanel[] dragPanels =
-                    gridObject.transform.parent.gameObject.GetComponentsInChildren<UIDraggablePanel>();
-
-                if(dragPanels != null) {
-                    foreach(UIDraggablePanel panel
-                     in dragPanels) {
-                        panel.ResetPosition();
-                        break;
-                    }
-                }
-            }
+        if(grid == null) {
+            return;
         }
-    }
-#else
-    // TODO Unity UI
-    public void RepositionList(GameObject grid, GameObject gridObject) {
-        ////if(grid != null) {
-        ////    grid.Reposition();
-        ////    if(gridObject.transform.parent != null) {
 
-        ////        UIDraggablePanel[] dragPanels =
-        ////            gridObject.transform.parent.gameObject.GetComponentsInChildren<UIDraggablePanel>();
+        UIUtil.GridReposition(grid);
 
-        ////        if(dragPanels != null) {
-        ////            foreach(UIDraggablePanel panel
-        ////             in dragPanels) {
-        ////                panel.ResetPosition();
-        ////                break;
-        ////            }
-        ////        }
-        ////    }
-        ////}
+        if(gridObject.transform.parent == null) {
+            return;
+        }
+
+        UIDraggablePanel[] dragPanels =
+            gridObject.transform.parent.gameObject.GetComponentsInChildren<UIDraggablePanel>();
+
+        if(dragPanels == null) {
+            return;
+        }
+
+        foreach(UIDraggablePanel panel
+         in dragPanels) {
+            panel.ResetPosition();
+            break;
+        }
+
     }
 #endif
+
+    public void RepositionList(GameObject grid, GameObject gridObject) {
+
+        if(grid == null) {
+            return;
+        }
+
+        UIUtil.GridReposition(grid);
+
+        if(gridObject.transform.parent == null) {
+            return;
+        }
+
+        UIDraggablePanel[] dragPanels =
+            gridObject.transform.parent.gameObject.GetComponentsInChildren<UIDraggablePanel>();
+
+        if(dragPanels == null) {
+            return;
+        }
+
+        foreach(UIDraggablePanel panel
+         in dragPanels) {
+            panel.ResetPosition();
+            break;
+        }
+
+    }
 
     public void RepositionListScroll(float scrollValue) {
         if(draggablePanelScrollbar != null) {

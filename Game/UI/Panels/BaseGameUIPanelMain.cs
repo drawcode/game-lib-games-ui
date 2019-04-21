@@ -14,25 +14,16 @@ using Engine.Events;
 public class BaseGameUIPanelMain : GameUIPanelBase {
 
     public static GameUIPanelMain Instance;
-#if USE_UI_NGUI_2_7 || USE_UI_NGUI_3
-    public UIButton buttonPlayerDefaultObject;
-    public UIButton buttonPlayerUCFObject;
-    public UIButton buttonPlayerBUObject;
-#else
-    public Button buttonPlayerDefaultObject;
-    public Button buttonPlayerUCFObject;
-    public Button buttonPlayerBUObject;
-#endif
 
     public GameObject listItemPrefab;
     public GameObject listItemSetPrefab;
     public GameObject containerObject;
     public GameObject containerLogoObject;
     public GameObject containerPlayerObject;
-    public GameObject containerPlayerObjectUCF;
-    public GameObject containerPlayerObjectBU;
     public GameObject containerAppRate;
     public GameObject containerStartObject;
+
+    public GameObject buttonPlayerDefaultObject;
 
     public static bool isInst {
         get {

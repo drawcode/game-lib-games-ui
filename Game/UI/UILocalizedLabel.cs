@@ -5,10 +5,7 @@ using System.Collections;
 using System.Collections.Generic;
 
 using UnityEngine;
-#if USE_UI_NGUI_2_7 || USE_UI_NGUI_3
-#else
 using UnityEngine.UI;
-#endif
 
 using Engine.Events;
 
@@ -16,11 +13,7 @@ public class UILocalizedLabel : GameObjectBehavior {
 
     public string gameLocalizationCode = "";
 
-#if USE_UI_NGUI_2_7 || USE_UI_NGUI_3
-    public UILabel labelLocalized = null;
-#else
-    public Text labelLocalized = null;
-#endif
+    public GameObject labelLocalized = null;
 
     public void Start() {
         FindLabel();
@@ -44,15 +37,13 @@ public class UILocalizedLabel : GameObjectBehavior {
     public void FindLabel() {
 
 #if USE_UI_NGUI_2_7 || USE_UI_NGUI_3
-
         if(labelLocalized == null) {
-            labelLocalized = gameObject.Get<UILabel>();
-        }
-#else
-        if (labelLocalized == null) {
-            labelLocalized = gameObject.Get<Text>();
+            labelLocalized = gameObject.GetAsGameObject<UILabel>();
         }
 #endif
+        if(labelLocalized == null) {
+            labelLocalized = gameObject.GetAsGameObject<Text>();
+        }
     }
 
     public void SetContent(string content) {
