@@ -3,12 +3,8 @@ using System.Collections;
 using System.Collections.Generic;
 
 using UnityEngine;
-using Engine.Utility;
-#if USE_UI_NGUI_2_7 || USE_UI_NGUI_3
-#else
-using UnityEngine.UI;
-#endif
 
+using Engine.Utility;
 using Engine.Events;
 
 public class BaseGameUIPanelMain : GameUIPanelBase {
