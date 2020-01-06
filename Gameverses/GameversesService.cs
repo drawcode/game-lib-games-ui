@@ -118,10 +118,10 @@ namespace Gameverses {
 
                         if (string.IsNullOrEmpty(responseObject.www.error)) {
 
-                            if (!string.IsNullOrEmpty(responseObject.www.text)) {
+                            if (!string.IsNullOrEmpty(responseObject.www.downloadHandler.text)) {
                                 
                                 Dictionary<string, object> data = 
-                                    responseObject.www.text.FromJson<Dictionary<string, object>>();
+                                    responseObject.www.downloadHandler.text.FromJson<Dictionary<string, object>>();
                                 
                                 if (data != null && data.Count > 0) {
                                     int error = -1;
@@ -159,14 +159,14 @@ namespace Gameverses {
                                         //JsonData dataNode = (JsonData)data["data"];
                                         LogUtil.Log("STATUS/DATA NODE:" + dataValue);
 
-                                        if (!string.IsNullOrEmpty(responseObject.www.text))
-                                            responseObject.data = responseObject.www.text;////data["data"].ToString(); // contains object
+                                        if (!string.IsNullOrEmpty(responseObject.www.downloadHandler.text))
+                                            responseObject.data = responseObject.www.downloadHandler.text;////data["data"].ToString(); // contains object
                                         responseObject.dataValue = dataValue; // contains object
                                         responseObject.validResponse = true;
                                     }
                                     else {
                                         LogUtil.LogError("ERROR - Good response but problem with data, see message.");
-                                        LogUtil.LogError("RESPONSE:" + responseObject.www.text);
+                                        LogUtil.LogError("RESPONSE:" + responseObject.www.downloadHandler.text);
                                         responseObject.validResponse = false;
                                     }
                                 }
@@ -289,8 +289,8 @@ namespace Gameverses {
             if (responseObject.validResponse) {
                 LogUtil.Log("SUCCESS retrieved valid response");
 
-                if (!string.IsNullOrEmpty(responseObject.www.text))
-                    LogUtil.Log("responseObject.www.text" + responseObject.www.text);
+                if (!string.IsNullOrEmpty(responseObject.www.downloadHandler.text))
+                    LogUtil.Log("responseObject.www.text" + responseObject.www.downloadHandler.text);
 
                 List<GameversesGame> gameList = ParseGameList(responseObject.data);
                 callbackGameList(gameList, responseObject);
@@ -344,8 +344,8 @@ namespace Gameverses {
             if (responseObject.validResponse) {
                 LogUtil.Log("SUCCESS retrieved valid response");
 
-                if (!string.IsNullOrEmpty(responseObject.www.text))
-                    LogUtil.Log("responseObject.www.text" + responseObject.www.text);
+                if (!string.IsNullOrEmpty(responseObject.www.downloadHandler.text))
+                    LogUtil.Log("responseObject.www.text" + responseObject.www.downloadHandler.text);
 
                 List<GameversesGameSession> gameSessionList = ParseGameSessionList(responseObject.data);
                 callbackGameSessionList(gameSessionList, responseObject);
@@ -409,8 +409,8 @@ namespace Gameverses {
             if (responseObject.validResponse) {
                 LogUtil.Log("SUCCESS retrieved valid response");
 
-                if (!string.IsNullOrEmpty(responseObject.www.text))
-                    LogUtil.Log("responseObject.www.text" + responseObject.www.text);
+                if (!string.IsNullOrEmpty(responseObject.www.downloadHandler.text))
+                    LogUtil.Log("responseObject.www.text" + responseObject.www.downloadHandler.text);
 
                 GameversesGameSession gameSession = ParseGameSession(responseObject.data);
                 callbackGameSessionSet(gameSession, responseObject);
@@ -475,8 +475,8 @@ namespace Gameverses {
             if (responseObject.validResponse) {
                 LogUtil.Log("SUCCESS retrieved valid response");
 
-                if (!string.IsNullOrEmpty(responseObject.www.text))
-                    LogUtil.Log("responseObject.www.text" + responseObject.www.text);
+                if (!string.IsNullOrEmpty(responseObject.www.downloadHandler.text))
+                    LogUtil.Log("responseObject.www.text" + responseObject.www.downloadHandler.text);
 
                 GameversesGameSession gameSession = ParseGameSession(responseObject.data);
                 callbackGameSessionState(gameSession, responseObject);

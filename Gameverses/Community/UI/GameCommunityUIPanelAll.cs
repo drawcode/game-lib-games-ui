@@ -50,7 +50,7 @@ public class GameCommunityUIPanelAll : UIAppPanelBaseList {
     public override void Awake() {
         base.Awake();
 
-        if(Instance != null && this != Instance) {
+        if (Instance != null && this != Instance) {
             //There is already a copy of this script running
             Destroy(gameObject);
             return;
@@ -135,7 +135,7 @@ public class GameCommunityUIPanelAll : UIAppPanelBaseList {
 
     public override void OnButtonClickEventHandler(string buttonName) {
 
-        if(buttonName == buttonFull.name) {
+        if (buttonName == buttonFull.name) {
 
             GameCommunityUIPanelAll.LoadDataFull();
 
@@ -145,7 +145,7 @@ public class GameCommunityUIPanelAll : UIAppPanelBaseList {
             GameCommunity.TrackGameEvent("leaderboards-full", "load", 1);
 
         }
-        else if(buttonName == buttonFriends.name) {
+        else if (buttonName == buttonFriends.name) {
 
             GameCommunityUIPanelAll.LoadDataFriends();
 
@@ -155,7 +155,7 @@ public class GameCommunityUIPanelAll : UIAppPanelBaseList {
             GameCommunity.TrackGameEvent("leaderboards-friends", "load", 1);
 
         }
-        else if(buttonName == buttonStats.name) {
+        else if (buttonName == buttonStats.name) {
 
             GameCommunityUIPanelAll.LoadDataStatistics();
 
@@ -165,7 +165,7 @@ public class GameCommunityUIPanelAll : UIAppPanelBaseList {
             GameCommunity.TrackGameEvent("statistics", "load", 1);
 
         }
-        else if(buttonName == buttonOnline.name) {
+        else if (buttonName == buttonOnline.name) {
 
             Platforms.ShowWebView(
                 AppConfigs.appGameDisplayName
@@ -177,11 +177,11 @@ public class GameCommunityUIPanelAll : UIAppPanelBaseList {
             GameCommunity.TrackGameEvent("online-community", "load", 1);
 
         }
-        else if(buttonName == buttonClose.name) {
+        else if (buttonName == buttonClose.name) {
 
             HideGameCommunity();
         }
-        else if(buttonName.ToLower().IndexOf("leaderboard") > -1) {
+        else if (buttonName.ToLower().IndexOf("leaderboard") > -1) {
 
             //ShowGameCommunity();
         }
@@ -195,13 +195,13 @@ public class GameCommunityUIPanelAll : UIAppPanelBaseList {
     }
 
     public static void ShowGameCommunity() {
-        if(Instance != null) {
+        if (Instance != null) {
             Instance.showGameCommunity();
         }
     }
 
     public static void HideGameCommunity() {
-        if(Instance != null) {
+        if (Instance != null) {
             Instance.hideGameCommunity();
         }
     }
@@ -209,7 +209,7 @@ public class GameCommunityUIPanelAll : UIAppPanelBaseList {
     public void showGameCommunity() {
         containerLists.Show();
 
-        if(Context.Current.hasNetworkAccess) {
+        if (Context.Current.hasNetworkAccess) {
             Invoke("loadLeaderboardDataDefault", 1);
         }
     }
@@ -242,7 +242,7 @@ public class GameCommunityUIPanelAll : UIAppPanelBaseList {
         leaderboardDataFull = new GameCommunityLeaderboardData();
         leaderboardDataFriends = new GameCommunityLeaderboardData();
         statisticData = new GameCommunityStatisticData();
-        if(loadLoadingItem) {
+        if (loadLoadingItem) {
             LoadLoadingItem();
         }
     }
@@ -253,19 +253,19 @@ public class GameCommunityUIPanelAll : UIAppPanelBaseList {
     }
 
     public static void LoadDataFull() {
-        if(Instance != null) {
+        if (Instance != null) {
             Instance.loadDataFull();
         }
     }
 
     public static void LoadDataFriends() {
-        if(Instance != null) {
+        if (Instance != null) {
             Instance.loadDataFriends();
         }
     }
 
     public static void LoadDataStatistics() {
-        if(Instance != null) {
+        if (Instance != null) {
             Instance.loadDataStatistics();
         }
     }
@@ -298,11 +298,11 @@ public class GameCommunityUIPanelAll : UIAppPanelBaseList {
 
         Invoke("HideLoading", 3);
 
-        if(!GameCommunity.IsLoggedIn(networkType) && !Application.isEditor) {
+        if (!GameCommunity.IsLoggedIn(networkType) && !Application.isEditor) {
             GameCommunity.Login(networkType);
         }
         else {
-            if(Application.isEditor) {
+            if (Application.isEditor) {
                 GameNetworks.ParseTestScoresFacebook(GameNetworks.testFacebookScoresResult);
             }
             else {
@@ -319,7 +319,7 @@ public class GameCommunityUIPanelAll : UIAppPanelBaseList {
     }
 
     void ClearList() {
-        if(listGridRoot != null) {
+        if (listGridRoot != null) {
             listGridRoot.DestroyChildren();
         }
     }
@@ -328,9 +328,9 @@ public class GameCommunityUIPanelAll : UIAppPanelBaseList {
 
         ClearList();
 
-        if(listItemPrefabLoading != null) {
+        if (listItemPrefabLoading != null) {
 #if USE_UI_NGUI_2_7 || USE_UI_NGUI_3
-                GameObject item = NGUITools.AddChild(listGridRoot, listItemPrefabLoading);
+            GameObject item = NGUITools.AddChild(listGridRoot, listItemPrefabLoading);
 #else
             GameObject item = GameObjectHelper.CreateGameObject(
                 listItemPrefabLoading, Vector3.zero, Quaternion.identity, false);
@@ -352,41 +352,41 @@ public class GameCommunityUIPanelAll : UIAppPanelBaseList {
 
     public IEnumerator LoadDataCo(GameCommunityLeaderboardData leaderboardData) {
 
-        if(!containerLists.activeInHierarchy) {
+        if (!containerLists.activeInHierarchy) {
             GameCommunityUIPanelAll.HideGameCommunity();
             yield break;
         }
 
-        if(listGridRoot != null) {
+        if (listGridRoot != null) {
             ClearList();
 
-            if(leaderboardData == null) {
+            if (leaderboardData == null) {
                 yield break;
             }
 
-            if(leaderboardData.leaderboards.Count == 0) {
+            if (leaderboardData.leaderboards.Count == 0) {
                 yield break;
             }
 
-            if(listGridRoot.transform.parent == null) {
+            if (listGridRoot.transform.parent == null) {
                 yield break;
             }
 
 #if USE_UI_NGUI_2_7 || USE_UI_NGUI_3
-            if(listGridRoot.transform.parent.gameObject.GetComponent<UIDraggablePanel>() == null) {
+            if (listGridRoot.transform.parent.gameObject.GetComponent<UIDraggablePanel>() == null) {
                 yield break;
             }
 
             yield return new WaitForEndOfFrame();
 
             try {
-                foreach(UIDraggablePanel panel in listGridRoot.transform.parent.gameObject.GetComponentsInChildren<UIDraggablePanel>()) {
+                foreach (UIDraggablePanel panel in listGridRoot.transform.parent.gameObject.GetComponentsInChildren<UIDraggablePanel>()) {
                     //listGridRoot.transform.parent.gameObject.GetComponent<UIDraggablePanel>().ResetPosition();
                     panel.ResetPosition();
                     break;
                 }
             }
-            catch(Exception e) {
+            catch (Exception e) {
                 LogUtil.Log(e);
                 yield break;
             }
@@ -394,21 +394,21 @@ public class GameCommunityUIPanelAll : UIAppPanelBaseList {
 
             yield return new WaitForEndOfFrame();
 
-            if(leaderboardData != null) {
+            if (leaderboardData != null) {
 
                 int i = 0;
 
                 List<GameCommunityLeaderboardItem> leaderboardItems = new List<GameCommunityLeaderboardItem>();
 
-                if(leaderboardData.leaderboards.ContainsKey("high-score")) {
+                if (leaderboardData.leaderboards.ContainsKey("high-score")) {
                     leaderboardItems = leaderboardData.leaderboards["high-score"];
                 }
 
-                foreach(GameCommunityLeaderboardItem leaderboardItem in leaderboardItems) {
+                foreach (GameCommunityLeaderboardItem leaderboardItem in leaderboardItems) {
 
 
 #if USE_UI_NGUI_2_7 || USE_UI_NGUI_3
-                GameObject item = NGUITools.AddChild(listGridRoot, listItemPrefabLeaderboard);
+                    GameObject item = NGUITools.AddChild(listGridRoot, listItemPrefabLeaderboard);
 #else
                     GameObject item = GameObjectHelper.CreateGameObject(
                         listItemPrefabLeaderboard, Vector3.zero, Quaternion.identity, false);
@@ -439,8 +439,8 @@ public class GameCommunityUIPanelAll : UIAppPanelBaseList {
                     //    GameCommunity.SetRank((double)leaderboardItem.rank);
                     //}
 
-                    string url = String.Format("http://graph.facebook.com/{0}/picture", leaderboardItem.username);
-                    GameCommunityUIController.LoadUITextureImage(profilePic, url, 48, 48, i + 1);
+                    //string url = String.Format("http://graph.facebook.com/{0}/picture", leaderboardItem.username);
+                    //GameCommunityUIController.LoadUITextureImage(profilePic, url, 48, 48, i + 1);
 #else
                     // TODO UI
 #endif
@@ -448,10 +448,10 @@ public class GameCommunityUIPanelAll : UIAppPanelBaseList {
                     i++;
                 }
 
-                if(leaderboardType == LeaderboardFilterType.FULL) {
+                if (leaderboardType == LeaderboardFilterType.FULL) {
 
 #if USE_UI_NGUI_2_7 || USE_UI_NGUI_3
-                GameObject itemPager = NGUITools.AddChild(listGridRoot, listItemPrefabPaging);
+                    GameObject itemPager = NGUITools.AddChild(listGridRoot, listItemPrefabPaging);
 #else
                     GameObject itemPager = GameObjectHelper.CreateGameObject(
                         listItemPrefabPaging, Vector3.zero, Quaternion.identity, false);
@@ -462,7 +462,7 @@ public class GameCommunityUIPanelAll : UIAppPanelBaseList {
 
                     itemPager.name = "AStatisticItem" + i++;
 
-                    foreach(GameCommunityUIPanelPager pager in itemPager.GetComponentsInChildren<GameCommunityUIPanelPager>()) {
+                    foreach (GameCommunityUIPanelPager pager in itemPager.GetComponentsInChildren<GameCommunityUIPanelPager>()) {
                         pager.currentPageSize = currentPageSize;
                         pager.currentPage = currentPage;
                         pager.currentTotalCount = leaderboardData.totalCount;
@@ -477,14 +477,14 @@ public class GameCommunityUIPanelAll : UIAppPanelBaseList {
 #if USE_UI_NGUI_2_7 || USE_UI_NGUI_3
             listGridRoot.GetComponent<UIGrid>().Reposition();
             yield return new WaitForEndOfFrame();
-            foreach(UIDraggablePanel panel in listGridRoot.transform.parent.gameObject.GetComponentsInChildren<UIDraggablePanel>()) {
+            foreach (UIDraggablePanel panel in listGridRoot.transform.parent.gameObject.GetComponentsInChildren<UIDraggablePanel>()) {
                 panel.ResetPosition();
                 break;
             }
             yield return new WaitForEndOfFrame();
 #endif
 
-            if(!containerLists.activeInHierarchy) {
+            if (!containerLists.activeInHierarchy) {
                 GameCommunityUIPanelAll.HideGameCommunity();
                 yield break;
             }
@@ -495,29 +495,29 @@ public class GameCommunityUIPanelAll : UIAppPanelBaseList {
 
     IEnumerator LoadDataCo(GameCommunityStatisticData statisticData) {
 
-        if(!containerLists.activeInHierarchy) {
+        if (!containerLists.activeInHierarchy) {
             GameCommunityUIPanelAll.HideGameCommunity();
             yield break;
         }
 
         GameCommunityUIPanelLoading.ShowGameCommunityLoading("Loading Statistics", "Loading local statistics and progress...");
-        if(listGridRoot != null) {
+        if (listGridRoot != null) {
             ClearList();
 
-            if(statisticData == null) {
+            if (statisticData == null) {
                 yield break;
             }
 
-            if(statisticData.statistics.Count == 0) {
+            if (statisticData.statistics.Count == 0) {
                 yield break;
             }
 
-            if(listGridRoot.transform.parent == null) {
+            if (listGridRoot.transform.parent == null) {
                 yield break;
             }
 
 #if USE_UI_NGUI_2_7 || USE_UI_NGUI_3
-            if(listGridRoot.transform.parent.gameObject.GetComponent<UIDraggablePanel>() == null) {
+            if (listGridRoot.transform.parent.gameObject.GetComponent<UIDraggablePanel>() == null) {
                 yield break;
             }
 
@@ -527,7 +527,7 @@ public class GameCommunityUIPanelAll : UIAppPanelBaseList {
             try {
                 listGridRoot.transform.parent.gameObject.GetComponent<UIDraggablePanel>().ResetPosition();
             }
-            catch(Exception e) {
+            catch (Exception e) {
                 LogUtil.Log(e);
                 yield break;
             }
@@ -537,7 +537,7 @@ public class GameCommunityUIPanelAll : UIAppPanelBaseList {
 
             int i = 0;
 
-            foreach(GameCommunityStatisticItem statistic in statisticData.statistics) {
+            foreach (GameCommunityStatisticItem statistic in statisticData.statistics) {
                 AddListItem(statistic, i);
                 i++;
             }
@@ -560,14 +560,14 @@ public class GameCommunityUIPanelAll : UIAppPanelBaseList {
 
             double shotPercentageValue = shotsMade / (shotsMade + shotsMissed);
 
-            if(shotPercentageValue < 0) {
+            if (shotPercentageValue < 0) {
                 shotPercentageValue = 0;
             }
 
             shotPercentageValue = (float)Mathf.Clamp((float)shotPercentageValue, 0, 1);
 
             string valueFormatted = (shotPercentageValue).ToString("P2");
-            if(valueFormatted == "NaN") {
+            if (valueFormatted == "NaN") {
                 valueFormatted = "0%";
             }
 
@@ -588,7 +588,7 @@ public class GameCommunityUIPanelAll : UIAppPanelBaseList {
             yield return new WaitForEndOfFrame();
 #endif
 
-            if(!containerLists.activeInHierarchy) {
+            if (!containerLists.activeInHierarchy) {
                 GameCommunityUIPanelAll.HideGameCommunity();
                 yield break;
             }

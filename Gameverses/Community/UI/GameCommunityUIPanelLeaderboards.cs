@@ -196,9 +196,9 @@ public class GameCommunityUIPanelLeaderboards : UIAppPanelBaseList {
                     UIUtil.UpdateLabelObject(item.transform, "LabelValue", displayValue);
 
 #if USE_UI_NGUI_2_7 || USE_UI_NGUI_3
-                    UITexture profilePic = item.transform.Find("TextureProfilePic").GetComponent<UITexture>();
+                    //UITexture profilePic = item.transform.Find("TextureProfilePic").GetComponent<UITexture>();
 
-                    GameCommunityUIController.LoadFacebookProfileImage(leaderboardItem.userId, profilePic, 48, 48, i + 1);
+                    //GameCommunityUIController.LoadFacebookProfileImage(leaderboardItem.userId, profilePic, 48, 48, i + 1);
 #else
                     // TODO UI
 #endif

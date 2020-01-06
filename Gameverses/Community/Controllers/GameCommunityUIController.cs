@@ -3,6 +3,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
+using UnityEngine.Networking;
 
 public class GameCommunityUIShares {
     public static string shareCenter = "share-center";
@@ -145,93 +146,97 @@ public class GameCommunityUIController : UIPanelBase {
 
 #if USE_UI_NGUI_2_7 || USE_UI_NGUI_3
 
-    public static void LoadFacebookProfileImageByUsername(
-        string username, UITexture textureSpriteProfilePicture, int width, int height, float delay) {
-        if(Instance != null) {
-            string url = String.Format("http://graph.facebook.com/{0}/picture", username);
-            Instance.loadUITextureImage(
-                textureSpriteProfilePicture, url, width, height, delay);
-        }
-    }
+    //public static void LoadFacebookProfileImageByUsername(
+    //    string username, UITexture textureSpriteProfilePicture, int width, int height, float delay) {
+    //    if(Instance != null) {
+    //        string url = String.Format("http://graph.facebook.com/{0}/picture", username);
+    //        Instance.loadUITextureImage(
+    //            textureSpriteProfilePicture, url, width, height, delay);
+    //    }
+    //}
 
-    public static void LoadFacebookProfileImage(
-        string userId, UITexture textureSpriteProfilePicture, int width, int height, float delay) {
-        if(Instance != null) {
-            string url = String.Format("http://graph.facebook.com/{0}/picture", userId);
-            Instance.loadUITextureImage(
-                textureSpriteProfilePicture, url, width, height, delay);
-        }
-    }
+    //public static void LoadFacebookProfileImage(
+    //    string userId, UITexture textureSpriteProfilePicture, int width, int height, float delay) {
+    //    if(Instance != null) {
+    //        string url = String.Format("http://graph.facebook.com/{0}/picture", userId);
+    //        Instance.loadUITextureImage(
+    //            textureSpriteProfilePicture, url, width, height, delay);
+    //    }
+    //}
 
-    public static void LoadUITextureImage(
-        UITexture textureSprite, string url, int width, int height, float delay) {
-        if(Instance != null) {
-            Instance.loadUITextureImage(textureSprite, url, width, height, delay);
-        }
-    }
+    //public static void LoadUITextureImage(
+    //    UITexture textureSprite, string url, int width, int height, float delay) {
+    //    if(Instance != null) {
+    //        Instance.loadUITextureImage(textureSprite, url, width, height, delay);
+    //    }
+    //}
 
-    public void loadUITextureImage(
-        UITexture textureSprite, string url, int width, int height, float delay) {
-        StartCoroutine(LoadUITextureImageCo(textureSprite, url, width, height, delay));
-    }
+    //public void loadUITextureImage(
+    //    UITexture textureSprite, string url, int width, int height, float delay) {
+    //    //StartCoroutine(LoadUITextureImageCo(textureSprite, url, width, height, delay));
+    //}
 
-    public IEnumerator loadUITextureImageCo(
-        UITexture textureSprite, string url, int width, int height, float delay) {
-        yield return StartCoroutine(LoadUITextureImageCo(textureSprite, url, width, height, delay));
-    }
+    //public IEnumerator loadUITextureImageCo(
+    //    UITexture textureSprite, string url, int width, int height, float delay) {
+    //    //yield return StartCoroutine(LoadUITextureImageCo(textureSprite, url, width, height, delay));
+    //}
 
-    public static IEnumerator LoadFacebookProfileImageCo(
-        string userId, UITexture textureSpriteProfilePicture, int width, int height, float delay) {
-        if(Instance != null) {
-            string url = String.Format("http://graph.facebook.com/{0}/picture", userId);
-            yield return Instance.StartCoroutine(LoadUITextureImageCo(
-                textureSpriteProfilePicture, url, width, height, delay));
-        }
-    }
+    //public static IEnumerator LoadFacebookProfileImageCo(
+    //    string userId, UITexture textureSpriteProfilePicture, int width, int height, float delay) {
+    //    //if(Instance != null) {
+    //    //    string url = String.Format("http://graph.facebook.com/{0}/picture", userId);
+    //    //    yield return Instance.StartCoroutine(LoadUITextureImageCo(
+    //    //        textureSpriteProfilePicture, url, width, height, delay));
+    //    //}
+    //}
 
     // -------------------------------------------------------------------
 
     public static List<string> urls404 = new List<string>();
 
-    public static IEnumerator LoadUITextureImageCo(UITexture textureSprite, string url, int width, int height, float delay) {
+    //public static IEnumerator LoadUITextureImageCo(UITexture textureSprite, string url, int width, int height, float delay) {
 
-        if(!string.IsNullOrEmpty(url) && !urls404.Contains(url)) {
+    //    if(!string.IsNullOrEmpty(url) && !urls404.Contains(url)) {
 
-            urls404.Add(url);
+    //        urls404.Add(url);
 
-            yield return new WaitForSeconds(delay * .5f);
+    //        yield return new WaitForSeconds(delay * .5f);
 
-            Texture2D tex = null;
+    //        Texture2D tex = null;
 
-            if(textureSprite != null) {
+    //        if(textureSprite != null) {
 
-                if(tex == null) {
-                    tex = new Texture2D(48, 48, TextureFormat.RGB24, true);
+    //            if(tex == null) {
 
-                    WWW www = new WWW(url);
-                    yield return www;
+    //                tex = new Texture2D(48, 48, TextureFormat.RGB24, true);
 
-                    if(www.error != null) {
-                        //LogUtil.Log("Error loading image:" + www.error);
-                    }
-                    else {
-                        www.LoadImageIntoTexture(tex);
-                        if(tex != null) {
-                            textureSprite.mainTexture = tex;
-                        }
+    //                UnityWebRequest www = UnityWebRequestTexture.GetTexture(url);
 
-                    }
-                    www.Dispose();
-                    www = null;
+    //                yield return www.SendWebRequest();
 
-                }
+    //                if(www.error != null) {
+    //                    //LogUtil.Log("Error loading image:" + www.error);
+    //                }
+    //                else {
+    //                    Texture texGet = ((DownloadHandlerTexture)www.downloadHandler).texture;
 
-                if(textureSprite != null) {
-                    Vector3 imageScale = textureSprite.transform.localScale.WithX(width).WithY(height);
-                    textureSprite.transform.localScale = imageScale;
-                }
-            }
-        }
-    }
+    //                    //www.LoadImageIntoTexture(tex);
+    //                    if(tex != null) {
+    //                        textureSprite.mainTexture = tex;
+    //                    }
+
+    //                }
+    //                www.Dispose();
+    //                www = null;
+
+    //            }
+
+    //            if(textureSprite != null) {
+    //                Vector3 imageScale = textureSprite.transform.localScale.WithX(width).WithY(height);
+    //                textureSprite.transform.localScale = imageScale;
+    //            }
+    //        }
+    //    }
+    //}
 #endif
 }

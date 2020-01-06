@@ -212,8 +212,8 @@ public class GameCommunityUIPanelUserState : UIAppPanelBaseList {
         if(!imageLoaded) {
 
 #if USE_UI_NGUI || USE_UI_NGUI_2_7 || USE_UI_NGUI_3
-            GameCommunityUIController.LoadFacebookProfileImageByUsername(username, textureSpriteProfilePicture, 48, 48, 1);
-            imageLoaded = true;
+           // GameCommunityUIController.LoadFacebookProfileImageByUsername(username, textureSpriteProfilePicture, 48, 48, 1);
+            //imageLoaded = true;
 #else
             //GameCommunityUIController.LoadFacebookProfileImageByUsername(username, textureSpriteProfilePicture, 48, 48, 1);
             imageLoaded = true;

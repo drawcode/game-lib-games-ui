@@ -427,9 +427,9 @@ public class GameCommunityUIPanelLogin : UIAppPanelBaseList {
                     }
 
 #if USE_UI_NGUI_2_7 || USE_UI_NGUI_3
-                    UITexture profilePic = item.transform.Find("TextureProfilePic").GetComponent<UITexture>();
+                    //UITexture profilePic = item.transform.Find("TextureProfilePic").GetComponent<UITexture>();
 
-                    GameCommunityUIController.LoadUITextureImage(profilePic, url, 48, 48, i + 1);
+                    //GameCommunityUIController.LoadUITextureImage(profilePic, url, 48, 48, i + 1);
 #else 
 
 #endif
