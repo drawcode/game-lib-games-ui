@@ -140,10 +140,16 @@ public class GameCommunitySocialController : GameObjectBehavior {
         }
 
         if (result.title.ToLower().Contains("error")) {
-            UINotificationDisplay.QueueError(result.title, result.message);
+
+            Messenger<string, string>.Broadcast(
+                GameNotificationMessages.gameQueueError, result.title, result.message);
+            //UINotificationDisplay.QueueError(result.title, result.message);
         }
         else {
-            UINotificationDisplay.QueueInfo(result.title, result.message);
+
+            Messenger<string, string>.Broadcast(
+                GameNotificationMessages.gameQueueInfo, result.title, result.message);
+            //UINotificationDisplay.QueueInfo(result.title, result.message);
         }
     }
 
