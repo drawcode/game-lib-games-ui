@@ -46,10 +46,10 @@ public class UIGameRPGLevel : UIGameRPGObject {
 
         HandleUpdate(true);
 
-        if(UIGameKeyCodes.isActionLevelAdd) {
+        if(GameKeyCodes.isActionLevelAdd) {
             GameProfileCharacters.Current.CurrentCharacterAddGamePlayerProgressLevel(incrementValue);
         }
-        else if(UIGameKeyCodes.isActionLevelSubtract) {
+        else if(GameKeyCodes.isActionLevelSubtract) {
             GameProfileCharacters.Current.CurrentCharacterAddGamePlayerProgressLevel(-incrementValue);
         }
     }

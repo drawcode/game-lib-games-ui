@@ -52,11 +52,11 @@ public class UIGameRPGPlayerHitHealth : UIGameRPGPlayerObject {
 
         HandleUpdate(true);
 
-        if(UIGameKeyCodes.isActionPlayerHitAdd) {
+        if(GameKeyCodes.isActionPlayerHitAdd) {
             LogUtil.Log("PlayerHitAdd:" + incrementValue);
             //gamePlayerController.Hit(1);
         }
-        else if(UIGameKeyCodes.isActionPlayerHitSubtract) {
+        else if(GameKeyCodes.isActionPlayerHitSubtract) {
             LogUtil.Log("PlayerHitSubtract:" + incrementValue);
             //gamePlayerController.Hit(-1);
         }

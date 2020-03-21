@@ -42,10 +42,10 @@ public class UIGameRPGCurrency : UIGameRPGObject {
 
         HandleUpdate(true);
 
-        if(UIGameKeyCodes.isActionCurrencyAdd) {
+        if(GameKeyCodes.isActionCurrencyAdd) {
             GameProfileRPGs.Current.AddCurrency(1000);
         }
-        else if(UIGameKeyCodes.isActionCurrencySubtract) {
+        else if(GameKeyCodes.isActionCurrencySubtract) {
             GameProfileRPGs.Current.SubtractCurrency(1000);
         }
     }

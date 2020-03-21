@@ -31,9 +31,9 @@ public class UINotificationItem {
     public string score = "";
     public string icon = "";
     public UINotificationType notificationType = UINotificationType.Info;
-    
+
     public UINotificationItem() {
-        
+
     }
 }
 
@@ -124,7 +124,7 @@ public class UINotificationDisplay
 
     public bool IsHidden {
         get {
-            if(notificationState == UINotificationState.Hidden)
+            if (notificationState == UINotificationState.Hidden)
                 return true;
 
             return false;
@@ -135,7 +135,7 @@ public class UINotificationDisplay
 
         base.Awake();
 
-        if(Instance != null && this != Instance) {
+        if (Instance != null && this != Instance) {
             //There is already a copy of this script running
             Destroy(this);
             return;
@@ -156,40 +156,74 @@ public class UINotificationDisplay
 
     void OnEnable() {
         Messenger<string>.AddListener(ButtonEvents.EVENT_BUTTON_CLICK, OnButtonClickEventHandler);
+
+        Messenger<string>.AddListener(GameNotificationMessages.gameQueueAchievement, OnQueueAchievement);
+        Messenger<string, string>.AddListener(GameNotificationMessages.gameQueueError, OnQueueError);
+        Messenger<string, string>.AddListener(GameNotificationMessages.gameQueueInfo, OnQueueInfo);
+        Messenger<string, string>.AddListener(GameNotificationMessages.gameQueueTip, OnQueueTip);
+        Messenger<string, string, double>.AddListener(GameNotificationMessages.gameQueuePoint, OnQueuePoint);
     }
 
     void OnDisable() {
         Messenger<string>.RemoveListener(ButtonEvents.EVENT_BUTTON_CLICK, OnButtonClickEventHandler);
+
+        Messenger<string>.RemoveListener(GameNotificationMessages.gameQueueAchievement, OnQueueAchievement);
+        Messenger<string, string>.RemoveListener(GameNotificationMessages.gameQueueError, OnQueueError);
+        Messenger<string, string>.RemoveListener(GameNotificationMessages.gameQueueInfo, OnQueueInfo);
+        Messenger<string, string>.RemoveListener(GameNotificationMessages.gameQueueTip, OnQueueTip);
+        Messenger<string, string, double>.RemoveListener(GameNotificationMessages.gameQueuePoint, OnQueuePoint);
     }
 
     void OnButtonClickEventHandler(string buttonName) {
 
-        if(UIUtil.IsButtonClicked(achievementIcon, buttonName)) {
+        if (UIUtil.IsButtonClicked(achievementIcon, buttonName)) {
             HideDialog();
         }
-        else if(UIUtil.IsButtonClicked(pointContinue, buttonName)) {
+        else if (UIUtil.IsButtonClicked(pointContinue, buttonName)) {
             HideDialog();
         }
-        else if(UIUtil.IsButtonClicked(errorContinue, buttonName)) {
+        else if (UIUtil.IsButtonClicked(errorContinue, buttonName)) {
             HideDialog();
         }
-        else if(UIUtil.IsButtonClicked(infoContinue, buttonName)) {
+        else if (UIUtil.IsButtonClicked(infoContinue, buttonName)) {
             HideDialog();
         }
-        else if(UIUtil.IsButtonClicked(tipContinue, buttonName)) {
+        else if (UIUtil.IsButtonClicked(tipContinue, buttonName)) {
             HideDialog();
         }
-
     }
+    void OnQueueAchievement(string key) {
+        QueueAchievement(key);
+    }
+
+    void OnQueueError(string title, string description) {
+        QueueError(title, description);
+    }
+
+    void OnQueueInfo(string title, string description) {
+        QueueInfo(title, description);
+    }
+
+    void OnQueueTip(string title, string description) {
+        QueueTip(title, description);
+    }
+
+    void OnQueuePoint(string title, string description, double points) {
+        QueuePoint(title, description, points);
+    }
+
+    //void OnQueueInfo(string title, string message) {
+    //    QueueNotification(title, description, score, notificationType);
+    //}
 
     // NOTIFICATION
 
     public static void QueueNotification(
-        string title,
-        string description,
-        double score,
-        UINotificationType notificationType) {
-        if(Instance != null) {
+            string title,
+            string description,
+            double score,
+            UINotificationType notificationType) {
+        if (Instance != null) {
             Instance.queueNotification(
                 title,
                 description,
@@ -215,7 +249,7 @@ public class UINotificationDisplay
     // ACHIEVEMENT
 
     public static void QueueAchievement(string title, string description, double points) {
-        if(Instance != null) {
+        if (Instance != null) {
             Instance.queueAchievement(title, description, points);
         }
     }
@@ -227,7 +261,7 @@ public class UINotificationDisplay
     // POINT
 
     public static void QueuePoint(string title, string description, double points) {
-        if(Instance != null) {
+        if (Instance != null) {
             Instance.queuePoint(title, description, points);
         }
     }
@@ -239,7 +273,7 @@ public class UINotificationDisplay
     // INFO
 
     public static void QueueInfo(string title, string description) {
-        if(Instance != null) {
+        if (Instance != null) {
             Instance.queueInfo(title, description);
         }
     }
@@ -251,7 +285,7 @@ public class UINotificationDisplay
     // ERROR
 
     public static void QueueError(string title, string description) {
-        if(Instance != null) {
+        if (Instance != null) {
             Instance.queueError(title, description);
         }
     }
@@ -263,7 +297,7 @@ public class UINotificationDisplay
     // TIP
 
     public static void QueueTip(string title, string description) {
-        if(Instance != null) {
+        if (Instance != null) {
             Instance.queueTip(title, description);
         }
     }
@@ -275,21 +309,21 @@ public class UINotificationDisplay
     // NOTIFICATION MAIN
 
     public void QueueNotification(UINotificationItem notificationItem) {
-        if(Instance != null) {
+        if (Instance != null) {
             Instance.queueNotification(notificationItem);
         }
     }
 
     public void queueNotification(UINotificationItem notificationItem) {
 
-        foreach(UINotificationItem item in notificationQueue) {
-            if(item.title == notificationItem.title) {
+        foreach (UINotificationItem item in notificationQueue) {
+            if (item.title == notificationItem.title) {
                 return;
             }
         }
 
-        if(currentItem != null) {
-            if(currentItem.title == notificationItem.title) {
+        if (currentItem != null) {
+            if (currentItem.title == notificationItem.title) {
                 return;
             }
         }
@@ -331,7 +365,7 @@ public class UINotificationDisplay
         );
 
 
-        if(achievement != null) {
+        if (achievement != null) {
             //achievement.description = GameAchievements.Instance.FormatAchievementTags(
             //  app_state,
             //  app_content_state, 
@@ -343,7 +377,7 @@ public class UINotificationDisplay
             LogUtil.Log("Achievement not found:" + achievementCode);
         }
 
-        if(achievement != null) {
+        if (achievement != null) {
             UINotificationItem item = new UINotificationItem();
             item.code = achievement.code;
             item.description = achievement.description;
@@ -354,7 +388,7 @@ public class UINotificationDisplay
             QueueNotification(item);
         }
 
-        if(achievementCode == "achieve_test1") {
+        if (achievementCode == "achieve_test1") {
 
             UINotificationItem item = new UINotificationItem();
             item.code = achievementCode;
@@ -368,7 +402,7 @@ public class UINotificationDisplay
     }
 
     public void ToggleDialog() {
-        if(notificationState == UINotificationState.Hidden) {
+        if (notificationState == UINotificationState.Hidden) {
             // Show
             ShowDialog();
         }
@@ -390,23 +424,23 @@ public class UINotificationDisplay
 
         bool audioPlaySuccess = false;
 
-        if(currentItem != null) {
-            if(currentItem.notificationType == UINotificationType.Achievement) {
+        if (currentItem != null) {
+            if (currentItem.notificationType == UINotificationType.Achievement) {
                 audioPlaySuccess = true;
             }
-            else if(currentItem.notificationType == UINotificationType.Error) {
+            else if (currentItem.notificationType == UINotificationType.Error) {
             }
-            else if(currentItem.notificationType == UINotificationType.Info) {
+            else if (currentItem.notificationType == UINotificationType.Info) {
                 audioPlaySuccess = true;
             }
-            else if(currentItem.notificationType == UINotificationType.Point) {
+            else if (currentItem.notificationType == UINotificationType.Point) {
                 audioPlaySuccess = true;
             }
-            else if(currentItem.notificationType == UINotificationType.Tip) {
+            else if (currentItem.notificationType == UINotificationType.Tip) {
             }
         }
 
-        if(audioPlaySuccess) {
+        if (audioPlaySuccess) {
             GameAudio.PlayEffect(GameAudioEffects.audio_effect_pickup_1);
         }
 
@@ -471,44 +505,44 @@ public void Update() {
     }
 
     public void ProcessNotifications() {
-        if(!Paused) {
-            if(notificationQueue.Count > 0)
-                if(notificationState == UINotificationState.Hidden)
+        if (!Paused) {
+            if (notificationQueue.Count > 0)
+                if (notificationState == UINotificationState.Hidden)
                     ProcessNextNotification();
         }
     }
 
     public void ShowNotificationContainerType(UINotificationType type) {
 
-        if(type == UINotificationType.Achievement) {
+        if (type == UINotificationType.Achievement) {
             GameObjectHelper.ShowObject(notificationContainerAchievement);
         }
         else {
             GameObjectHelper.HideObject(notificationContainerAchievement);
         }
 
-        if(type == UINotificationType.Point) {
+        if (type == UINotificationType.Point) {
             GameObjectHelper.ShowObject(notificationContainerPoint);
         }
         else {
             GameObjectHelper.HideObject(notificationContainerPoint);
         }
 
-        if(type == UINotificationType.Error) {
+        if (type == UINotificationType.Error) {
             GameObjectHelper.ShowObject(notificationContainerError);
         }
         else {
             GameObjectHelper.HideObject(notificationContainerError);
         }
 
-        if(type == UINotificationType.Tip) {
+        if (type == UINotificationType.Tip) {
             GameObjectHelper.ShowObject(notificationContainerTip);
         }
         else {
             GameObjectHelper.HideObject(notificationContainerTip);
         }
 
-        if(type == UINotificationType.Info) {
+        if (type == UINotificationType.Info) {
             GameObjectHelper.ShowObject(notificationContainerInfo);
         }
         else {
@@ -517,21 +551,21 @@ public void Update() {
     }
 
     public void ProcessNextNotification() {
-        if(!Paused) {
-            if(notificationQueue.Count > 0) {
+        if (!Paused) {
+            if (notificationQueue.Count > 0) {
 
                 currentItem = notificationQueue.Dequeue();
 
                 bool found = false;
 
 
-                if(currentItem.notificationType == UINotificationType.Achievement) {
+                if (currentItem.notificationType == UINotificationType.Achievement) {
 
                     ShowNotificationContainerType(currentItem.notificationType);
                     UIUtil.SetLabelValue(achievementTitle, currentItem.title);
                     UIUtil.SetLabelValue(achievementDescription, currentItem.description);
 
-                    if(GameConfigs.useCoinRewardsForAchievements) {
+                    if (GameConfigs.useCoinRewardsForAchievements) {
                         double score = Convert.ToDouble(currentItem.score);
                         score *= 50; // 50 coins per   
                         lastScore = 0;
@@ -544,7 +578,7 @@ public void Update() {
 
                     found = true;
                 }
-                else if(currentItem.notificationType == UINotificationType.Point) {
+                else if (currentItem.notificationType == UINotificationType.Point) {
 
                     ShowNotificationContainerType(currentItem.notificationType);
                     UIUtil.SetLabelValue(pointTitle, currentItem.title);
@@ -553,7 +587,7 @@ public void Update() {
 
                     found = true;
                 }
-                else if(currentItem.notificationType == UINotificationType.Info) {
+                else if (currentItem.notificationType == UINotificationType.Info) {
 
                     ShowNotificationContainerType(currentItem.notificationType);
                     UIUtil.SetLabelValue(infoTitle, currentItem.title);
@@ -563,7 +597,7 @@ public void Update() {
 
                     found = true;
                 }
-                else if(currentItem.notificationType == UINotificationType.Tip) {
+                else if (currentItem.notificationType == UINotificationType.Tip) {
 
                     ShowNotificationContainerType(currentItem.notificationType);
                     UIUtil.SetLabelValue(tipTitle, currentItem.title);
@@ -572,7 +606,7 @@ public void Update() {
 
                     found = true;
                 }
-                else if(currentItem.notificationType == UINotificationType.Error) {
+                else if (currentItem.notificationType == UINotificationType.Error) {
 
                     ShowNotificationContainerType(currentItem.notificationType);
                     UIUtil.SetLabelValue(errorTitle, currentItem.title);
@@ -582,7 +616,7 @@ public void Update() {
                     found = true;
                 }
 
-                if(found) {
+                if (found) {
 
                     LogUtil.Log("Notification Queue("
                         + notificationQueue.Count + ") "

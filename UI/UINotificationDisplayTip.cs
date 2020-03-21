@@ -154,10 +154,22 @@ public class UINotificationDisplayTip
 
     void OnEnable() {
         Messenger<string>.AddListener(ButtonEvents.EVENT_BUTTON_CLICK, OnButtonClickEventHandler);
+
+        Messenger<string>.AddListener(GameNotificationMessages.gameQueueTipAchievement, OnQueueAchievement);
+        Messenger<string, string>.AddListener(GameNotificationMessages.gameQueueTipError, OnQueueError);
+        Messenger<string, string>.AddListener(GameNotificationMessages.gameQueueTipInfo, OnQueueInfo);
+        Messenger<string, string>.AddListener(GameNotificationMessages.gameQueueTipTip, OnQueueTip);
+        Messenger<string, string, double>.AddListener(GameNotificationMessages.gameQueueTipPoint, OnQueuePoint);
     }
 
     void OnDisable() {
         Messenger<string>.RemoveListener(ButtonEvents.EVENT_BUTTON_CLICK, OnButtonClickEventHandler);
+
+        Messenger<string>.RemoveListener(GameNotificationMessages.gameQueueTipAchievement, OnQueueAchievement);
+        Messenger<string, string>.RemoveListener(GameNotificationMessages.gameQueueTipError, OnQueueError);
+        Messenger<string, string>.RemoveListener(GameNotificationMessages.gameQueueTipInfo, OnQueueInfo);
+        Messenger<string, string>.RemoveListener(GameNotificationMessages.gameQueueTipTip, OnQueueTip);
+        Messenger<string, string, double>.RemoveListener(GameNotificationMessages.gameQueueTipPoint, OnQueuePoint);
     }
 
     void OnButtonClickEventHandler(string buttonName) {
@@ -165,8 +177,29 @@ public class UINotificationDisplayTip
         if(UIUtil.IsButtonClicked(tipContinue, buttonName)) {
             HideDialog();
         }
-
     }
+
+    void OnQueueAchievement(string key) {
+        QueueAchievement(key);
+    }
+    
+    void OnQueueError(string title, string description) {
+        QueueError(title, description);
+    }
+
+    void OnQueueInfo(string title, string description) {
+        QueueInfo(title, description);
+    }
+
+    void OnQueueTip(string title, string description) {
+        QueueTip(title, description, true);
+    }
+
+    void OnQueuePoint(string title, string description, double points) {
+        QueuePoint(title, description, points);
+    }
+
+    //
 
     public void QueueNotification(
         string title,
