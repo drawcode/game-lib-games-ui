@@ -749,18 +749,18 @@ public class UIPanelBase : UIAppPanel {
             return;
         }
 
-        UIDraggablePanel[] dragPanels =
-            gridObject.transform.parent.gameObject.GetComponentsInChildren<UIDraggablePanel>();
+        //ScrollRect[] dragPanels =
+        //    gridObject.transform.parent.gameObject.GetComponentsInChildren<ScrollRect>();
 
-        if(dragPanels == null) {
-            return;
-        }
+        //if(dragPanels == null) {
+        //    return;
+        //}
 
-        foreach(UIDraggablePanel panel
-         in dragPanels) {
-            panel.ResetPosition();
-            break;
-        }
+        ////foreach(ScrollRect panel
+        //// in dragPanels) {
+        ////    //panel.ResetPosition();
+        ////    break;
+        ////}
 
     }
 
