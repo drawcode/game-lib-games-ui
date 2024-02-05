@@ -1,6 +1,8 @@
 using System;
 using System.Collections;
 using UnityEngine;
+using Engine.Content;
+
 #if USE_UI_NGUI_2_7 || USE_UI_NGUI_3
 #else
 using UnityEngine.UI;

@@ -8,6 +8,7 @@ using UnityEngine;
 using UnityEngine.UI;
 
 using Engine.Events;
+using Engine.Game.App.BaseApp;
 
 public class UILocalizedLabel : GameObjectBehavior {
 

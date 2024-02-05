@@ -12,6 +12,7 @@ using UnityEngine.UI;
 // using Engine.Data.Json;
 using Engine.Events;
 using Engine.Utility;
+using Engine.Game.App;
 
 public enum GameNotificationState {
     Showing,

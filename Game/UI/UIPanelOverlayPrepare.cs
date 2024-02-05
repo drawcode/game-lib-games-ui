@@ -12,6 +12,8 @@ using UnityEngine.UI;
 
 using Engine.Events;
 using Engine.Utility;
+using Engine.Game.App;
+using Engine.Game.Data;
 
 public class UIPanelOverlayPrepare : UIPanelBase {
 #if USE_UI_NGUI_2_7 || USE_UI_NGUI_3

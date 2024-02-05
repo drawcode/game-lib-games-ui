@@ -7,6 +7,9 @@ using UnityEngine;
 // using Engine.Data.Json;
 using Engine.Events;
 using Engine.Utility;
+using Engine.Game.App;
+using Engine.Game.App.BaseApp;
+using Engine.Game.Data;
 
 public class UICustomizeTexturePresets : UICustomizeSelectObject {
 

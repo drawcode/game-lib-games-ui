@@ -12,6 +12,8 @@ using UnityEngine.UI;
 using Engine.Events;
 using Engine.UI;
 using Engine.Utility;
+using Engine.Game.Data;
+using Engine.Game.App;
 
 public class BaseGameHUD : GameUIPanelBase {
 

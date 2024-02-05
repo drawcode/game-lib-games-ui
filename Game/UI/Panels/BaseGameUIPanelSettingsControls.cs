@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using UnityEngine;
 
 using Engine.Events;
+using Engine.Game.App.BaseApp;
 
 #if ENABLE_FEATURE_SETTINGS_AUDIO
 
