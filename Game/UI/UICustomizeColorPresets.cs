@@ -11,6 +11,8 @@ using UnityEngine.UI;
 // using Engine.Data.Json;
 using Engine.Events;
 using Engine.Utility;
+using Engine.Game.App.BaseApp;
+using Engine.Game.App;
 
 public class UICustomizeColorPresets : UICustomizeSelectObject {
 

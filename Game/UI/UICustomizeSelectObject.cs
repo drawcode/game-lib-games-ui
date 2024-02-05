@@ -10,6 +10,7 @@ using UnityEngine.UI;
 // using Engine.Data.Json;
 using Engine.Events;
 using Engine.Utility;
+using Engine.Game.App.BaseApp;
 
 public class UICustomizeSelectObject : UICustomizeObject {
 #if USE_UI_NGUI_2_7 || USE_UI_NGUI_3

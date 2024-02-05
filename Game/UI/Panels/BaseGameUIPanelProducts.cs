@@ -6,6 +6,7 @@ using UnityEngine;
 
 using Engine.Events;
 using UnityEngine.UI;
+using Engine.Game.App.BaseApp;
 
 public class BaseGameUIPanelProducts : GameUIPanelBase {
 

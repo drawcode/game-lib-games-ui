@@ -7,6 +7,7 @@ using UnityEngine;
 
 using Engine.Events;
 using Engine.Utility;
+using Engine.Game.App;
 
 public class UIColorsMessages {
     public static string uiColorsUpdate = "ui-colors-update";

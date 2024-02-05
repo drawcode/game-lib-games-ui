@@ -6,6 +6,8 @@ using System.Linq;
 
 using UnityEngine;
 using Engine.Utility;
+using Engine.Game.App;
+
 #if USE_UI_NGUI_2_7 || USE_UI_NGUI_3
 #else
 using UnityEngine.UI;
