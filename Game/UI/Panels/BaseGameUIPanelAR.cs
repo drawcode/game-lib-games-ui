@@ -10,6 +10,7 @@ using UnityEngine.UI;
 #endif
 
 using Engine.Events;
+using Engine.Utility;
 
 public class BaseGameUIPanelAR : GameUIPanelBase {
 
@@ -163,10 +164,9 @@ public class BaseGameUIPanelAR : GameUIPanelBase {
     }
     
     public virtual void AnimateStartCharacter() {
-        
+
         if (containerStartObject != null) {
-            UITweenerUtil.FadeTo(containerStartObject,
-                UITweener.Method.EaseInOut, UITweener.Style.PingPong, 2f, 0f, .5f);
+            TweenUtil.FadeToObject(containerStartObject, .5f, 2f, 0f, true, TweenCoord.world, TweenEaseType.quadEaseInOut, TweenLoopType.pingPong);
         }
     }
 

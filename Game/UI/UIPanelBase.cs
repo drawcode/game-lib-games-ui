@@ -463,9 +463,7 @@ public class UIPanelBase : UIAppPanel {
 
         yield return new WaitForSeconds(delay);
 
-#if USE_EASING_LEANTWEEN
-        LeanTween.cancelAll();
-#endif
+        TweenUtil.CancelAll();
     }
 
     public virtual void AnimateIn(float time = .5f, float delay = .5f) {
