@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using UnityEngine;
 
 using Engine.Events;
+using Engine.UI;
 using Engine.Utility;
 using UnityEngine.UI;
 
@@ -438,6 +439,62 @@ public class UIPanelBase : UIAppPanel {
 
     // ANIMATE
 
+    // ------------------------------------------------------------------------
+    // UI TOOLKIT PATH
+    //
+    // A panel is a "toolkit panel" once it has a loaded view (a UXML tree bound to viewRoot).
+    // Until then every panel is an NGUI panel and takes the original path untouched — that is
+    // what lets a migrated screen and an NGUI screen coexist in the same frame through all of
+    // Phase 3.
+    //
+    // The toolkit path deliberately does NOT reproduce the nine-edge slide choreography
+    // (panelLeftObject, panelRightTopObject, ...). Those are ±4500-unit GameObject slides that
+    // exist because NGUI had no layout engine; in UXML a panel is one view that fades/translates
+    // as a unit, driven by a named preset from tokens.json. Panels that genuinely need per-edge
+    // entrances get them back as bitty patterns in Phase 3.
+
+    public bool isToolkitPanel {
+        get {
+            return viewRoot != null && viewRoot.alive;
+        }
+    }
+
+    // Loads this panel's view through the registered view backend and binds its UIRef fields.
+    // Returns false when no toolkit view exists for the key — the caller then stays on NGUI,
+    // which is exactly how a panel is migrated one at a time.
+    public virtual bool LoadToolkitView(string viewKey) {
+
+        IUIBackend backend = UIPlatform.viewBackend;
+
+        if (backend == null || string.IsNullOrEmpty(viewKey)) {
+            return false;
+        }
+
+        UIRef view = backend.LoadView(viewKey);
+
+        if (!view.alive) {
+            return false;
+        }
+
+        UIRef layer = UIPlatform.Layer(UIPlatform.layerScreens);
+
+        if (!layer.alive) {
+            LogUtil.LogWarning("LoadToolkitView: no UI Toolkit host in scene; cannot host '"
+                + viewKey + "'");
+            return false;
+        }
+
+        backend.Attach(view, layer);
+
+        BindElements(view);
+
+        // Panels start hidden. UIPanelBase.Start() calls AnimateOut() on every panel, and the
+        // toolkit path must honour the same contract or a freshly-loaded view would flash.
+        backend.Hide(view);
+
+        return true;
+    }
+
     public virtual void AnimateIn() {
 
         //AnimateOut(0f, 0f);
@@ -484,6 +541,18 @@ public class UIPanelBase : UIAppPanel {
 
         HandleBackgroundDisplay();
 
+        // Toolkit panels fade in as one view on a named preset; the nine-edge slide below is the
+        // NGUI choreography and does not apply. Everything above (HandleShow, character/ad/button/
+        // background display) is backend-agnostic and still runs.
+        if(isToolkitPanel) {
+
+            TweenUtil.ShowObject(viewRoot, "panel-show");
+
+            isVisible = true;
+
+            return;
+        }
+
         AnimateInCenter(time, delay);
         AnimateInLeft(time, delay);
         AnimateInLeftBottom(time, delay);
@@ -525,6 +594,17 @@ public class UIPanelBase : UIAppPanel {
 
         AdNetworks.HideAd();
 
+        if(isToolkitPanel) {
+
+            TweenUtil.HideObject(viewRoot, "panel-hide");
+
+            isVisible = false;
+
+            HidePanel();
+
+            return;
+        }
+
         AnimateOutCenter(time, delay);
         AnimateOutLeft(time, delay);
         AnimateOutLeftBottom(time, delay);
@@ -557,6 +637,17 @@ public class UIPanelBase : UIAppPanel {
 
     public virtual void HidePanel() {
 
+        // Display state, never a tween side effect (gate learning #1). The tween fades opacity;
+        // this is what actually removes the view from layout.
+        if(isToolkitPanel) {
+
+            if(!isVisible) {
+                UIUtil.HideObject(viewRoot);
+            }
+
+            return;
+        }
+
         if(!isVisible) {
             if(panelContainer != null) {
                 //isVisible = false;
@@ -568,6 +659,11 @@ public class UIPanelBase : UIAppPanel {
     public virtual void ShowPanel() {
 
         if(isVisible) {
+            return;
+        }
+
+        if(isToolkitPanel) {
+            UIUtil.ShowObject(viewRoot);
             return;
         }
 
