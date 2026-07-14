@@ -18,6 +18,15 @@ public class UIAppPanelMessages {
     public static string panelHide = "ui-app-panel-hide";
 }
 
+// Shape of the converter's *.bind.json. Field names must match the JSON keys exactly —
+// LitJson silently drops anything it can't map.
+public class UIBindManifest {
+    public string panel = "";
+    public string panelScriptGuid = "";
+    public string sourcePrefab = "";
+    public Dictionary<string, string> binds = new Dictionary<string, string>();
+}
+
 public class UIAppPanel : GameObjectBehavior {
 
     public UIAppPanelMode panelMode = UIAppPanelMode.ModeMain;
@@ -102,6 +111,41 @@ public class UIAppPanel : GameObjectBehavior {
         }
 
         bindManifests[panelClassName] = binds;
+    }
+
+    // The converter's *.bind.json, shipped to Resources/ui/binds/<viewKey>.json. Keyed by panel
+    // class name, which is how BindElements looks it up.
+    //
+    // A missing manifest is NOT an error: BindElements falls back to convention (field name,
+    // then kebab-case). It just means fields whose element names don't match the convention will
+    // warn instead of binding.
+    public virtual void LoadBindManifest(string viewKey) {
+
+        if (string.IsNullOrEmpty(viewKey)) {
+            return;
+        }
+
+        string path = "ui/binds/" + viewKey;
+
+        TextAsset asset = Resources.Load<TextAsset>(path);
+
+        if (asset == null) {
+            LogUtil.Log("LoadBindManifest: no manifest at Resources/" + path
+                + " — falling back to name convention");
+            return;
+        }
+
+        try {
+
+            UIBindManifest parsed = asset.text.FromJson<UIBindManifest>();
+
+            if (parsed != null && parsed.binds != null) {
+                RegisterBindManifest(GetClassName(this), parsed.binds);
+            }
+        }
+        catch (Exception e) {
+            LogUtil.LogError("LoadBindManifest: parse failed for " + path + ": " + e.Message);
+        }
     }
 
     private static string ToKebabCase(string fieldName) {

@@ -459,6 +459,29 @@ public class UIPanelBase : UIAppPanel {
         }
     }
 
+    // A panel migrates to UI Toolkit by overriding this with its view key — the SAME string the
+    // NGUI path already uses (e.g. "panel-settings-credits"). Empty means "stay on NGUI".
+    //
+    // The view is loaded lazily on first AnimateIn, NOT in Init/Start. Panels are instantiated
+    // inactive (BaseUIController.syncPanelLoaded parents a pooled prefab), so Start never runs
+    // until the panel is first shown — hooking Init meant LoadToolkitView was simply never
+    // called, and the panel silently stayed on NGUI with no error. First-show is the only moment
+    // the panel is guaranteed to be alive.
+    public virtual string toolkitViewKey {
+        get {
+            return "";
+        }
+    }
+
+    protected virtual void EnsureToolkitView() {
+
+        if(isToolkitPanel || string.IsNullOrEmpty(toolkitViewKey)) {
+            return;
+        }
+
+        LoadToolkitView(toolkitViewKey);
+    }
+
     // Loads this panel's view through the registered view backend and binds its UIRef fields.
     // Returns false when no toolkit view exists for the key — the caller then stays on NGUI,
     // which is exactly how a panel is migrated one at a time.
@@ -486,7 +509,17 @@ public class UIPanelBase : UIAppPanel {
 
         backend.Attach(view, layer);
 
+        LoadBindManifest(viewKey);
+
         BindElements(view);
+
+        // The NGUI prefab for this panel is still instantiated (BaseUIController.syncPanelLoaded
+        // loads it by code, and that path is unchanged). Its widgets would render UNDERNEATH the
+        // toolkit view — two copies of the same screen. Suppressing the NGUI container is what
+        // makes a migrated panel actually replace its predecessor rather than double it.
+        if(panelContainer != null) {
+            panelContainer.Hide();
+        }
 
         // Panels start hidden. UIPanelBase.Start() calls AnimateOut() on every panel, and the
         // toolkit path must honour the same contract or a freshly-loaded view would flash.
@@ -498,6 +531,8 @@ public class UIPanelBase : UIAppPanel {
     public virtual void AnimateIn() {
 
         //AnimateOut(0f, 0f);
+
+        EnsureToolkitView();
 
         HandleUniquePanelTypes();
 
