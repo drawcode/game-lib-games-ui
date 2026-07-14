@@ -475,6 +475,12 @@ public class UIPanelBase : UIAppPanel {
 
     protected virtual void EnsureToolkitView() {
 
+        // Global kill switch: NGUI stays the shipping path, and one flag turns the whole toolkit
+        // path off without touching any panel's code.
+        if(!UIPlatform.toolkitViewsEnabled) {
+            return;
+        }
+
         if(isToolkitPanel || string.IsNullOrEmpty(toolkitViewKey)) {
             return;
         }
