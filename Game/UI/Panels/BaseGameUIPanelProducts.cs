@@ -322,7 +322,9 @@ public class BaseGameUIPanelProducts : GameUIPanelBase {
         base.HandleShow();
 
         buttonDisplayState = UIPanelButtonsDisplayState.ProductsSections;
-        characterDisplayState = UIPanelCharacterDisplayState.Character;
+        // No character here — see BaseGameUIPanelStatistics: it collides with the
+        // ProductsSections filter tiles in the same column.
+        characterDisplayState = UIPanelCharacterDisplayState.None;
         backgroundDisplayState = UIPanelBackgroundDisplayState.PanelBacker;
         adDisplayState = UIPanelAdDisplayState.BannerBottom;
     }

@@ -882,12 +882,23 @@ public class UIPanelBase : UIAppPanel {
         if(characterDisplayState ==
             UIPanelCharacterDisplayState.Character) {
 
+            GameUIPanelHeader.HideCharacterLarge();
             GameUIPanelHeader.ShowCharacter();
         }
         else if(characterDisplayState ==
             UIPanelCharacterDisplayState.CharacterLarge) {
 
+            GameUIPanelHeader.HideCharacter();
             GameUIPanelHeader.ShowCharacterLarge();
+        }
+        else {
+            // Panels that declare no character must hide it, mirroring
+            // HandleBackgroundDisplay's show-on-state / hide-on-None symmetry.
+            // Without this the character card leaks onto every later panel and
+            // collides with their content (GameCenter buttons on statistics/
+            // achievements, filter tiles on products). The leak never rendered
+            // pre-flip because the show fade was a silent no-op.
+            GameUIPanelHeader.HideCharacters();
         }
     }
 

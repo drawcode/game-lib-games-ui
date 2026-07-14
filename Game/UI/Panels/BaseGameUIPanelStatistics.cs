@@ -162,7 +162,11 @@ public class BaseGameUIPanelStatistics : GameUIPanelBase {
         base.HandleShow();
 
         buttonDisplayState = UIPanelButtonsDisplayState.GameNetworks;
-        characterDisplayState = UIPanelCharacterDisplayState.Character;
+        // No character here: it shares the left column with the GameNetworks
+        // button grid and does not fit above it (the CUSTOMIZE bar lands on the
+        // buttons). The declaration was vestigial — the character fade was a
+        // silent no-op for years, so the overlap never rendered.
+        characterDisplayState = UIPanelCharacterDisplayState.None;
         backgroundDisplayState = UIPanelBackgroundDisplayState.PanelBacker;
         adDisplayState = UIPanelAdDisplayState.BannerBottom;
     }

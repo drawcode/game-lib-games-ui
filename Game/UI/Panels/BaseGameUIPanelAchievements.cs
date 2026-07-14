@@ -219,7 +219,9 @@ public class BaseGameUIPanelAchievements : GameUIPanelBase {
         base.HandleShow();
 
         buttonDisplayState = UIPanelButtonsDisplayState.GameNetworks;
-        characterDisplayState = UIPanelCharacterDisplayState.Character;
+        // No character here — see BaseGameUIPanelStatistics: it collides with the
+        // GameNetworks button grid in the same column.
+        characterDisplayState = UIPanelCharacterDisplayState.None;
         backgroundDisplayState = UIPanelBackgroundDisplayState.PanelBacker;
     }
 
