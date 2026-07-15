@@ -488,50 +488,58 @@ public class UIPanelBase : UIAppPanel {
         LoadToolkitView(toolkitViewKey);
     }
 
-    // Loads this panel's view through the registered view backend and binds its UIRef fields.
-    // Returns false when no toolkit view exists for the key — the caller then stays on NGUI,
-    // which is exactly how a panel is migrated one at a time.
-    public virtual bool LoadToolkitView(string viewKey) {
+    // set true once a load is in flight, so EnsureToolkitView doesn't kick a second one while the
+    // deferred PanelRenderer build is still pending.
+    private bool toolkitLoadRequested = false;
+
+    // Requests this panel's view from the backend and binds it when ready.
+    //
+    // ASYNCHRONOUS: PanelRenderer builds its UXML on a later panel update (verified in-editor), so
+    // the bind/hide work runs in the onReady continuation, not inline. On the very first show the
+    // panel therefore briefly runs its NGUI path until the view arrives (a frame or two later),
+    // then the continuation hides the NGUI container and the toolkit view takes over. Subsequent
+    // shows are instant (viewRoot already alive). Pre-loading at scene load to remove that first
+    // frame is a Phase 3 refinement.
+    public virtual void LoadToolkitView(string viewKey) {
 
         IUIBackend backend = UIPlatform.viewBackend;
 
-        if (backend == null || string.IsNullOrEmpty(viewKey)) {
-            return false;
+        if (backend == null || string.IsNullOrEmpty(viewKey) || toolkitLoadRequested) {
+            return;
         }
 
-        UIRef view = backend.LoadView(viewKey);
+        toolkitLoadRequested = true;
 
-        if (!view.alive) {
-            return false;
-        }
+        backend.LoadView(viewKey, (UIRef view) => {
 
-        UIRef layer = UIPlatform.Layer(UIPlatform.layerScreens);
+            if (view == null || !view.alive) {
+                // No UXML for this key: stay on NGUI. Allow a later retry.
+                toolkitLoadRequested = false;
+                return;
+            }
 
-        if (!layer.alive) {
-            LogUtil.LogWarning("LoadToolkitView: no UI Toolkit host in scene; cannot host '"
-                + viewKey + "'");
-            return false;
-        }
+            viewRoot = view;
 
-        backend.Attach(view, layer);
+            LoadBindManifest(viewKey);
+            BindElements(view);
 
-        LoadBindManifest(viewKey);
+            // The NGUI prefab for this panel is still instantiated (BaseUIController
+            // .syncPanelLoaded loads it by code, unchanged). Its widgets would render UNDERNEATH
+            // the toolkit view — two copies of the same screen. Suppressing the NGUI container is
+            // what makes a migrated panel replace its predecessor rather than double it.
+            if(panelContainer != null) {
+                panelContainer.Hide();
+            }
 
-        BindElements(view);
-
-        // The NGUI prefab for this panel is still instantiated (BaseUIController.syncPanelLoaded
-        // loads it by code, and that path is unchanged). Its widgets would render UNDERNEATH the
-        // toolkit view — two copies of the same screen. Suppressing the NGUI container is what
-        // makes a migrated panel actually replace its predecessor rather than double it.
-        if(panelContainer != null) {
-            panelContainer.Hide();
-        }
-
-        // Panels start hidden. UIPanelBase.Start() calls AnimateOut() on every panel, and the
-        // toolkit path must honour the same contract or a freshly-loaded view would flash.
-        backend.Hide(view);
-
-        return true;
+            // Match whatever visibility the panel should currently have: if it was shown while the
+            // load was still pending, show now; otherwise start hidden (Start() -> AnimateOut()).
+            if(isVisible) {
+                backend.Show(view);
+            }
+            else {
+                backend.Hide(view);
+            }
+        });
     }
 
     public virtual void AnimateIn() {
