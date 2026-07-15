@@ -169,8 +169,11 @@ public class UIPanelBase : UIAppPanel {
 
     public virtual void OnDisable() {
 
-        Messenger<string>.AddListener(ButtonEvents.EVENT_BUTTON_CLICK, OnButtonClickEventHandler);
-        Messenger<string, Dictionary<string, object>>.AddListener(ButtonEvents.EVENT_BUTTON_CLICK_DATA, OnButtonClickEventDataHandler);
+        // Pre-existing bug (flagged in the 2.9 design): these were AddListener on DISABLE, so
+        // every hide re-subscribed the panel and listeners accumulated across enable cycles.
+        // They must be RemoveListener, symmetric with OnEnable's AddListener.
+        Messenger<string>.RemoveListener(ButtonEvents.EVENT_BUTTON_CLICK, OnButtonClickEventHandler);
+        Messenger<string, Dictionary<string, object>>.RemoveListener(ButtonEvents.EVENT_BUTTON_CLICK_DATA, OnButtonClickEventDataHandler);
 
         Messenger<string>.RemoveListener(UIControllerMessages.uiPanelAnimateIn, OnUIControllerPanelAnimateIn);
         Messenger<string>.RemoveListener(UIControllerMessages.uiPanelAnimateOut, OnUIControllerPanelAnimateOut);
@@ -182,6 +185,41 @@ public class UIPanelBase : UIAppPanel {
         Messenger<string, string>.RemoveListener(UIControllerMessages.uiPanelAnimateOutClassType, OnUIControllerPanelAnimateOutClassType);
 
         Messenger<string, string>.RemoveListener(UIControllerMessages.uiPanelAnimateType, OnUIControllerPanelAnimateType);
+
+        // Pooled-away: free the toolkit view so its UXML + PanelRenderer are reclaimed. Reloads
+        // on the next show.
+        FreeToolkitView();
+    }
+
+    // The real memory unload the per-panel PanelRenderer model exists for.
+    //
+    // This project POOLS panels — it does NOT destroy them on navigation. Verified in play mode:
+    // a navigated-away panel lives on under _ObjectPoolKeyedManager, deactivated (SetActive false),
+    // so OnDisable fires and OnDestroy does not. OnDisable is therefore the "panel put away"
+    // signal, and freeing the view there is what makes the memory actually come back. When the
+    // pooled panel is later re-shown (OnEnable -> AnimateIn -> EnsureToolkitView), it reloads.
+    //
+    // Also freed in OnDestroy for the genuine-teardown case (scene unload), so the separate
+    // PanelRenderer GameObject can't outlive its panel. DestroyView on an already-freed
+    // (UIRef.none) view is a no-op, so calling from both is safe.
+    protected virtual void FreeToolkitView() {
+
+        if(!isToolkitPanel) {
+            return;
+        }
+
+        IUIBackend backend = UIPlatform.For(viewRoot);
+
+        if(backend != null) {
+            backend.DestroyView(viewRoot);
+        }
+
+        viewRoot = UIRef.none;
+        toolkitLoadRequested = false;
+    }
+
+    public virtual void OnDestroy() {
+        FreeToolkitView();
     }
 
     public virtual void OnButtonClickEventHandler(
@@ -515,6 +553,14 @@ public class UIPanelBase : UIAppPanel {
             if (view == null || !view.alive) {
                 // No UXML for this key: stay on NGUI. Allow a later retry.
                 toolkitLoadRequested = false;
+                return;
+            }
+
+            // The load is deferred (a frame or two). If the panel was pooled away in the meantime,
+            // FreeToolkitView cleared toolkitLoadRequested — the view we just built is orphaned, so
+            // destroy it now instead of leaking its PanelRenderer.
+            if (!toolkitLoadRequested) {
+                backend.DestroyView(view);
                 return;
             }
 
