@@ -21,11 +21,12 @@ public class BaseGameUIPanelEquipment : GameUIPanelBase {
     public UIImageButton buttonCustomize;
     public UIImageButton buttonClose;
 #else
-    public Button buttonEquipmentPowerups;
-    public Button buttonStatistics;
-    public Button buttonAchievements;
-    public Button buttonCustomize;
-    public Button buttonClose;
+    // 2.11: agnostic UIRef handles, bound at runtime by name.
+    public Engine.UI.UIRef buttonEquipmentPowerups;
+    public Engine.UI.UIRef buttonStatistics;
+    public Engine.UI.UIRef buttonAchievements;
+    public Engine.UI.UIRef buttonCustomize;
+    public Engine.UI.UIRef buttonClose;
 #endif
 
     public static bool isInst {

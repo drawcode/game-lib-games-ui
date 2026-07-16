@@ -26,8 +26,8 @@ public class BaseGameUIPanelCustomSmarts : GameUIPanelBase {
     public UIImageButton buttonClose;
     public UILabel labelPlaySmartScore;
 #else
-    public Button buttonClose;	
-    public Text labelPlaySmartScore;
+    public Engine.UI.UIRef buttonClose; // 2.11: agnostic handle, bound by name	
+    public Engine.UI.UIRef labelPlaySmartScore; // 2.11: agnostic handle, bound by name
 #endif
 
     public static bool isInst {

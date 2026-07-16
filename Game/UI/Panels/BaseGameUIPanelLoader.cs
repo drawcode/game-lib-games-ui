@@ -24,8 +24,9 @@ public class BaseGameUIPanelLoader : GameUIPanelBase {
     public UISlider sliderProgress;
 
 #else
-    public GameObject labelLoading;
-    public GameObject sliderProgress;
+    // 2.11: agnostic UIRef handles, bound at runtime by name (no consumers today).
+    public Engine.UI.UIRef labelLoading;
+    public Engine.UI.UIRef sliderProgress;
 #endif
 
     public static bool isInst {

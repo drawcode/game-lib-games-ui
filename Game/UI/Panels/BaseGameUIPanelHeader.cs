@@ -20,9 +20,10 @@ public class BaseGameUIPanelHeader : GameUIPanelBase {
     public UIImageButton buttonBack;
     public UILabel labelSection;
 #else
-    public Button buttonCoins;
-    public Button buttonBack;
-    public Text labelSection;
+    // 2.11: agnostic UIRef handles, bound at runtime by name.
+    public Engine.UI.UIRef buttonCoins;
+    public Engine.UI.UIRef buttonBack;
+    public Engine.UI.UIRef labelSection;
 #endif
 
 

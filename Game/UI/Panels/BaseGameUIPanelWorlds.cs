@@ -40,13 +40,14 @@ public class BaseGameUIPanelWorlds : GameUIPanelBase {
     public UILabel labelWorldDescription;
 #else
     //
-    public Button buttonGamePlay;
-    public Button buttonClose;
-    public Button buttonWorldNext;
-    public Button buttonWorldPrevious;
+    // 2.11: agnostic UIRef handles, bound at runtime by name.
+    public Engine.UI.UIRef buttonGamePlay;
+    public Engine.UI.UIRef buttonClose;
+    public Engine.UI.UIRef buttonWorldNext;
+    public Engine.UI.UIRef buttonWorldPrevious;
     //
-    public Text labelWorldTitle;
-    public Text labelWorldDescription;
+    public Engine.UI.UIRef labelWorldTitle;
+    public Engine.UI.UIRef labelWorldDescription;
 #endif
     //
     public GameObject listItemPrefab;

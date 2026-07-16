@@ -22,7 +22,7 @@ public class BaseGameUIPanelResults : GameUIPanelBase {
 #if USE_UI_NGUI_2_7 || USE_UI_NGUI_3
     public UILabel labelContentStateDisplayName;
 #else
-    public Text labelContentStateDisplayName;
+    public Engine.UI.UIRef labelContentStateDisplayName; // 2.11: agnostic handle, bound by name
 #endif
 
     public GameObject listItemPrefab;

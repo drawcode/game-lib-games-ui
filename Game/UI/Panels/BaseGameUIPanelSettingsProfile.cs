@@ -24,12 +24,12 @@ public class BaseGameUIPanelSettingsProfile : GameUIPanelBase {
 
     public UIInput inputProfileName;
 #else
+    // 2.11: agnostic UIRef handles, bound at runtime by name.
+    public Engine.UI.UIRef buttonProfileFacebook;
+    public Engine.UI.UIRef buttonProfileTwitter;
+    public Engine.UI.UIRef buttonProfileGameNetwork;
 
-    public Button buttonProfileFacebook;
-    public Button buttonProfileTwitter;
-    public Button buttonProfileGameNetwork;
-
-    public InputField inputProfileName;
+    public Engine.UI.UIRef inputProfileName;
 #endif
 
     public GameObject listItemPrefab;

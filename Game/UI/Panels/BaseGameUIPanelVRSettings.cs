@@ -18,7 +18,7 @@ public class BaseGameUIPanelVRSettings : GameUIPanelBase {
 #if USE_UI_NGUI_2_7 || USE_UI_NGUI_3
     public UIButton buttonPlayerDefaultObject;
 #else
-    public Button buttonPlayerDefaultObject;
+    public Engine.UI.UIRef buttonPlayerDefaultObject; // 2.11: agnostic handle, bound by name
 #endif
 
     public GameObject listItemPrefab;

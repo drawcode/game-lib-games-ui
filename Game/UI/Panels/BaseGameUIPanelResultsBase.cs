@@ -21,13 +21,14 @@ public class BaseGameUIPanelResultsBase : MonoBehaviour {
     public UILabel totalTime;
     public UILabel totalKills;
 #else
-    public Text totalScoreComputed;
-    public Text totalScore;
-    public Text totalScores;
-    public Text totalSpecials;
-    public Text totalCoins;
-    public Text totalTime;
-    public Text totalKills;
+    // 2.11: agnostic UIRef handles, bound at runtime by name.
+    public Engine.UI.UIRef totalScoreComputed;
+    public Engine.UI.UIRef totalScore;
+    public Engine.UI.UIRef totalScores;
+    public Engine.UI.UIRef totalSpecials;
+    public Engine.UI.UIRef totalCoins;
+    public Engine.UI.UIRef totalTime;
+    public Engine.UI.UIRef totalKills;
 #endif
 
     public virtual void OnEnable() {

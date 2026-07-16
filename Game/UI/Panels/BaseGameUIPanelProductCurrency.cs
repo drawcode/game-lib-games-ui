@@ -39,25 +39,26 @@ public class BaseGameUIPanelProductCurrency : GameUIPanelBase {
     public UIImageButton buttonHelp;
     public UIImageButton buttonPlay;
 #else
-    public Button buttonGameBuyProducts;
+    // 2.11: agnostic UIRef handles, bound at runtime by name.
+    public Engine.UI.UIRef buttonGameBuyProducts;
 
-    public Button buttonGameBuyCurrency;
-    public Button buttonGameBuyCurrencyFeature1;
-    public Button buttonGameBuyCurrencyFeature2;
+    public Engine.UI.UIRef buttonGameBuyCurrency;
+    public Engine.UI.UIRef buttonGameBuyCurrencyFeature1;
+    public Engine.UI.UIRef buttonGameBuyCurrencyFeature2;
 
-    public Button buttonGameBuyCurrencyTier1;
-    public Button buttonGameBuyCurrencyTier2;
-    public Button buttonGameBuyCurrencyTier3;
-    public Button buttonGameBuyCurrencyTier5;
-    public Button buttonGameBuyCurrencyTier10;
-    public Button buttonGameBuyCurrencyTier20;
-    public Button buttonGameBuyCurrencyTier50;
+    public Engine.UI.UIRef buttonGameBuyCurrencyTier1;
+    public Engine.UI.UIRef buttonGameBuyCurrencyTier2;
+    public Engine.UI.UIRef buttonGameBuyCurrencyTier3;
+    public Engine.UI.UIRef buttonGameBuyCurrencyTier5;
+    public Engine.UI.UIRef buttonGameBuyCurrencyTier10;
+    public Engine.UI.UIRef buttonGameBuyCurrencyTier20;
+    public Engine.UI.UIRef buttonGameBuyCurrencyTier50;
 
-    public Button buttonGameEarnCurrency;
-    public Button buttonGameBuyModifier;
+    public Engine.UI.UIRef buttonGameEarnCurrency;
+    public Engine.UI.UIRef buttonGameBuyModifier;
 
-    public Button buttonHelp;
-    public Button buttonPlay;
+    public Engine.UI.UIRef buttonHelp;
+    public Engine.UI.UIRef buttonPlay;
 #endif
 
     public static bool isInst {

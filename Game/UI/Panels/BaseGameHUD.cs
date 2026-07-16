@@ -39,20 +39,21 @@ public class BaseGameHUD : GameUIPanelBase {
     public UISlider sliderHealth;
     public UISlider sliderEnergy;
 #else
-    public Text labelScores;
-    public Text labelScore;
-    public Text labelCoins;
-    public Text labelSpecials;
-    public Text labelLevel;
-    public Text labelTime;
-    public Button buttonCamera;
-    public Button buttonGameSafety;
-    public Button buttonGameSmarts;
-    public Button buttonGameTutorial;
-    public Button buttonGameTips;
-    public Button buttonGameOverview;
-    public Slider sliderHealth;
-    public Slider sliderEnergy;
+    // 2.11: agnostic UIRef handles, bound at runtime by name.
+    public Engine.UI.UIRef labelScores;
+    public Engine.UI.UIRef labelScore;
+    public Engine.UI.UIRef labelCoins;
+    public Engine.UI.UIRef labelSpecials;
+    public Engine.UI.UIRef labelLevel;
+    public Engine.UI.UIRef labelTime;
+    public Engine.UI.UIRef buttonCamera;
+    public Engine.UI.UIRef buttonGameSafety;
+    public Engine.UI.UIRef buttonGameSmarts;
+    public Engine.UI.UIRef buttonGameTutorial;
+    public Engine.UI.UIRef buttonGameTips;
+    public Engine.UI.UIRef buttonGameOverview;
+    public Engine.UI.UIRef sliderHealth;
+    public Engine.UI.UIRef sliderEnergy;
 #endif
 
     public GameObject containerUseObject;
@@ -2078,7 +2079,9 @@ public class GameHUD : GameObjectBehavior {
             if(labelTime != null) {
                 if(RaceManagerScript.Instance != null) {
                     string time = FormatUtil.GetFormattedTimeMinutesSecondsMs(RaceManagerScript.Instance.TotalRaceTime);
-                    labelTime.text = time;
+                    // 2.11: labelTime is UIRef in the non-NGUI branch; SetLabelValue is
+                    // backend-blind (UILabel/Text/UIRef overloads) so this works either way.
+                    UIUtil.SetLabelValue(labelTime, time);
                 }
             }
             

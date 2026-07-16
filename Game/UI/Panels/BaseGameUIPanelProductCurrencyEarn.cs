@@ -30,15 +30,16 @@ public class BaseGameUIPanelProductCurrencyEarn : GameUIPanelBase {
     public UIImageButton buttonEarnMoreGames;
     public UIImageButton buttonEarnViewFullscreenAds;
 #else
-    public Button buttonHelp;
-    public Button buttonEarnLogin;
-    public Button buttonEarnWebsite;
-    public Button buttonEarnTwitter;
-    public Button buttonEarnFacebook;
-    public Button buttonEarnVideoAds;
-    public Button buttonEarnOffers;
-    public Button buttonEarnMoreGames;
-    public Button buttonEarnViewFullscreenAds;
+    // 2.11: agnostic UIRef handles, bound at runtime by name.
+    public Engine.UI.UIRef buttonHelp;
+    public Engine.UI.UIRef buttonEarnLogin;
+    public Engine.UI.UIRef buttonEarnWebsite;
+    public Engine.UI.UIRef buttonEarnTwitter;
+    public Engine.UI.UIRef buttonEarnFacebook;
+    public Engine.UI.UIRef buttonEarnVideoAds;
+    public Engine.UI.UIRef buttonEarnOffers;
+    public Engine.UI.UIRef buttonEarnMoreGames;
+    public Engine.UI.UIRef buttonEarnViewFullscreenAds;
 #endif
 
 

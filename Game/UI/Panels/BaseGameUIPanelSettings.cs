@@ -23,11 +23,12 @@ public class BaseGameUIPanelSettings : GameUIPanelBase {
     public UIImageButton buttonSettingsHelp;
     public UIImageButton buttonSettingsCredits;
 #else
-    public Button buttonSettingsAudio;
-    public Button buttonSettingsControls;
-    public Button buttonSettingsProfile;
-    public Button buttonSettingsHelp;
-    public Button buttonSettingsCredits;
+    // 2.11: agnostic UIRef handles (Unity ignores them; bound at runtime by name).
+    public Engine.UI.UIRef buttonSettingsAudio;
+    public Engine.UI.UIRef buttonSettingsControls;
+    public Engine.UI.UIRef buttonSettingsProfile;
+    public Engine.UI.UIRef buttonSettingsHelp;
+    public Engine.UI.UIRef buttonSettingsCredits;
 #endif
 
     public GameObject listItemPrefab;
