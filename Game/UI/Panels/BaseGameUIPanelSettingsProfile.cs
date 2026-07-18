@@ -92,7 +92,13 @@ public class BaseGameUIPanelSettingsProfile : GameUIPanelBase {
             UIControllerMessages.uiPanelAnimateType,
             OnUIControllerPanelAnimateType);
 
-        Messenger<string, string>.AddListener(InputEvents.EVENT_ITEM_CHANGE, OnProfileInputChanged);
+        // Was AddListener (a real per-hide listener leak — the input handler accumulated every
+        // enable/disable cycle); made symmetric with OnEnable's AddListener. Fixed as part of 3A.
+        Messenger<string, string>.RemoveListener(InputEvents.EVENT_ITEM_CHANGE, OnProfileInputChanged);
+
+        // Chain to base so UIPanelBase.OnDisable -> FreeToolkitView runs when this panel is pooled
+        // away (destroy-on-hide). 3A migration prerequisite.
+        base.OnDisable();
     }
 
     public override void OnUIControllerPanelAnimateIn(string classNameTo) {

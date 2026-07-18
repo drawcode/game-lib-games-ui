@@ -208,6 +208,12 @@ public class UIPanelBase : UIAppPanel {
             return;
         }
 
+        // Stop any in-flight show/hide slide first: destroying the view detaches the VisualElement,
+        // and a still-ticking translate/fade tween would then write style on a panel-less element
+        // (Unity NREs in ApplyStyleTranslate). Cancelling here is the clean stop; the detached-guard
+        // in VisualElementTweenTarget is the backstop.
+        TweenUtil.Cancel(viewRoot);
+
         IUIBackend backend = UIPlatform.For(viewRoot);
 
         if(backend != null) {
@@ -579,8 +585,14 @@ public class UIPanelBase : UIAppPanel {
 
             // Match whatever visibility the panel should currently have: if it was shown while the
             // load was still pending, show now; otherwise start hidden (Start() -> AnimateOut()).
+            //
+            // Slide, don't pop: on a fresh show the view arrives ASYNC — AnimateIn already ran
+            // (isToolkitPanel was still false there, so its ShowObjectTop never fired) and a bare
+            // Show() made first shows appear in place while re-shows slid. ShowObjectTop parks the
+            // view off-screen-top in the same frame as Show, so there's no flash.
             if(isVisible) {
                 backend.Show(view);
+                TweenUtil.ShowObjectTop(view);
             }
             else {
                 backend.Hide(view);
@@ -636,12 +648,13 @@ public class UIPanelBase : UIAppPanel {
 
         HandleBackgroundDisplay();
 
-        // Toolkit panels fade in as one view on a named preset; the nine-edge slide below is the
-        // NGUI choreography and does not apply. Everything above (HandleShow, character/ad/button/
-        // background display) is backend-agnostic and still runs.
+        // Toolkit panels slide the whole view DOWN from off-screen top + fade, synced with the
+        // shared PanelBacker (which also enters from the top). Fade-only left the content sitting
+        // still while the backer moved. The nine-edge slide below is the NGUI choreography and does
+        // not apply. Everything above (HandleShow, character/ad/button/background) still runs.
         if(isToolkitPanel) {
 
-            TweenUtil.ShowObject(viewRoot, "panel-show");
+            TweenUtil.ShowObjectTop(viewRoot);
 
             isVisible = true;
 
@@ -691,7 +704,7 @@ public class UIPanelBase : UIAppPanel {
 
         if(isToolkitPanel) {
 
-            TweenUtil.HideObject(viewRoot, "panel-hide");
+            TweenUtil.HideObjectTop(viewRoot);
 
             isVisible = false;
 

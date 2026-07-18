@@ -153,7 +153,10 @@ public class BaseGameUIPanelBackgrounds : GameUIPanelBase {
     
     public IEnumerator showUICo() {
         yield return new WaitForSeconds(.55f);
-        TweenUtil.ShowObjectBottom(backgroundUI, TweenCoord.local, true);
+        // The shared panel backer sits at panel-top and should ease DOWN from the top; it was
+        // hard-coded to slide up from the bottom (Show/HideObjectBottom), which read as the backer
+        // entering the wrong way on every panel after the first. Top matches its anchor.
+        TweenUtil.ShowObjectTop(backgroundUI, TweenCoord.local, true);
 
         //Debug.Log("GameUIPanelBackgrounds::ShowUICo");
     }
@@ -165,7 +168,8 @@ public class BaseGameUIPanelBackgrounds : GameUIPanelBase {
     }
     
     public virtual void hideUI() {
-        TweenUtil.HideObjectBottom(backgroundUI, TweenCoord.local, true);
+        // Symmetric with showUICo: retract to the top, not the bottom.
+        TweenUtil.HideObjectTop(backgroundUI, TweenCoord.local, true);
         //Debug.Log("GameUIPanelBackgrounds::HideUI");
     }
 

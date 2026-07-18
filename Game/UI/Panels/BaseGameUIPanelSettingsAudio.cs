@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using UnityEngine;
 
 using Engine.Events;
+using Engine.Game.App.BaseApp;
 
 #if ENABLE_FEATURE_SETTINGS_AUDIO
 
@@ -14,8 +15,17 @@ public class BaseGameUIPanelSettingsAudio : GameUIPanelBase {
 
     public GameObject listItemPrefab;
 
-    //public UISlider sliderMusicVolume;
-    //public UISlider sliderEffectsVolume;
+    // 2.11 field mirror + 3A migration. These were dead (commented) — audio did nothing on either
+    // branch. The #else UIRef fields bind to the bitty view's SliderAudioMusicVolume /
+    // SliderAudioEffectsVolume; the NGUI fields stay unwired (audio's NGUI path was never hooked),
+    // so the null-guarded handler below is a no-op there — NGUI behavior is preserved exactly.
+#if USE_UI_NGUI_2_7 || USE_UI_NGUI_3
+    public UISlider sliderAudioMusicVolume;
+    public UISlider sliderAudioEffectsVolume;
+#else
+    public Engine.UI.UIRef sliderAudioMusicVolume;
+    public Engine.UI.UIRef sliderAudioEffectsVolume;
+#endif
 
     public static bool isInst {
         get {
@@ -91,6 +101,10 @@ public class BaseGameUIPanelSettingsAudio : GameUIPanelBase {
             OnUIControllerPanelAnimateType);
 
         Messenger<string, float>.RemoveListener(SliderEvents.EVENT_ITEM_CHANGE, OnSliderChangeEventHandler);
+
+        // Chain to base so UIPanelBase.OnDisable -> FreeToolkitView runs when this panel is pooled
+        // away. This override previously stopped the chain (would leak the toolkit view). 3A prereq.
+        base.OnDisable();
     }
 
     public override void OnUIControllerPanelAnimateIn(string classNameTo) {
@@ -119,14 +133,18 @@ public class BaseGameUIPanelSettingsAudio : GameUIPanelBase {
 
         //LogUtil.Log("OnSliderChangeEventHandler: sliderName:" + sliderName + " sliderValue:" + sliderValue );
 
-        //if (sliderName == sliderEffectsVolume.name) {
-        //    GameProfiles.Current.SetAudioEffectsVolume(sliderValue);
-        //	GameState.SaveProfile();
-        //}
-        //else if (sliderName == sliderMusicVolume.name) {
-        //    GameProfiles.Current.SetAudioMusicVolume(sliderValue);
-        //	GameState.SaveProfile();
-        //}
+        // Restored as part of the 3A migration (it was dead/commented, so audio never persisted).
+        // Null-guarded so the NGUI branch — whose fields are unwired — stays a no-op. The toolkit
+        // value bridge broadcasts (elementName, value) here on drag; sliderName matches the bound
+        // UIRef's name. Initial-value sync from the profile is a follow-up (see 3A notes).
+        if(sliderAudioEffectsVolume != null && sliderName == sliderAudioEffectsVolume.name) {
+            GameProfiles.Current.SetAudioEffectsVolume(sliderValue);
+            GameState.SaveProfile();
+        }
+        else if(sliderAudioMusicVolume != null && sliderName == sliderAudioMusicVolume.name) {
+            GameProfiles.Current.SetAudioMusicVolume(sliderValue);
+            GameState.SaveProfile();
+        }
     }
 
     public override void HandleShow() {

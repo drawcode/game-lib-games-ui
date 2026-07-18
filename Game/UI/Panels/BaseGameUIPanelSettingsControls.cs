@@ -15,10 +15,20 @@ public class BaseGameUIPanelSettingsControls : GameUIPanelBase {
 
     public GameObject listItemPrefab;
 
+    // 2.11 field mirror (done here as part of the 3A migration): NGUI branch unchanged; the #else
+    // branch is the backend-blind Engine.UI.UIRef bound by BindElements from the bitty view's
+    // toggle elements (CheckboxControlsVibrate / CheckboxControlsLeft / CheckboxControlsRight).
+#if USE_UI_NGUI_2_7 || USE_UI_NGUI_3
     public UICheckbox checkboxControlsHandedRight;
     public UICheckbox checkboxControlsHandedLeft;
 
     public UICheckbox checkboxControlsVibrate;
+#else
+    public Engine.UI.UIRef checkboxControlsHandedRight;
+    public Engine.UI.UIRef checkboxControlsHandedLeft;
+
+    public Engine.UI.UIRef checkboxControlsVibrate;
+#endif
 
     public static bool isInst {
         get {
@@ -79,6 +89,11 @@ public class BaseGameUIPanelSettingsControls : GameUIPanelBase {
             OnUIControllerPanelAnimateType);
 
         Messenger<string, bool>.RemoveListener(CheckboxEvents.EVENT_ITEM_CHANGE, OnCheckboxChangeEventHandler);
+
+        // Chain to base so UIPanelBase.OnDisable -> FreeToolkitView runs when this panel is pooled
+        // away (destroy-on-hide). This override previously stopped the chain, which would leak the
+        // PanelRenderer once the panel became a toolkit view. Prerequisite for the 3A migration.
+        base.OnDisable();
     }
 
     public override void OnUIControllerPanelAnimateIn(string classNameTo) {
@@ -103,11 +118,19 @@ public class BaseGameUIPanelSettingsControls : GameUIPanelBase {
 
     }
 
+    // Backend-blind under UI Toolkit: the same callers pass whichever field type the branch
+    // declares, and UIUtil.SetToggleValue(UIRef) already dispatches to the backend's toggle op.
+#if USE_UI_NGUI_2_7 || USE_UI_NGUI_3
     public virtual void ChangeCheckedState(UICheckbox box, bool selected) {
         if(box != null) {
             box.isChecked = selected;
         }
     }
+#else
+    public virtual void ChangeCheckedState(Engine.UI.UIRef box, bool selected) {
+        UIUtil.SetToggleValue(box, selected);
+    }
+#endif
 
     public virtual void SyncCheckedState() {
 
