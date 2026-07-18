@@ -146,17 +146,25 @@ public class BaseGameUIPanelBackgrounds : GameUIPanelBase {
         }
     }
     
+    // Latch so hideUI can tell "put a visible backer away" (tween) from "it's already away"
+    // (snap). Without it, hiding an already-hidden backer tweened it from its old parked spot
+    // THROUGH the visible screen to the new one — the glitchy bottom-to-top sweep on the title
+    // screen.
+    protected bool backerUIVisible = false;
+
     public void showUI() {
+        backerUIVisible = true;
         StartCoroutine(showUICo());
         //Debug.Log("GameUIPanelBackgrounds::ShowUI");
     }
     
     public IEnumerator showUICo() {
-        yield return new WaitForSeconds(.55f);
-        // The shared panel backer sits at panel-top and should ease DOWN from the top; it was
-        // hard-coded to slide up from the bottom (Show/HideObjectBottom), which read as the backer
-        // entering the wrong way on every panel after the first. Top matches its anchor.
-        TweenUtil.ShowObjectTop(backgroundUI, TweenCoord.local, true);
+        // A breath, then the backer LEADS: it eases down from the top immediately and the panel
+        // content follows with a slight lag (panel-show delay in tokens.json). The old stack-up
+        // (.55s wait + .55s tween delay ≈ 1.1s) had content landing BEFORE the backer even
+        // started, which read as broken.
+        yield return new WaitForSeconds(.1f);
+        TweenUtil.ShowObjectTop(backgroundUI, TweenCoord.local, true, .45f, 0f);
 
         //Debug.Log("GameUIPanelBackgrounds::ShowUICo");
     }
@@ -168,6 +176,16 @@ public class BaseGameUIPanelBackgrounds : GameUIPanelBase {
     }
     
     public virtual void hideUI() {
+
+        // Already hidden: park it at the closed-top position INSTANTLY (near-zero tween) so it
+        // never sweeps across the screen on panels that hide an already-hidden backer.
+        if(!backerUIVisible) {
+            TweenUtil.HideObjectTop(backgroundUI, TweenCoord.local, false, .01f, 0f);
+            return;
+        }
+
+        backerUIVisible = false;
+
         // Symmetric with showUICo: retract to the top, not the bottom.
         TweenUtil.HideObjectTop(backgroundUI, TweenCoord.local, true);
         //Debug.Log("GameUIPanelBackgrounds::HideUI");

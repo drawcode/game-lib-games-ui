@@ -14,6 +14,12 @@ public enum UIPanelBackgroundDisplayState {
     PanelBacker
 }
 
+// Which screen edge a centre-wired panel enters from / parks out to.
+public enum UIPanelEnterDirection {
+    Bottom,
+    Top
+}
+
 public enum UIPanelCharacterDisplayState {
     None,
     Character,
@@ -325,8 +331,27 @@ public class UIPanelBase : UIAppPanel {
         AnimateInCenter(panelCenterObject, time, delay, fade);
     }
 
+    // Which edge centre-wired content enters from. DEFAULT: panels showing the shared PanelBacker
+    // enter WITH it (top — the backer leads, content follows); bare flows (worlds/levels, no
+    // backer) keep the classic bottom rise. Safe to derive here: HandleShow() (where panels set
+    // backgroundDisplayState) runs before AnimateInCenter in the AnimateIn flow. Override per
+    // panel for anything that wants an explicit direction.
+    public virtual UIPanelEnterDirection centerEnterDirection {
+        get {
+            return backgroundDisplayState == UIPanelBackgroundDisplayState.PanelBacker
+                ? UIPanelEnterDirection.Top
+                : UIPanelEnterDirection.Bottom;
+        }
+    }
+
     public virtual void AnimateInCenter(GameObject go, float time = .5f, float delay = .5f, bool fade = true) {
-        TweenUtil.ShowObjectBottom(go, TweenCoord.local, fade, time, delay);
+
+        if(centerEnterDirection == UIPanelEnterDirection.Top) {
+            TweenUtil.ShowObjectTop(go, TweenCoord.local, fade, time, delay);
+        }
+        else {
+            TweenUtil.ShowObjectBottom(go, TweenCoord.local, fade, time, delay);
+        }
     }
 
     public virtual void AnimateOutCenter(float time = .3f, float delay = 0f, bool fade = true) {
@@ -334,7 +359,13 @@ public class UIPanelBase : UIAppPanel {
     }
 
     public virtual void AnimateOutCenter(GameObject go, float time = .3f, float delay = 0f, bool fade = true) {
-        TweenUtil.HideObjectBottom(go, TweenCoord.local, fade, time, delay);
+
+        if(centerEnterDirection == UIPanelEnterDirection.Top) {
+            TweenUtil.HideObjectTop(go, TweenCoord.local, fade, time, delay);
+        }
+        else {
+            TweenUtil.HideObjectBottom(go, TweenCoord.local, fade, time, delay);
+        }
     }
 
     // LEFT
@@ -517,6 +548,34 @@ public class UIPanelBase : UIAppPanel {
         }
     }
 
+    // Which draw-order band this panel's view sits in (see Engine.UI.UILayers). Default `auto`
+    // keeps the original behavior (draw order == load order, within the panel band). Always-on
+    // chrome overrides this with UILayers.chrome so it renders ABOVE screens that load after it.
+    //
+    // NOTE: this is draw order only — it is NOT a lifetime hint. A view is still released by
+    // FreeToolkitView on OnDisable, so a flow-scoped panel is loaded and cleaned up exactly as
+    // before; chrome merely stays resident for as long as its GameObject stays enabled.
+    public virtual int toolkitSortOrder {
+        get {
+            return UILayers.auto;
+        }
+    }
+
+    // Named motion presets driving this panel's toolkit show/hide slide (tokens.json -> TweenPresets).
+    // Chrome overrides these with chrome-show/chrome-hide so the header's entrance has slight
+    // timing/ease variance from the content body — fluid, not mechanical lock-step.
+    public virtual string toolkitShowPreset {
+        get {
+            return "panel-show";
+        }
+    }
+
+    public virtual string toolkitHidePreset {
+        get {
+            return "panel-hide";
+        }
+    }
+
     protected virtual void EnsureToolkitView() {
 
         // Global kill switch: NGUI stays the shipping path, and one flag turns the whole toolkit
@@ -554,7 +613,7 @@ public class UIPanelBase : UIAppPanel {
 
         toolkitLoadRequested = true;
 
-        backend.LoadView(viewKey, (UIRef view) => {
+        backend.LoadView(viewKey, toolkitSortOrder, (UIRef view) => {
 
             if (view == null || !view.alive) {
                 // No UXML for this key: stay on NGUI. Allow a later retry.
@@ -579,9 +638,7 @@ public class UIPanelBase : UIAppPanel {
             // .syncPanelLoaded loads it by code, unchanged). Its widgets would render UNDERNEATH
             // the toolkit view — two copies of the same screen. Suppressing the NGUI container is
             // what makes a migrated panel replace its predecessor rather than double it.
-            if(panelContainer != null) {
-                panelContainer.Hide();
-            }
+            SuppressLegacyView();
 
             // Match whatever visibility the panel should currently have: if it was shown while the
             // load was still pending, show now; otherwise start hidden (Start() -> AnimateOut()).
@@ -592,12 +649,24 @@ public class UIPanelBase : UIAppPanel {
             // view off-screen-top in the same frame as Show, so there's no flash.
             if(isVisible) {
                 backend.Show(view);
-                TweenUtil.ShowObjectTop(view);
+                TweenUtil.ShowObjectTop(view, toolkitShowPreset);
             }
             else {
                 backend.Hide(view);
             }
         });
+    }
+
+    // What LoadToolkitView hides so the NGUI prefab doesn't render underneath the toolkit view.
+    // Default: the whole panelContainer. Overridable because some panels carry NON-flat content
+    // inside their container that must survive the swap — the header's 3D character preview
+    // (Characters lives inside its Container) is the first case; it hides only the flat widgets
+    // its view replaces.
+    protected virtual void SuppressLegacyView() {
+
+        if(panelContainer != null) {
+            panelContainer.Hide();
+        }
     }
 
     public virtual void AnimateIn() {
@@ -654,7 +723,7 @@ public class UIPanelBase : UIAppPanel {
         // not apply. Everything above (HandleShow, character/ad/button/background) still runs.
         if(isToolkitPanel) {
 
-            TweenUtil.ShowObjectTop(viewRoot);
+            TweenUtil.ShowObjectTop(viewRoot, toolkitShowPreset);
 
             isVisible = true;
 
@@ -704,7 +773,7 @@ public class UIPanelBase : UIAppPanel {
 
         if(isToolkitPanel) {
 
-            TweenUtil.HideObjectTop(viewRoot);
+            TweenUtil.HideObjectTop(viewRoot, toolkitHidePreset);
 
             isVisible = false;
 

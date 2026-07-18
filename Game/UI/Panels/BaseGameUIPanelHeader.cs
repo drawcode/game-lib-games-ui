@@ -67,6 +67,46 @@ public class BaseGameUIPanelHeader : GameUIPanelBase {
     public GameObject backObject;
     public GameObject backerObject;
     public GameObject titleObject;
+
+    // Chrome motion: slightly faster + different ease than the content body (chrome-show/hide vs
+    // panel-show/hide, tokens.json) so the header's entrance reads as fluid variance.
+    public override string toolkitShowPreset {
+        get {
+            return "chrome-show";
+        }
+    }
+
+    public override string toolkitHidePreset {
+        get {
+            return "chrome-hide";
+        }
+    }
+
+    // Toolkit parallels (3B): bound by BindElements from the panel-header manifest. The GameObject
+    // fields above stay wired to the NGUI prefab; the show/hide helpers drive BOTH, so the same
+    // showFull/showMain choreography works on whichever backend is rendering. Unguarded on purpose
+    // — UIRef is an engine type and compiles in both define branches; on NGUI they are simply
+    // never bound and every op no-ops.
+    public Engine.UI.UIRef labelCoin;
+    public Engine.UI.UIRef coinObjectRef;
+    public Engine.UI.UIRef backObjectRef;
+    public Engine.UI.UIRef backerObjectRef;
+    public Engine.UI.UIRef titleObjectRef;
+
+    // The coin element in the toolkit view; a UIRenderStage feeds it the LIVE 3D coin (mesh +
+    // particle effects) from the NGUI prefab as a RenderTexture — the real coin, key to drawing
+    // players into the store/coin flows, composited inside the toolkit chrome.
+    public Engine.UI.UIRef coinIconRef;
+
+    private Engine.UI.UIRenderStage coinStage;
+    private GameObject coinFlatLabel;
+    private GameObject coinFlatButtonLabel;
+    private GameObject coinFlatButtonBackground;
+
+    // The coin's glow particles get boosted while staged (the eye-draw spills past the coin);
+    // originals restored when the toolkit view frees.
+    private ParticleSystem[] coinEffectSystems;
+    private float[] coinEffectOriginalSizes;
     public GameObject containerCharacters;
     public GameObject containerCharacter;
     public GameObject containerCharacterLarge;
@@ -146,6 +186,11 @@ public class BaseGameUIPanelHeader : GameUIPanelBase {
         Messenger<string, string>.RemoveListener(
             UIControllerMessages.uiPanelAnimateType,
             OnUIControllerPanelAnimateType);
+
+        // Chain to base so UIPanelBase.OnDisable -> FreeToolkitView runs if the header is ever
+        // disabled (leaving the menu flow). Draw order keeps it above panels (UILayers.chrome);
+        // LIFETIME stays the standard enable/disable contract like every other panel. 3B prereq.
+        base.OnDisable();
     }
 
     public override void OnUIControllerPanelAnimateIn(string classNameTo) {
@@ -370,6 +415,7 @@ public class BaseGameUIPanelHeader : GameUIPanelBase {
         ShowBackerObject();
         ShowBackButtonObject();
         ShowTitleObject();
+        RefreshCoins();
     }
 
     public static void ShowMain() {
@@ -383,6 +429,170 @@ public class BaseGameUIPanelHeader : GameUIPanelBase {
         HideBackerObject();
         HideBackButtonObject();
         HideTitleObject();
+        RefreshCoins();
+    }
+
+    // Coin count refreshes FROM DATA on show (user decision 2026-07-15): while hidden it may go
+    // stale, but every show re-reads the profile. Replaces the NGUI prefab's UIGameRPGCurrency
+    // 1s poller for the toolkit path — no per-frame work while the header just sits there.
+    public virtual void RefreshCoins() {
+
+        if(isToolkitPanel) {
+            UIUtil.SetLabelValue(labelCoin,
+                GameProfileRPGs.Current.GetCurrency().ToString("N0"));
+        }
+    }
+
+    // The 3D character preview containers (Characters) live INSIDE this panel's Container, so the
+    // default whole-container suppression would kill the customize screens' character display.
+    // Hide only the flat NGUI widgets the toolkit view replaces; everything else stays live.
+    //
+    // The coin cluster is suppressed at a FINER grain: its flat NGUI bits (count label, "+"
+    // label, sprite backer) hide, but the 3D coin subtree (mesh + effect particles) stays alive
+    // and is handed to a UIRenderStage — an isolated layer + tiny camera renders it to a
+    // RenderTexture shown by the toolkit view's CoinIcon element. World content can't draw above
+    // a toolkit panel, so the RT is how the real animated coin survives the chrome migration.
+    protected override void SuppressLegacyView() {
+
+        SuppressCoinCluster();
+
+        if(backObject != null) {
+            backObject.Hide();
+        }
+
+        if(backerObject != null) {
+            backerObject.Hide();
+        }
+
+        if(titleObject != null) {
+            titleObject.Hide();
+        }
+    }
+
+    protected virtual void SuppressCoinCluster() {
+
+        if(coinObject == null) {
+            return;
+        }
+
+        Transform t = coinObject.transform;
+
+        coinFlatLabel = t.Find("LabelCoin") != null
+            ? t.Find("LabelCoin").gameObject : null;
+        coinFlatButtonLabel = t.Find("ButtonGameProductCurrency/Label") != null
+            ? t.Find("ButtonGameProductCurrency/Label").gameObject : null;
+        coinFlatButtonBackground = t.Find("ButtonGameProductCurrency/Background") != null
+            ? t.Find("ButtonGameProductCurrency/Background").gameObject : null;
+
+        if(coinFlatLabel != null) {
+            coinFlatLabel.Hide();
+        }
+
+        if(coinFlatButtonLabel != null) {
+            coinFlatButtonLabel.Hide();
+        }
+
+        if(coinFlatButtonBackground != null) {
+            coinFlatButtonBackground.Hide();
+        }
+
+        SetupCoinStage(t);
+    }
+
+    protected virtual void SetupCoinStage(Transform coinRoot) {
+
+        if(coinStage != null) {
+            return;
+        }
+
+        Transform uiCoin = coinRoot.Find("ButtonGameProductCurrency/UICoin");
+
+        if(uiCoin == null) {
+            return;
+        }
+
+        // Dedicated widget layer; UI3D as fallback (older project configs).
+        int layer = LayerMask.NameToLayer("UIWidget3D");
+
+        if(layer < 0) {
+            layer = LayerMask.NameToLayer("UI3D");
+        }
+
+        // Modest framing headroom: the coin fills most of the element, with RT room for the
+        // boosted glow to reach just past its edge.
+        coinStage = Engine.UI.UIRenderStage.Attach(uiCoin.gameObject, layer, 128, 1.3f);
+
+        if(coinStage != null) {
+            UIUtil.SetImageTexture(coinIconRef, coinStage.texture);
+            BoostCoinEffect(uiCoin, 1.8f);
+        }
+    }
+
+    // Scale the glow's particle START SIZE (not the element, not the transform — size multiplier
+    // works regardless of the systems' scaling mode) so the effect draws the eye by spilling
+    // just outside the coin. Restored in FreeToolkitView.
+    protected virtual void BoostCoinEffect(Transform uiCoin, float factor) {
+
+        Transform effect = uiCoin.Find("Effect");
+
+        if(effect == null) {
+            return;
+        }
+
+        coinEffectSystems = effect.GetComponentsInChildren<ParticleSystem>(true);
+        coinEffectOriginalSizes = new float[coinEffectSystems.Length];
+
+        for(int i = 0; i < coinEffectSystems.Length; i++) {
+
+            ParticleSystem.MainModule main = coinEffectSystems[i].main;
+            coinEffectOriginalSizes[i] = main.startSizeMultiplier;
+            main.startSizeMultiplier = coinEffectOriginalSizes[i] * factor;
+        }
+    }
+
+    protected virtual void RestoreCoinEffect() {
+
+        if(coinEffectSystems == null) {
+            return;
+        }
+
+        for(int i = 0; i < coinEffectSystems.Length; i++) {
+
+            if(coinEffectSystems[i] != null) {
+                ParticleSystem.MainModule main = coinEffectSystems[i].main;
+                main.startSizeMultiplier = coinEffectOriginalSizes[i];
+            }
+        }
+
+        coinEffectSystems = null;
+        coinEffectOriginalSizes = null;
+    }
+
+    // The stage + suppressed NGUI pieces belong to the toolkit view's lifetime: when the view is
+    // freed (header disabled, or kill switch), restore the NGUI coin/flat widgets so the legacy
+    // path renders whole again.
+    protected override void FreeToolkitView() {
+
+        RestoreCoinEffect();
+
+        if(coinStage != null) {
+            coinStage.Detach();
+            coinStage = null;
+        }
+
+        if(coinFlatLabel != null) {
+            coinFlatLabel.Show();
+        }
+
+        if(coinFlatButtonLabel != null) {
+            coinFlatButtonLabel.Show();
+        }
+
+        if(coinFlatButtonBackground != null) {
+            coinFlatButtonBackground.Show();
+        }
+
+        base.FreeToolkitView();
     }
 
     public static void ShowNone() {
@@ -485,6 +695,16 @@ public class BaseGameUIPanelHeader : GameUIPanelBase {
 
     public virtual void ShowBackButtonObject() {
 
+        // Toolkit parallel: same show, on the bound view element (no-op when unbound/NGUI).
+        TweenUtil.FadeToObject(backObjectRef, 1f, "fade-in");
+
+        // Once the toolkit view owns the header, the NGUI widgets must STAY suppressed —
+        // without this gate every showFull() re-showed them under the toolkit band (double
+        // header). Same gate on every helper below.
+        if(isToolkitPanel) {
+            return;
+        }
+
         if(backObject != null) {
 
             backerObject.Show();
@@ -509,6 +729,12 @@ public class BaseGameUIPanelHeader : GameUIPanelBase {
 
     public virtual void HideBackButtonObject() {
 
+        TweenUtil.FadeToObject(backObjectRef, 0f, "fade-out");
+
+        if(isToolkitPanel) {
+            return;
+        }
+
         if(backObject != null) {
 
             TweenUtil.HideObjectLeft(backObject);
@@ -530,27 +756,60 @@ public class BaseGameUIPanelHeader : GameUIPanelBase {
     }
 
     public virtual void ShowBackerObject() {
-        TweenUtil.FadeToObject(backerObject, 1f);
+        TweenUtil.FadeToObject(backerObjectRef, 1f, "fade-in");
+
+        if(!isToolkitPanel) {
+            TweenUtil.FadeToObject(backerObject, 1f);
+        }
     }
 
     public virtual void HideBackerObject() {
-        TweenUtil.FadeToObject(backerObject, 0f);
+        TweenUtil.FadeToObject(backerObjectRef, 0f, "fade-out");
+
+        if(!isToolkitPanel) {
+            TweenUtil.FadeToObject(backerObject, 0f);
+        }
     }
 
     public virtual void ShowTitleObject() {
-        TweenUtil.FadeToObject(titleObject, 1f);
+        TweenUtil.FadeToObject(titleObjectRef, 1f, "fade-in");
+
+        if(!isToolkitPanel) {
+            TweenUtil.FadeToObject(titleObject, 1f);
+        }
     }
 
     public virtual void HideTitleObject() {
-        TweenUtil.FadeToObject(titleObject, 0f);
+        TweenUtil.FadeToObject(titleObjectRef, 0f, "fade-out");
+
+        if(!isToolkitPanel) {
+            TweenUtil.FadeToObject(titleObject, 0f);
+        }
     }
 
     public virtual void ShowCoinsObject() {
-        TweenUtil.FadeToObject(coinObject, 1f);
+        TweenUtil.FadeToObject(coinObjectRef, 1f, "fade-in");
+
+        // The RT stage only renders while the coin is on screen.
+        if(coinStage != null) {
+            coinStage.SetVisible(true);
+        }
+
+        if(!isToolkitPanel) {
+            TweenUtil.FadeToObject(coinObject, 1f);
+        }
     }
 
     public virtual void HideCoinsObject() {
-        TweenUtil.FadeToObject(coinObject, 0f);
+        TweenUtil.FadeToObject(coinObjectRef, 0f, "fade-out");
+
+        if(coinStage != null) {
+            coinStage.SetVisible(false);
+        }
+
+        if(!isToolkitPanel) {
+            TweenUtil.FadeToObject(coinObject, 0f);
+        }
     }
 
     public static void LoadData() {
