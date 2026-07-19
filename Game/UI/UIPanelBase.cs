@@ -649,12 +649,23 @@ public class UIPanelBase : UIAppPanel {
             // view off-screen-top in the same frame as Show, so there's no flash.
             if(isVisible) {
                 backend.Show(view);
-                TweenUtil.ShowObjectTop(view, toolkitShowPreset);
+                ShowToolkitViewSlide();
             }
             else {
                 backend.Hide(view);
             }
         });
+    }
+
+    // Which edge the whole view slides in/out through. Top is the standard for flow panels and
+    // top chrome (enters WITH the shared backer); bottom chrome (footer) overrides both to the
+    // bottom edge so the band rises from its own screen edge.
+    protected virtual void ShowToolkitViewSlide() {
+        TweenUtil.ShowObjectTop(viewRoot, toolkitShowPreset);
+    }
+
+    protected virtual void HideToolkitViewSlide() {
+        TweenUtil.HideObjectTop(viewRoot, toolkitHidePreset);
     }
 
     // What LoadToolkitView hides so the NGUI prefab doesn't render underneath the toolkit view.
@@ -723,7 +734,7 @@ public class UIPanelBase : UIAppPanel {
         // not apply. Everything above (HandleShow, character/ad/button/background) still runs.
         if(isToolkitPanel) {
 
-            TweenUtil.ShowObjectTop(viewRoot, toolkitShowPreset);
+            ShowToolkitViewSlide();
 
             isVisible = true;
 
@@ -773,7 +784,7 @@ public class UIPanelBase : UIAppPanel {
 
         if(isToolkitPanel) {
 
-            TweenUtil.HideObjectTop(viewRoot, toolkitHidePreset);
+            HideToolkitViewSlide();
 
             isVisible = false;
 
