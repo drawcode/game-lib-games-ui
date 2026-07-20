@@ -65,6 +65,10 @@ public class BaseGameUIPanelStatistics : GameUIPanelBase {
         Messenger<string, string>.RemoveListener(
             UIControllerMessages.uiPanelAnimateType,
             OnUIControllerPanelAnimateType);
+        // Chain to base so UIPanelBase.OnDisable -> FreeToolkitView runs when this panel is
+        // pooled away, else the toolkit view leaks once the panel has one. Phase-3 migration
+        // prerequisite (same fix the settings/header/footer bases got in 3A/3B).
+        base.OnDisable();
     }
 
     public override void OnUIControllerPanelAnimateIn(string classNameTo) {
@@ -95,6 +99,21 @@ public class BaseGameUIPanelStatistics : GameUIPanelBase {
 
     IEnumerator loadDataCo() {
 
+        // Toolkit (list wave): wait for the async view, then rebuild rows from the template.
+        // The legacy grid path below stays for the kill switch.
+        if(!string.IsNullOrEmpty(toolkitViewKey)) {
+
+            for(int waitFrames = 0; waitFrames < 60 && !isToolkitPanel; waitFrames++) {
+                yield return null;
+            }
+
+            if(isToolkitPanel) {
+                loadDataStatisticsToolkit();
+                yield break;
+            }
+        }
+
+
         LogUtil.Log("LoadDataCo");
 
         if(listGridRoot != null) {
@@ -112,6 +131,30 @@ public class BaseGameUIPanelStatistics : GameUIPanelBase {
         }
     }
 
+
+    // Rows through the platform: rebuild StatisticItem{i} from the view template with the
+    // same per-row values/formatting as the legacy grid path below.
+    public virtual void loadDataStatisticsToolkit() {
+
+        UIUtil.ClearListItems(viewRoot, "StatisticList");
+
+        int i = 0;
+
+        foreach(GameStatistic statistic in GameStatistics.Instance.GetAll()) {
+
+            double statValue = GameProfileStatistics.Current.GetStatisticValue(statistic.code);
+            string displayValue = GameStatistics.Instance.GetStatisticDisplayValue(statistic, statValue);
+
+            Engine.UI.UIRef item = UIUtil.AddListItem(
+                viewRoot, "StatisticList", "StatisticItemTemplate", "StatisticItem" + i);
+
+            UIUtil.UpdateLabelObject(item, "LabelName", statistic.display_name);
+            UIUtil.UpdateLabelObject(item, "LabelDescription", statistic.description);
+            UIUtil.UpdateLabelObject(item, "LabelPoints", displayValue);
+
+            i++;
+        }
+    }
 
     public virtual void loadDataStatistics() {
 

@@ -67,6 +67,10 @@ public class BaseGameUIPanelAchievements : GameUIPanelBase {
         Messenger<string, string>.RemoveListener(
             UIControllerMessages.uiPanelAnimateType,
             OnUIControllerPanelAnimateType);
+        // Chain to base so UIPanelBase.OnDisable -> FreeToolkitView runs when this panel is
+        // pooled away, else the toolkit view leaks once the panel has one. Phase-3 migration
+        // prerequisite (same fix the settings/header/footer bases got in 3A/3B).
+        base.OnDisable();
     }
 
     public override void OnUIControllerPanelAnimateIn(string classNameTo) {
@@ -104,6 +108,21 @@ public class BaseGameUIPanelAchievements : GameUIPanelBase {
 
     IEnumerator loadDataCo() {
 
+        // Toolkit (list wave): wait for the async view, then rebuild rows from the template.
+        // The legacy grid path below stays for the kill switch.
+        if(!string.IsNullOrEmpty(toolkitViewKey)) {
+
+            for(int waitFrames = 0; waitFrames < 60 && !isToolkitPanel; waitFrames++) {
+                yield return null;
+            }
+
+            if(isToolkitPanel) {
+                loadDataAchievementsToolkit();
+                yield break;
+            }
+        }
+
+
         LogUtil.Log("LoadDataCo");
 
         if(listGridRoot != null) {
@@ -119,6 +138,57 @@ public class BaseGameUIPanelAchievements : GameUIPanelBase {
 #endif
 
             yield return new WaitForEndOfFrame();
+        }
+    }
+
+    // Rows through the platform: rebuild AchievementItem{i} from the view template with the
+    // same completion/points logic as the legacy grid path below (icon alpha 1.0 completed /
+    // 0.33 incomplete over the card's own trophy tint).
+    public virtual void loadDataAchievementsToolkit() {
+
+        UIUtil.ClearListItems(viewRoot, "AchievementList");
+
+        int i = 0;
+
+        foreach(GameAchievement achievement in GameAchievements.Instance.GetAll()) {
+
+            Engine.UI.UIRef item = UIUtil.AddListItem(
+                viewRoot, "AchievementList", "AchievementItemTemplate", "AchievementItem" + i);
+
+            UIUtil.UpdateLabelObject(item, "LabelName", achievement.display_name);
+            UIUtil.UpdateLabelObject(item, "LabelDescription", achievement.description);
+
+            bool completed = false;
+
+            bool hasValue = GameProfileAchievements.Current.CheckIfAttributeExists(achievement.code);
+
+            if(hasValue) {
+                completed = GameProfileAchievements.Current.GetAchievementValue(achievement.code);
+            }
+
+            if(!hasValue) {
+                completed = GameProfileAchievements.Current.GetAchievementValue(achievement.code + "_" + achievement.pack_code);
+            }
+
+            string points = "";
+
+            if(completed) {
+                double currentPoints = achievement.data.points;
+
+                if(GameConfigs.useCoinRewardsForAchievements) {
+                    currentPoints *= (int)GameConfigs.coinRewardAchievementPoint;
+                }
+
+                points = "+" + currentPoints.ToString();
+            }
+
+            UIUtil.UpdateLabelObject(item, "LabelPoints", points);
+
+            UIUtil.SetSpriteColor(
+                UIUtil.ResolveDeep(item, "Icon"),
+                new Color(1f, 0.9751f, 0.6392f, completed ? 1f : 0.33f));
+
+            i++;
         }
     }
 
