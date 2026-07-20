@@ -264,10 +264,9 @@ public class BaseGameUIPanelWorlds : GameUIPanelBase {
 
     public virtual void ShowSelect() {
 
-        // Toolkit (3D wave): the worlds-missions sub-list is not migrated yet — the legacy
-        // container stays suppressed with the rest of panelContainer, so there is nothing to
-        // show. The missions rows arrive with the worlds-missions list in a later list wave.
+        // Toolkit: the view's WorldMissionList mirrors the legacy containerMissions.
         if(isToolkitPanel) {
+            UIUtil.ShowObject(UIUtil.ResolveDeep(viewRoot, "WorldMissionList"));
             return;
         }
 
@@ -277,6 +276,7 @@ public class BaseGameUIPanelWorlds : GameUIPanelBase {
     public virtual void HideSelect() {
 
         if(isToolkitPanel) {
+            UIUtil.HideObject(UIUtil.ResolveDeep(viewRoot, "WorldMissionList"));
             return;
         }
 
@@ -334,7 +334,8 @@ public class BaseGameUIPanelWorlds : GameUIPanelBase {
             }
 
             if(isToolkitPanel) {
-                UpdateMetaLabels();
+                loadDataMissionsToolkit();
+                HandleStateChange();
                 yield break;
             }
         }
@@ -356,6 +357,100 @@ public class BaseGameUIPanelWorlds : GameUIPanelBase {
 
         // Find worlds
 
+    }
+
+    // Toolkit missions rows: rebuild WorldMissionItemTemplate per mission of the current
+    // world, mirroring loadDataMissions below — name/action rows/star states/score, and the
+    // row's ButtonAction renamed to the $-encoded play payload (elements have no
+    // GameObjectData, so the name carries it; BaseUIController's play handler parses it).
+    public virtual void loadDataMissionsToolkit() {
+
+        UpdateMetaLabels();
+
+        UIUtil.ClearListItems(viewRoot, "WorldMissionList");
+
+        int i = 0;
+
+        string worldCode = GameWorlds.Current.code;
+        string appContentState = AppContentStates.Current.code;
+        string appState = AppStates.Current.code;
+
+        foreach(AppContentCollect mission in
+                 AppContentCollects.GetMissionsByWorld(worldCode)) {
+
+            double scoreMission = 0;
+
+            Engine.UI.UIRef item = UIUtil.AddListItem(
+                viewRoot, "WorldMissionList", "WorldMissionItemTemplate", "MissionItem" + i);
+
+            UIUtil.UpdateLabelObject(item, "LabelName", mission.display_name);
+
+            for(int a = 1; a <= 3; a++) {
+
+                UIUtil.HideObject(UIUtil.ResolveDeep(item, "action-" + a));
+
+                SetStarsToolkit(UIUtil.ResolveDeep(item, "summary-star-" + a), false);
+            }
+
+            int j = 0;
+
+            foreach(AppContentCollectItem action in mission.GetItemsData()) {
+
+                if(j >= 3) {
+                    break;
+                }
+
+                string index = (j + 1).ToString();
+
+                Engine.UI.UIRef actionRow = UIUtil.ResolveDeep(item, "action-" + index);
+
+                UIUtil.ShowObject(actionRow);
+                UIUtil.UpdateLabelObject(actionRow, "LabelDescription", action.data.display_name);
+
+                string collectKey =
+                    GameProfileModes.GetAppContentCollectItemKey(
+                        appState,
+                        appContentState,
+                        worldCode,
+                        BaseDataObjectKeys.all,
+                        mission.code, action.uid);
+
+                bool complete = GameProfileModes.Current.GetContentCollectValue<bool>(
+                    BaseDataObjectKeys.mission, collectKey, BaseDataObjectKeys.complete);
+
+                double points = GameProfileModes.Current.GetContentCollectValue<double>(
+                    BaseDataObjectKeys.mission, collectKey, BaseDataObjectKeys.points);
+
+                if(points == 0) {
+                    points = GameProfileModes.Current.GetContentCollectValue<int>(
+                        BaseDataObjectKeys.mission, collectKey, BaseDataObjectKeys.points);
+                }
+
+                if(complete) {
+                    scoreMission += points;
+                }
+
+                SetStarsToolkit(actionRow, complete);
+                SetStarsToolkit(UIUtil.ResolveDeep(item, "summary-star-" + index), complete);
+
+                j++;
+            }
+
+            UIUtil.UpdateLabelObject(item, "LabelScore", scoreMission.ToString("N0"));
+
+            UIUtil.SetElementName(
+                UIUtil.ResolveDeep(item, "ButtonAction"),
+                BaseUIButtonNames.buttonGamePlay + "$" + appContentState + "$" + mission.code);
+
+            i++;
+        }
+    }
+
+    // The toolkit twin of SetStars: each star slot holds a StarComplete/StarIncomplete pair.
+    public virtual void SetStarsToolkit(Engine.UI.UIRef starWrap, bool isCompleted) {
+
+        UIUtil.ShowObject(UIUtil.ResolveDeep(starWrap, isCompleted ? "StarComplete" : "StarIncomplete"));
+        UIUtil.HideObject(UIUtil.ResolveDeep(starWrap, isCompleted ? "StarIncomplete" : "StarComplete"));
     }
 
     public virtual void loadDataMissions() {
