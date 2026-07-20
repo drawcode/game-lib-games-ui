@@ -74,6 +74,10 @@ public class BaseGameUIPanelGameModeMission : GameUIPanelBase {
         Messenger<string, string>.RemoveListener(
             UIControllerMessages.uiPanelAnimateType,
             OnUIControllerPanelAnimateType);
+        // Chain to base so UIPanelBase.OnDisable -> FreeToolkitView runs when this panel is
+        // pooled away, else the toolkit view leaks once the panel has one. Phase-3 migration
+        // prerequisite (same fix the settings/header/footer bases got in 3A/3B).
+        base.OnDisable();
     }
 
     public override void OnUIControllerPanelAnimateIn(string classNameTo) {
@@ -114,6 +118,22 @@ public class BaseGameUIPanelGameModeMission : GameUIPanelBase {
 
         LogUtil.Log("LoadDataCo");
 
+        // Toolkit path (3D): the view loads async on first AnimateIn — wait for it, then
+        // rebuild the rows from the view's MissionItemTemplate. The legacy grid path below
+        // stays for the kill switch (it is null-wired in this prefab anyway — the reason the
+        // legacy screen always rendered empty).
+        if(!string.IsNullOrEmpty(toolkitViewKey)) {
+
+            for(int waitFrames = 0; waitFrames < 60 && !isToolkitPanel; waitFrames++) {
+                yield return null;
+            }
+
+            if(isToolkitPanel) {
+                loadDataMissionsToolkit();
+                yield break;
+            }
+        }
+
         if(listGridRoot != null) {
             listGridRoot.DestroyChildren();
 
@@ -124,6 +144,26 @@ public class BaseGameUIPanelGameModeMission : GameUIPanelBase {
             yield return new WaitForEndOfFrame();
             listGridRoot.GetComponent<UIGrid>().Reposition();
             yield return new WaitForEndOfFrame();
+        }
+    }
+
+    // Rows through the platform: clear + rebuild MissionItem{i} from the template, name +
+    // description per mission (description is empty in current data — rows render title-only).
+    public virtual void loadDataMissionsToolkit() {
+
+        UIUtil.ClearListItems(viewRoot, "MissionList");
+
+        int i = 0;
+
+        foreach(AppContentCollect mission in AppContentCollects.GetMissions()) {
+
+            Engine.UI.UIRef item = UIUtil.AddListItem(
+                viewRoot, "MissionList", "MissionItemTemplate", "MissionItem" + i);
+
+            UIUtil.UpdateLabelObject(item, "LabelName", mission.display_name);
+            UIUtil.UpdateLabelObject(item, "LabelDescription", mission.description);
+
+            i++;
         }
     }
 

@@ -68,6 +68,10 @@ public class BaseGameUIPanelSettingsHelp : GameUIPanelBase {
         Messenger<string, string>.RemoveListener(
             UIControllerMessages.uiPanelAnimateType,
             OnUIControllerPanelAnimateType);
+        // Chain to base so UIPanelBase.OnDisable -> FreeToolkitView runs when this panel is
+        // pooled away, else the toolkit view leaks once the panel has one. Phase-3 migration
+        // prerequisite (same fix the settings/header/footer bases got in 3A/3B).
+        base.OnDisable();
     }
 
     public override void OnUIControllerPanelAnimateIn(string classNameTo) {

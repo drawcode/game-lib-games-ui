@@ -137,6 +137,10 @@ public class BaseGameUIPanelWorlds : GameUIPanelBase {
         Messenger.RemoveListener(GameWorldsMessages.gameWorldNext, OnGameWorldNext);
         Messenger.RemoveListener(GameWorldsMessages.gameWorldPrevious, OnGameWorldPrevious);
         Messenger.RemoveListener(GameWorldsMessages.gameWorldSelect, OnGameWorldSelect);
+        // Chain to base so UIPanelBase.OnDisable -> FreeToolkitView runs when this panel is
+        // pooled away, else the toolkit view leaks once the panel has one. Phase-3 migration
+        // prerequisite (same fix the settings/header/footer bases got in 3A/3B).
+        base.OnDisable();
     }
 
     public void OnUIControllerShowHandler() {
@@ -189,6 +193,17 @@ public class BaseGameUIPanelWorlds : GameUIPanelBase {
     }
 
     public virtual void UpdateMetaLabels() {
+
+        // Toolkit: the meta labels are toolkit elements written by NAME — the serialized
+        // labelWorldTitle/labelWorldDescription fields are legacy UILabel refs (not UIRef),
+        // so BindElements can't rebind them and SetLabelValue would write the suppressed
+        // NGUI labels instead of the view.
+        if(isToolkitPanel) {
+            UIUtil.UpdateLabelObject(viewRoot, "LabelTitle", GameWorlds.Current.display_name);
+            UIUtil.UpdateLabelObject(viewRoot, "LabelDescription", GameWorlds.Current.description);
+            return;
+        }
+
         UIUtil.SetLabelValue(labelWorldTitle, GameWorlds.Current.display_name);
         UIUtil.SetLabelValue(labelWorldDescription, GameWorlds.Current.description);
     }
@@ -248,18 +263,44 @@ public class BaseGameUIPanelWorlds : GameUIPanelBase {
     }
 
     public virtual void ShowSelect() {
+
+        // Toolkit (3D wave): the worlds-missions sub-list is not migrated yet — the legacy
+        // container stays suppressed with the rest of panelContainer, so there is nothing to
+        // show. The missions rows arrive with the worlds-missions list in a later list wave.
+        if(isToolkitPanel) {
+            return;
+        }
+
         TweenUtil.ShowObjectBottom(containerMissions);
     }
 
     public virtual void HideSelect() {
+
+        if(isToolkitPanel) {
+            return;
+        }
+
         TweenUtil.HideObjectBottom(containerMissions);
     }
 
     public virtual void ShowButtons() {
+
+        // Toolkit: the view's ContainerButtons group mirrors the legacy select container.
+        if(isToolkitPanel) {
+            UIUtil.ShowObject(UIUtil.ResolveDeep(viewRoot, "ContainerButtons"));
+            return;
+        }
+
         TweenUtil.ShowObjectBottom(containerButtons);
     }
 
     public virtual void HideButtons() {
+
+        if(isToolkitPanel) {
+            UIUtil.HideObject(UIUtil.ResolveDeep(viewRoot, "ContainerButtons"));
+            return;
+        }
+
         TweenUtil.HideObjectBottom(containerButtons);
     }
 
@@ -282,6 +323,21 @@ public class BaseGameUIPanelWorlds : GameUIPanelBase {
     IEnumerator loadDataCo() {
 
         LogUtil.Log("LoadDataCo");
+
+        // Toolkit (3D): meta labels bind to the view async (BindElements after load) — wait for
+        // the view, then push the current world's title/description through the bound refs. The
+        // legacy grid below keeps running for the kill switch.
+        if(!string.IsNullOrEmpty(toolkitViewKey)) {
+
+            for(int waitFrames = 0; waitFrames < 60 && !isToolkitPanel; waitFrames++) {
+                yield return null;
+            }
+
+            if(isToolkitPanel) {
+                UpdateMetaLabels();
+                yield break;
+            }
+        }
 
         if(listGridRoot != null) {
             listGridRoot.DestroyChildren();
