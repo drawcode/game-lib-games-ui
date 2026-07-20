@@ -668,6 +668,18 @@ public class UIPanelBase : UIAppPanel {
         TweenUtil.HideObjectTop(viewRoot, toolkitHidePreset);
     }
 
+    // HYBRID panels keep live legacy content next to their toolkit view (panel-main's 3D
+    // character in panelBottomObject, particles in panelCenterObject). For them the nine-edge
+    // NGUI slides must KEEP RUNNING alongside the toolkit view slide — the early-return that is
+    // right for fully-migrated panels would leave the legacy content parked on screen forever
+    // (the character never animated out after a tap). Suppressed flat widgets under those edges
+    // are inactive, so tweening them too is harmless.
+    protected virtual bool toolkitKeepsLegacyMotion {
+        get {
+            return false;
+        }
+    }
+
     // What LoadToolkitView hides so the NGUI prefab doesn't render underneath the toolkit view.
     // Default: the whole panelContainer. Overridable because some panels carry NON-flat content
     // inside their container that must survive the swap — the header's 3D character preview
@@ -736,9 +748,15 @@ public class UIPanelBase : UIAppPanel {
 
             ShowToolkitViewSlide();
 
-            isVisible = true;
+            if(!toolkitKeepsLegacyMotion) {
 
-            return;
+                isVisible = true;
+
+                return;
+            }
+
+            // Hybrid: fall through so the legacy edge slides bring the live NGUI content
+            // (character, particles) in alongside the view.
         }
 
         AnimateInCenter(time, delay);
@@ -786,11 +804,18 @@ public class UIPanelBase : UIAppPanel {
 
             HideToolkitViewSlide();
 
-            isVisible = false;
+            if(!toolkitKeepsLegacyMotion) {
 
-            HidePanel();
+                isVisible = false;
 
-            return;
+                HidePanel();
+
+                return;
+            }
+
+            // Hybrid: fall through so the legacy edge slides take the live NGUI content
+            // (character, particles) off screen; HidePanel runs on the legacy path's
+            // delayed coroutine as before.
         }
 
         AnimateOutCenter(time, delay);
