@@ -199,5 +199,17 @@ public class GameUISceneRoot : GameObjectBehavior {
 
             UIUtil.SetSliderValue(sliderProgressItem, currentProgressItemEasing);
         }
+
+        // Toolkit parallel (3B part 4): the loader panel's view binds fill elements by name;
+        // pushing through the UIRef path drives their width%. No-ops until the view is bound
+        // (and on the NGUI kill-switch path).
+        if(GameUIPanelLoader.isInst) {
+
+            UIUtil.SetSliderValue(
+                GameUIPanelLoader.Instance.sliderProgressRef, currentEasingProgress);
+
+            UIUtil.SetSliderValue(
+                GameUIPanelLoader.Instance.sliderProgressItemRef, currentProgressItemEasing);
+        }
     }
 }
