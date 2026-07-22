@@ -154,6 +154,16 @@ public class BaseGameUIPanelBackgrounds : GameUIPanelBase {
 
     public void showUI() {
         backerUIVisible = true;
+
+        // A panel can request the shared backer (HandleBackgroundDisplay -> ShowUI) while this
+        // Backgrounds GameObject is inactive — e.g. a panel shown over a context where the backer
+        // layer is off. StartCoroutine throws on an inactive GameObject ("Coroutine couldn't be
+        // started because the game object 'Backgrounds' is inactive"), and an inactive backer would
+        // not render anyway, so guard it: skip the entrance rather than error out.
+        if(!isActiveAndEnabled) {
+            return;
+        }
+
         StartCoroutine(showUICo());
         //Debug.Log("GameUIPanelBackgrounds::ShowUI");
     }

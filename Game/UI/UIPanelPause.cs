@@ -8,12 +8,46 @@ using UnityEngine.UI;
 
 using Engine.Events;
 using Engine.Utility;
+using Engine.UI;
 
 public class UIPanelPause : UIPanelBase {
 
     public GameObject listItemPrefab;
 
     public GameObject containerPause;
+
+    // 3F dialogs: the bitty view panel-pause.json (RESUME/RESTART/QUIT + two audio sliders) is authored
+    // and renders faithfully, and ShowViewInPlace fixes the timeScale-0 show. BUT the LIVE pause flow
+    // still has blocking issues (user 2026-07-20): (1) the async first-show lag lets the pause TAP fall
+    // through to the store button that shares the HUD pause button's screen spot; (2) the full-screen
+    // view root at overlay order interferes with picking, making the dialog slow/covered/unresponsive.
+    // These need view PRELOADING + a picking-model fix + tap-target de-overlap, plus device testing.
+    // Reverted to the known-good NGUI pause (return "") until that lands. The view/USS/constants/
+    // ShowViewInPlace helpers/slide overrides stay dormant. Re-enable by returning BaseUIPanel.panelPause.
+    public override string toolkitViewKey {
+        get {
+            return "";
+        }
+    }
+
+    // The pause menu is a HUD-level dialog: it must draw ABOVE the in-game HUD, which loads earlier.
+    public override int toolkitSortOrder {
+        get {
+            return UILayers.overlay;
+        }
+    }
+
+    // Pause is shown at Time.timeScale == 0, which freezes the scaled-time tween pump — an animated
+    // view slide would stay parked off-screen at alpha 0 and never appear (the 2026-07-20 regression:
+    // the dialog didn't show, only the menu behind it). Show/hide the view IN PLACE (no tween) so it
+    // appears reliably while paused. Legacy pause also appeared in place — its slide target was null.
+    protected override void ShowToolkitViewSlide() {
+        TweenUtil.ShowViewInPlace(viewRoot);
+    }
+
+    protected override void HideToolkitViewSlide() {
+        TweenUtil.HideViewInPlace(viewRoot);
+    }
 
     /*
 #if USE_UI_NGUI_2_7
