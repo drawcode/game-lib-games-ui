@@ -182,15 +182,40 @@ public class UIPanelPause : UIPanelBase {
         //UpdateAudioValues();
     }
 
+    // The pause menu is the one panel that may animate WHILE the game is frozen: the real slide is
+    // panelRightObject (containerPause is unwired in the scene), driven by the AnimationEasing pump,
+    // which advances on SCALED time and so stalls at Time.timeScale == 0. Running these tweens on the
+    // unscaled clock makes the entrance immune to that.
+    //
+    // Note this is belt-and-braces, not the primary mechanism: gameRunningStatePause still defers the
+    // freeze by 1s so the menu is fully on screen BEFORE the game stops (freezing first left the
+    // player staring at a frozen game with no menu). The unscaled clock is what keeps the entrance
+    // correct if the freeze ever lands mid-animation.
     public override void AnimateIn() {
-        base.AnimateIn();
 
-        TweenUtil.ShowObjectRight(containerPause, TweenCoord.local, true, .5f);
+        TweenUtil.BeginUnscaledScope();
+
+        try {
+            base.AnimateIn();
+
+            TweenUtil.ShowObjectRight(containerPause, TweenCoord.local, true, .5f);
+        }
+        finally {
+            TweenUtil.EndUnscaledScope();
+        }
     }
 
     public override void AnimateOut() {
-        base.AnimateOut();
 
-        TweenUtil.HideObjectRight(containerPause, TweenCoord.local, true, .5f);
+        TweenUtil.BeginUnscaledScope();
+
+        try {
+            base.AnimateOut();
+
+            TweenUtil.HideObjectRight(containerPause, TweenCoord.local, true, .5f);
+        }
+        finally {
+            TweenUtil.EndUnscaledScope();
+        }
     }
 }

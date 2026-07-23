@@ -102,6 +102,8 @@ public class BaseGameUIPanelHeader : GameUIPanelBase {
     private GameObject coinFlatLabel;
     private GameObject coinFlatButtonLabel;
     private GameObject coinFlatButtonBackground;
+    private Collider coinFlatButtonCollider;
+    private bool coinFlatButtonColliderWasEnabled;
 
     // The coin's glow particles get boosted while staged (the eye-draw spills past the coin);
     // originals restored when the toolkit view frees.
@@ -496,7 +498,36 @@ public class BaseGameUIPanelHeader : GameUIPanelBase {
             coinFlatButtonBackground.Hide();
         }
 
+        SuppressCoinButtonCollider(t);
+
         SetupCoinStage(t);
+    }
+
+    // ButtonGameProductCurrency itself is NEVER hidden here — only its Label/Background children —
+    // because the staged 3D coin (UICoin) lives INSIDE it and Hide() does SetActive(false), which
+    // would take the coin down too. That left the button INVISIBLE BUT STILL PICKABLE: its collider
+    // stayed live on the menu UI layer, whose UICamera sits at depth 10 while the in-game HUDCamera
+    // is at depth 6. NGUI sorts UICameras by DESCENDING depth, so the invisible coin button won every
+    // tap in the top-right corner — the same corner as the HUD pause button. Symptom: tapping pause
+    // during gameplay opened the STORE and pause never fired at all (2026-07-23 user report; probe
+    // confirmed UICamera.Raycast -> ButtonGameProductCurrency while physics found ButtonGamePause).
+    // Disabling just the collider keeps UICoin rendering while making the suppressed button inert.
+    protected virtual void SuppressCoinButtonCollider(Transform coinRoot) {
+
+        Transform button = coinRoot.Find("ButtonGameProductCurrency");
+
+        if(button == null) {
+            return;
+        }
+
+        coinFlatButtonCollider = button.GetComponent<Collider>();
+
+        if(coinFlatButtonCollider == null) {
+            return;
+        }
+
+        coinFlatButtonColliderWasEnabled = coinFlatButtonCollider.enabled;
+        coinFlatButtonCollider.enabled = false;
     }
 
     protected virtual void SetupCoinStage(Transform coinRoot) {
@@ -590,6 +621,12 @@ public class BaseGameUIPanelHeader : GameUIPanelBase {
 
         if(coinFlatButtonBackground != null) {
             coinFlatButtonBackground.Show();
+        }
+
+        // Symmetric with SuppressCoinButtonCollider: the legacy path needs a clickable coin button.
+        if(coinFlatButtonCollider != null) {
+            coinFlatButtonCollider.enabled = coinFlatButtonColliderWasEnabled;
+            coinFlatButtonCollider = null;
         }
 
         base.FreeToolkitView();
