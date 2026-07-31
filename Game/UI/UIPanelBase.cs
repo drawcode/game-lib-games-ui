@@ -171,6 +171,12 @@ public class UIPanelBase : UIAppPanel {
         Messenger<string, string>.AddListener(UIControllerMessages.uiPanelAnimateOutClassType, OnUIControllerPanelAnimateOutClassType);
 
         Messenger<string, string>.AddListener(UIControllerMessages.uiPanelAnimateType, OnUIControllerPanelAnimateType);
+
+        // Warm the view now rather than at first show — see toolkitPreloadView. Symmetric with
+        // OnDisable's FreeToolkitView, so a preloading panel reloads whenever it comes back.
+        if(toolkitPreloadView) {
+            PreloadToolkitView();
+        }
     }
 
     public virtual void OnDisable() {
@@ -546,6 +552,53 @@ public class UIPanelBase : UIAppPanel {
         get {
             return "";
         }
+    }
+
+    // Opt-in view PRELOADING — build the view when the panel is ENABLED instead of at its first
+    // AnimateIn.
+    //
+    // Lazy loading is right for the ~30 pooled flow panels: the view arrives a frame or two after
+    // the first show, and that gap is hidden inside a screen transition that is already animating.
+    // It is WRONG for a dialog that interrupts live gameplay. The 3F pause overlay showed exactly
+    // why (2026-07-20): its first show was visibly late, and during the gap the panel was still
+    // running its NGUI path, so the tap that opened it fell through to whatever NGUI widget shares
+    // that corner of the screen. A preloaded view is alive before the tap, so AnimateIn takes the
+    // toolkit branch immediately and the dialog appears in the same frame.
+    //
+    // Only meaningful for SCENE-RESIDENT panels (UIPanelPause and the dialog family are scene
+    // singletons, not catalog-loaded pooled prefabs). A pooled panel is instantiated INACTIVE and
+    // is enabled by the show itself, so for it "on enable" and "on first show" are the same moment
+    // and preloading buys nothing.
+    public virtual bool toolkitPreloadView {
+        get {
+            return false;
+        }
+    }
+
+    // Deferred by one frame ON PURPOSE. UIToolkitHost publishes the shared PanelSettings from its
+    // OWN OnEnable, and Unity does not define OnEnable order between two scene objects — going
+    // straight to LoadView from here would race the host and hit its "no PanelSettings registered"
+    // bail, which leaves the panel silently on NGUI. By end-of-frame every scene object has run
+    // Awake/OnEnable/Start, so the host is registered.
+    protected virtual void PreloadToolkitView() {
+
+        // StartCoroutine throws on an inactive GameObject, and OnEnable can run while the object
+        // is still being brought up as part of an inactive parent.
+        if(!gameObject.activeInHierarchy) {
+            return;
+        }
+
+        StartCoroutine(PreloadToolkitViewCo());
+    }
+
+    IEnumerator PreloadToolkitViewCo() {
+
+        yield return new WaitForEndOfFrame();
+
+        // The panel may have been shown, or put away again, during that frame. Both outcomes are
+        // already handled: EnsureToolkitView is idempotent (isToolkitPanel / toolkitLoadRequested
+        // short-circuits), and LoadToolkitView's continuation matches the fresh view to isVisible.
+        EnsureToolkitView();
     }
 
     // Which draw-order band this panel's view sits in (see Engine.UI.UILayers). Default `auto`

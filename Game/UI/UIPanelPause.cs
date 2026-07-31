@@ -17,16 +17,41 @@ public class UIPanelPause : UIPanelBase {
     public GameObject containerPause;
 
     // 3F dialogs: the bitty view panel-pause.json (RESUME/RESTART/QUIT + two audio sliders) is authored
-    // and renders faithfully, and ShowViewInPlace fixes the timeScale-0 show. BUT the LIVE pause flow
-    // still has blocking issues (user 2026-07-20): (1) the async first-show lag lets the pause TAP fall
-    // through to the store button that shares the HUD pause button's screen spot; (2) the full-screen
-    // view root at overlay order interferes with picking, making the dialog slow/covered/unresponsive.
-    // These need view PRELOADING + a picking-model fix + tap-target de-overlap, plus device testing.
-    // Reverted to the known-good NGUI pause (return "") until that lands. The view/USS/constants/
-    // ShowViewInPlace helpers/slide overrides stay dormant. Re-enable by returning BaseUIPanel.panelPause.
+    // and renders faithfully, and ShowViewInPlace fixes the timeScale-0 show. It was reverted to the
+    // known-good NGUI pause on 2026-07-20 over two symptoms: (1) the async first-show lag let the pause
+    // TAP fall through to the store button sharing the HUD pause button's screen spot; (2) the view
+    // "interfered with picking", reading as slow/covered/unresponsive.
+    //
+    // All three underlying causes are now addressed (2026-07-31), so this is one flip away:
+    //   * (1) the tap-steal was NOT the lag — it was the suppressed header coin button keeping a LIVE
+    //     collider on the depth-10 menu UICamera, which outranks the depth-6 HUDCamera in NGUI's
+    //     descending-depth sort. Fixed in games-ui c805b2d (SuppressCoinButtonCollider).
+    //   * the lag itself is fixed by toolkitPreloadView below: the view is built at level load, so
+    //     AnimateIn takes the toolkit branch in the same frame as the tap.
+    //   * (2) re-checked statically: the view root carries .ngui-root, which UIToolkitBackend
+    //     .ConfigurePicking has made PickingMode.Ignore since fc816b8 (well before the regression), so
+    //     the root was never the pick target; and overlay (20000) already outranks chrome (10000), so
+    //     no other toolkit view can cover it. Modal blocking stays legacy — showUIPanelPause shows the
+    //     NGUI gameBackgroundAlertObject behind the dialog.
+    //
+    // STILL RETURNS "" only because the flip cannot be verified in-editor (scripted PlayGame never
+    // reaches IsGameRunning=True — pause needs a human play-test) and pause is a critical path the
+    // user just spent two sessions repairing. Flip to BaseUIPanel.panelPause at the start of a play
+    // session; kill switch UIPlatform.toolkitViewsEnabled backs it out globally.
     public override string toolkitViewKey {
         get {
             return "";
+        }
+    }
+
+    // The pause overlay is scene-resident (BaseUIController: not catalog-loaded), so it is enabled at
+    // level load — long before the player taps pause. That makes it the case preloading exists for:
+    // build the view then, not during the tap that opens it. See UIPanelBase.toolkitPreloadView.
+    //
+    // Harmless while toolkitViewKey is "": EnsureToolkitView returns early on an empty key.
+    public override bool toolkitPreloadView {
+        get {
+            return true;
         }
     }
 
