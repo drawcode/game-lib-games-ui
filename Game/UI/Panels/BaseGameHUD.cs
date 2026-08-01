@@ -17,6 +17,28 @@ using Engine.Game.App;
 
 public class BaseGameHUD : GameUIPanelBase {
 
+    // 3H: the in-game HUD chrome. HYBRID — the toolkit view draws only the FLAT chrome (M.A.N. box,
+    // the three stat bars, score/star/coin counts, timer, pause button, level label). These stay
+    // LEGACY and must keep rendering underneath it:
+    //   * the two input pads (AxisInput-move / AxisInput-attack) — input devices, not decoration;
+    //   * the centre indicators and the two radial overlays — world-tracking markers;
+    //   * the 3D coin mesh (Coins/HUDCoin) — real geometry, and there is no coin sprite to port to.
+    // Geometry/colours in common.uss are MEASURED off a live level, not derived from the prefab.
+    // See contexts/context-hud-3h-spec.md.
+    public override string toolkitViewKey {
+        get {
+            return BaseUIPanel.panelHUD;
+        }
+    }
+
+    // Always-on in-game chrome: above gameplay, but BELOW the overlay band so the pause dialog and
+    // the loader/prepare overlay still draw over it.
+    public override int toolkitSortOrder {
+        get {
+            return UILayers.chrome;
+        }
+    }
+
     public float currentTimeBlock = 0.0f;
     public float actionInterval = 1.0f;
     public AsyncOperation asyncLevelLoad = null;
@@ -145,6 +167,8 @@ public class BaseGameHUD : GameUIPanelBase {
         Messenger<double>.RemoveListener(GameMessages.gameActionScores, OnGameShooterScores);
 
         // Chain to base so UIPanelBase.OnDisable -> FreeToolkitView runs when the HUD is put away,
+        // NOTE (3H): also see SuppressLegacyView below — the chain is what restores the suppressed
+        // legacy widgets and the ButtonGameSmartsShow collider.
         // else the toolkit view leaks once the HUD has one. 3H migration prerequisite (same fix the
         // settings/header/footer bases got in 3A/3B and the ten list bases got in 3D). The HUD is
         // put away often — HUDCamera deactivates at level end — so without this every level would
@@ -237,6 +261,99 @@ public class BaseGameHUD : GameUIPanelBase {
 
     }
 
+    // 3H SUPPRESSION
+    //
+    // The default UIPanelBase.SuppressLegacyView hides the whole panelContainer, which is WRONG
+    // here: it would take the input pads, the indicators and the 3D coin down with it. So this
+    // hides only the flat chrome the toolkit view replaces, cluster by cluster.
+
+    // What we hid, so FreeToolkitView can put it all back for the kill switch.
+    private readonly List<GameObject> suppressedLegacy = new List<GameObject>();
+
+    // ButtonGameSmartsShow wraps a 3D player rig, so it can only be suppressed by hiding its FLAT
+    // children — which leaves its own collider live. See below.
+    private Collider smartsButtonCollider;
+    private bool smartsButtonColliderWasEnabled;
+
+    private const string hudTopLeft = "HUDContainer/AnchorTopLeft/TopLeft/Toolbar/DisplayObjectLeft/";
+    private const string hudTopRight = "HUDContainer/AnchorTopRight/TopRight/Toolbar";
+
+    private void SuppressLegacyObject(string path) {
+
+        Transform t = transform.Find(path);
+
+        if(t == null || !t.gameObject.activeSelf) {
+            return;
+        }
+
+        t.gameObject.Hide();
+        suppressedLegacy.Add(t.gameObject);
+    }
+
+    protected override void SuppressLegacyView() {
+
+        // TOP RIGHT: pause / overview / level / camera / edit are all FLAT buttons, so hiding the
+        // whole Toolbar takes their colliders inactive with it. Nothing 3D lives here.
+        SuppressLegacyObject(hudTopRight);
+
+        // TOP LEFT, cluster by cluster. Everything here is flat EXCEPT the two noted below.
+        SuppressLegacyObject(hudTopLeft + "MAN");                 // M.A.N. face box (flat)
+        SuppressLegacyObject(hudTopLeft + "Character/Container"); // the three stat bars
+        SuppressLegacyObject(hudTopLeft + "Score");
+        SuppressLegacyObject(hudTopLeft + "Scores");
+        SuppressLegacyObject(hudTopLeft + "Time");
+
+        // COINS: hide the flat children ONLY. Coins/HUDCoin is a real 3D mesh (MeshFilter +
+        // MeshRenderer) and there is no coin sprite to port it to, so it must keep rendering — the
+        // toolkit view leaves a gap where it shows through, exactly like the header's UICoin.
+        // Verified 2026-07-31: nothing under Coins carries a Collider, so unlike the header there is
+        // no pick-stealing hazard from this particular selective hide.
+        SuppressLegacyObject(hudTopLeft + "Coins/BackgroundWhite");
+        SuppressLegacyObject(hudTopLeft + "Coins/LabelCoins");
+        SuppressLegacyObject(hudTopLeft + "Coins/Labelx");
+
+        // THE ONE COLLIDER HAZARD. ButtonGameSmartsShow contains a whole 3D player rig, so we can
+        // only hide its flat children — which leaves the BUTTON's own collider live and pickable
+        // while nothing renders there. That is precisely the bug that made a suppressed header coin
+        // button swallow every top-right tap (games-ui c805b2d). Disable the collider; OnDisable ->
+        // FreeToolkitView restores it.
+        SuppressLegacyObject(hudTopLeft + "Character/ButtonGameSmartsShow/Label");
+        SuppressLegacyObject(hudTopLeft + "Character/ButtonGameSmartsShow/Background");
+
+        Transform smarts = transform.Find(hudTopLeft + "Character/ButtonGameSmartsShow");
+
+        if(smarts != null) {
+
+            smartsButtonCollider = smarts.GetComponent<Collider>();
+
+            if(smartsButtonCollider != null) {
+                smartsButtonColliderWasEnabled = smartsButtonCollider.enabled;
+                smartsButtonCollider.enabled = false;
+            }
+        }
+    }
+
+    // Symmetric restore, so flipping UIPlatform.toolkitViewsEnabled back off returns a working
+    // legacy HUD rather than a half-hidden one.
+    protected override void FreeToolkitView() {
+
+        for(int i = 0; i < suppressedLegacy.Count; i++) {
+
+            if(suppressedLegacy[i] != null) {
+                suppressedLegacy[i].Show();
+            }
+        }
+
+        suppressedLegacy.Clear();
+
+        if(smartsButtonCollider != null) {
+            smartsButtonCollider.enabled = smartsButtonColliderWasEnabled;
+            smartsButtonCollider = null;
+        }
+
+        base.FreeToolkitView();
+    }
+
     public virtual void SetLevelInit(GameLevel gameLevel) {
 
         if(gameLevel != null) {
@@ -252,28 +369,68 @@ public class BaseGameHUD : GameUIPanelBase {
 
     }
 
+    // The label* fields are legacy UILabel handles, NOT UIRef, so BindElements cannot rebind them
+    // to the toolkit view (same situation as the worlds panel's title/description). The toolkit
+    // branch therefore writes BY ELEMENT NAME instead. The legacy write still runs underneath: the
+    // widget is suppressed, so it costs nothing and keeps the kill-switch path correct.
+
     public virtual void SetScore(double score) {
-        UIUtil.SetLabelValue(labelScore, score.ToString("N0"));
+
+        string value = score.ToString("N0");
+
+        if(isToolkitPanel) {
+            UIUtil.UpdateLabelObject(viewRoot, "LabelScore", value);
+        }
+
+        UIUtil.SetLabelValue(labelScore, value);
     }
 
     public virtual void SetScores(double scores) {
-        UIUtil.SetLabelValue(labelScores, scores.ToString("N0"));
+
+        string value = scores.ToString("N0");
+
+        if(isToolkitPanel) {
+            UIUtil.UpdateLabelObject(viewRoot, "LabelScoresValue", value);
+        }
+
+        UIUtil.SetLabelValue(labelScores, value);
     }
 
     public virtual void SetCoins(double coins) {
-        UIUtil.SetLabelValue(labelCoins, coins.ToString("N0"));
+
+        string value = coins.ToString("N0");
+
+        if(isToolkitPanel) {
+            UIUtil.UpdateLabelObject(viewRoot, "LabelCoins", value);
+        }
+
+        UIUtil.SetLabelValue(labelCoins, value);
     }
 
     public virtual void SetSpecials(double specials) {
+        // No toolkit element: the specials counter is not part of the 3H chrome (it does not render
+        // in the legacy HUD capture either).
         UIUtil.SetLabelValue(labelSpecials, specials.ToString("N0"));
     }
 
     public virtual void SetLevel(string levelName) {
+
+        if(isToolkitPanel) {
+            UIUtil.UpdateLabelObject(viewRoot, "LabelLevel", levelName);
+        }
+
         UIUtil.SetLabelValue(labelLevel, levelName);
     }
 
     public virtual void SetTime(double time) {
-        UIUtil.SetLabelValue(labelTime, FormatUtil.GetFormattedTimeMinutesSecondsMsSmall(time));
+
+        string value = FormatUtil.GetFormattedTimeMinutesSecondsMsSmall(time);
+
+        if(isToolkitPanel) {
+            UIUtil.UpdateLabelObject(viewRoot, "LabelTime", value);
+        }
+
+        UIUtil.SetLabelValue(labelTime, value);
     }
 
     public virtual void ShowHitOne() {
