@@ -143,6 +143,18 @@ public class BaseGameHUD : GameUIPanelBase {
 
         Messenger<double>.RemoveListener(GameMessages.gameActionScore, OnGameShooterScore);
         Messenger<double>.RemoveListener(GameMessages.gameActionScores, OnGameShooterScores);
+
+        // Chain to base so UIPanelBase.OnDisable -> FreeToolkitView runs when the HUD is put away,
+        // else the toolkit view leaks once the HUD has one. 3H migration prerequisite (same fix the
+        // settings/header/footer bases got in 3A/3B and the ten list bases got in 3D). The HUD is
+        // put away often — HUDCamera deactivates at level end — so without this every level would
+        // leak a PanelRenderer.
+        //
+        // OnEnable is deliberately NOT chained, matching those same panels: UIPanelBase.OnEnable
+        // re-adds EVENT_BUTTON_CLICK -> OnButtonClickEventHandler, which this class already
+        // subscribes above, so chaining it would fire every HUD button click TWICE. The listener
+        // removals below/above are idempotent, so chaining only OnDisable is safe.
+        base.OnDisable();
     }
 
     public override void OnButtonClickEventHandler(string buttonName) {
