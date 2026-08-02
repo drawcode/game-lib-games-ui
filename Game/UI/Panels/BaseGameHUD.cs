@@ -279,8 +279,13 @@ public class BaseGameHUD : GameUIPanelBase {
 
         // Not running yet (prepare, tips, mode overview): stay hidden. Update() reveals it the
         // moment gameplay starts.
+        //
+        // INSTANT hide, not the animated one. LoadToolkitView's continuation already called
+        // backend.Show on the view before this runs, and AnimateIn shows it again on re-entry — so
+        // animating OUT here made the chrome visibly slide in and straight back out every time
+        // (user, 2026-08-01). HideObject sets display:none in the same frame, so it never paints.
         if(!GameController.IsGameRunning) {
-            base.HideToolkitViewSlide();
+            UIUtil.HideObject(viewRoot);
             return;
         }
 
@@ -311,10 +316,13 @@ public class BaseGameHUD : GameUIPanelBase {
         toolkitChromeShown = shouldShow;
 
         if(shouldShow) {
+            // Animate IN once, when gameplay actually begins.
             base.ShowToolkitViewSlide();
         }
         else {
-            base.HideToolkitViewSlide();
+            // Instant, for the same reason as above: this path also runs on the frames before the
+            // level starts, and an animated hide there is exactly the in-then-out flicker.
+            UIUtil.HideObject(viewRoot);
         }
     }
 
@@ -377,6 +385,8 @@ public class BaseGameHUD : GameUIPanelBase {
         SuppressLegacyObject(hudTopLeft + "Character/ButtonGameSmartsShow/Label");
         SuppressLegacyObject(hudTopLeft + "Character/ButtonGameSmartsShow/Background");
 
+        SetupHudCoinStage();
+
         Transform smarts = transform.Find(hudTopLeft + "Character/ButtonGameSmartsShow");
 
         if(smarts != null) {
@@ -390,9 +400,49 @@ public class BaseGameHUD : GameUIPanelBase {
         }
     }
 
+    private Engine.UI.UIRenderStage hudCoinStage;
+
+    // The HUD coin rendered DIM and hard to read, because in place it is a raw 3D mesh lit by
+    // whatever the level's lighting happens to be (user, 2026-08-01: "needs to be unlit or better
+    // visible, make it like the coin on the default header"). The header already solved this:
+    // UIRenderStage moves the mesh to a dedicated widget layer with its own camera and renders it
+    // to a RenderTexture, which the toolkit view then draws as a plain image — consistent and
+    // unaffected by scene lighting. Same treatment here, same framing (128px RT, 1.3 headroom).
+    private void SetupHudCoinStage() {
+
+        if(hudCoinStage != null) {
+            return;
+        }
+
+        Transform coin = transform.Find(hudTopLeft + "Coins/HUDCoin");
+
+        if(coin == null) {
+            return;
+        }
+
+        int layer = LayerMask.NameToLayer("UIWidget3D");
+
+        if(layer < 0) {
+            layer = LayerMask.NameToLayer("UI3D");
+        }
+
+        hudCoinStage = Engine.UI.UIRenderStage.Attach(coin.gameObject, layer, 128, 1.3f);
+
+        if(hudCoinStage != null) {
+            UIUtil.SetImageTexture(UIUtil.ResolveDeep(viewRoot, "IconCoin"), hudCoinStage.texture);
+        }
+    }
+
     // Symmetric restore, so flipping UIPlatform.toolkitViewsEnabled back off returns a working
     // legacy HUD rather than a half-hidden one.
     protected override void FreeToolkitView() {
+
+        // Detach() puts the mesh back on its original layer — kill-switch safe.
+        if(hudCoinStage != null) {
+            hudCoinStage.Detach();
+            hudCoinStage = null;
+        }
+
 
         for(int i = 0; i < suppressedLegacy.Count; i++) {
 
