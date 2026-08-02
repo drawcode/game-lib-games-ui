@@ -400,6 +400,74 @@ public class BaseGameHUD : GameUIPanelBase {
         }
     }
 
+    // The green FPS readout was a legacy UILabel owned by FPSDisplay, which the toolkit HUD now
+    // draws over. Rather than give FPSDisplay (game-lib-games) a dependency on the HUD view, the
+    // HUD PULLS the value here — FPSDisplay.GetCurrentFPS() is a public static and Update() already
+    // runs every frame. Colour thresholds mirror the legacy lerp: green, yellow under 27, red
+    // under 10.
+    //
+    // NOTE: this ties the readout to the HUD, so it only shows during gameplay. Legacy behaved the
+    // same in the captures, but if it is wanted on menu screens too it needs its own always-on view.
+    private string lastFpsText;
+    private bool fpsLegacyHidden;
+
+    // The legacy FPS label lives in the SCENE (GameSceneDynamic), not in HUDTemplate — verified:
+    // the prefab has zero FPSDisplay components. So the cluster-by-cluster suppression above cannot
+    // reach it and it would double-draw under the toolkit one. Hide it through the singleton
+    // instead, which works wherever the scene puts it. Done lazily because FPSDisplay.Instance may
+    // not exist yet when SuppressLegacyView runs.
+    private void SuppressLegacyFpsLabel() {
+
+        if(fpsLegacyHidden || !FPSDisplay.isInst) {
+            return;
+        }
+
+        if(FPSDisplay.Instance.labelFPS == null) {
+            return;
+        }
+
+        fpsLegacyHidden = true;
+
+        GameObject go = FPSDisplay.Instance.labelFPS.gameObject;
+
+        if(go.activeSelf) {
+            go.Hide();
+            suppressedLegacy.Add(go);
+        }
+    }
+
+    private void UpdateToolkitFps() {
+
+        if(!isToolkitPanel || !toolkitChromeShown) {
+            return;
+        }
+
+        SuppressLegacyFpsLabel();
+
+        float fps = FPSDisplay.GetCurrentFPS();
+        string text = string.Format("{0:F2} FPS", fps);
+
+        // Only touch the element when the string actually changes — this runs every frame.
+        if(text == lastFpsText) {
+            return;
+        }
+
+        lastFpsText = text;
+
+        UIUtil.UpdateLabelObject(viewRoot, "LabelFPS", text);
+
+        Color color = Color.green;
+
+        if(fps < 10f) {
+            color = Color.red;
+        }
+        else if(fps < 27f) {
+            color = Color.yellow;
+        }
+
+        UIUtil.SetLabelColor(UIUtil.ResolveDeep(viewRoot, "LabelFPS"), color);
+    }
+
     private Engine.UI.UIRenderStage hudCoinStage;
 
     // The HUD coin rendered DIM and hard to read, because in place it is a raw 3D mesh lit by
@@ -452,6 +520,10 @@ public class BaseGameHUD : GameUIPanelBase {
         }
 
         suppressedLegacy.Clear();
+
+        // Let the legacy FPS label be re-hidden if the view is loaded again.
+        fpsLegacyHidden = false;
+        lastFpsText = null;
 
         if(smartsButtonCollider != null) {
             smartsButtonCollider.enabled = smartsButtonColliderWasEnabled;
@@ -803,6 +875,7 @@ public class BaseGameHUD : GameUIPanelBase {
     public virtual void Update() {
 
         SyncToolkitChromeVisibility();
+        UpdateToolkitFps();
         /*
         var ry = 0f;
         //var rx = 0f;
