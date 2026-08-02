@@ -261,6 +261,63 @@ public class BaseGameHUD : GameUIPanelBase {
 
     }
 
+    // 3H VISIBILITY GATE
+    //
+    // showHUD() -> GameHUD.AnimateIn() fires EARLY — before the prepare/tips and mode-overview
+    // screens are done. Under NGUI that was harmless: the legacy HUD painted UNDERNEATH those
+    // overlays in the camera stack. A toolkit view composites ABOVE the entire NGUI stack, so the
+    // same early show drew the HUD chrome on top of the READY screen (user, 2026-08-01).
+    //
+    // So the chrome is gated on the level actually RUNNING, not on AnimateIn. Update() reconciles
+    // every frame, which also covers the reverse case (level ends / quits -> chrome goes away)
+    // without needing a hook on every transition.
+    private bool toolkitChromeWanted;
+
+    protected override void ShowToolkitViewSlide() {
+
+        toolkitChromeWanted = true;
+
+        // Not running yet (prepare, tips, mode overview): stay hidden. Update() reveals it the
+        // moment gameplay starts.
+        if(!GameController.IsGameRunning) {
+            base.HideToolkitViewSlide();
+            return;
+        }
+
+        base.ShowToolkitViewSlide();
+    }
+
+    protected override void HideToolkitViewSlide() {
+
+        toolkitChromeWanted = false;
+
+        base.HideToolkitViewSlide();
+    }
+
+    private bool toolkitChromeShown;
+
+    private void SyncToolkitChromeVisibility() {
+
+        if(!isToolkitPanel) {
+            return;
+        }
+
+        bool shouldShow = toolkitChromeWanted && GameController.IsGameRunning;
+
+        if(shouldShow == toolkitChromeShown) {
+            return;
+        }
+
+        toolkitChromeShown = shouldShow;
+
+        if(shouldShow) {
+            base.ShowToolkitViewSlide();
+        }
+        else {
+            base.HideToolkitViewSlide();
+        }
+    }
+
     // 3H SUPPRESSION
     //
     // The default UIPanelBase.SuppressLegacyView hides the whole panelContainer, which is WRONG
@@ -694,6 +751,8 @@ public class BaseGameHUD : GameUIPanelBase {
     }
 
     public virtual void Update() {
+
+        SyncToolkitChromeVisibility();
         /*
         var ry = 0f;
         //var rx = 0f;
