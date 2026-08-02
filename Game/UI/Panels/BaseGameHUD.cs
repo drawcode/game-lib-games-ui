@@ -271,19 +271,15 @@ public class BaseGameHUD : GameUIPanelBase {
     // So the chrome is gated on the level actually RUNNING, not on AnimateIn. Update() reconciles
     // every frame, which also covers the reverse case (level ends / quits -> chrome goes away)
     // without needing a hook on every transition.
-    private bool toolkitChromeWanted;
-
     protected override void ShowToolkitViewSlide() {
-
-        toolkitChromeWanted = true;
 
         // Not running yet (prepare, tips, mode overview): stay hidden. Update() reveals it the
         // moment gameplay starts.
         //
         // INSTANT hide, not the animated one. LoadToolkitView's continuation already called
-        // backend.Show on the view before this runs, and AnimateIn shows it again on re-entry — so
-        // animating OUT here made the chrome visibly slide in and straight back out every time
-        // (user, 2026-08-01). HideObject sets display:none in the same frame, so it never paints.
+        // backend.Show on the view before this runs, so animating OUT here made the chrome visibly
+        // slide in and straight back out (user, 2026-08-01). HideObject sets display:none in the
+        // same frame, so it never paints.
         if(!GameController.IsGameRunning) {
             UIUtil.HideObject(viewRoot);
             return;
@@ -292,22 +288,28 @@ public class BaseGameHUD : GameUIPanelBase {
         base.ShowToolkitViewSlide();
     }
 
-    protected override void HideToolkitViewSlide() {
-
-        toolkitChromeWanted = false;
-
-        base.HideToolkitViewSlide();
-    }
-
     private bool toolkitChromeShown;
 
+    // Gated PURELY on game state — do not reintroduce a "was Show requested" flag.
+    //
+    // The first attempt tracked intent in a toolkitChromeWanted flag set from ShowToolkitViewSlide.
+    // That left the HUD permanently blank (user, 2026-08-01: "blank other than model/bot"), because
+    // ShowToolkitViewSlide is never reached on the path that matters: the HUD's isVisible is
+    // already true by the time the view finishes loading, so UIPanelBase.AnimateIn(time, delay)
+    // early-returns at its `if(isVisible) return;` and the slide call never happens. The flag stayed
+    // false forever, the view stayed display:none, and the only things left on screen were the
+    // legacy 3D bits (bot + staged coin) that suppression deliberately keeps.
+    //
+    // IsGameRunning alone is the correct signal: while the HUD GameObject is active it is False
+    // through prepare/tips/overview and True in gameplay. At the menu the HUD is inactive, so this
+    // never runs there (and OnDisable has already freed the view).
     private void SyncToolkitChromeVisibility() {
 
         if(!isToolkitPanel) {
             return;
         }
 
-        bool shouldShow = toolkitChromeWanted && GameController.IsGameRunning;
+        bool shouldShow = GameController.IsGameRunning;
 
         if(shouldShow == toolkitChromeShown) {
             return;
