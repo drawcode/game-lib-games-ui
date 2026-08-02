@@ -285,6 +285,9 @@ public class BaseGameHUD : GameUIPanelBase {
             return;
         }
 
+        // Same reason as in SyncToolkitChromeVisibility: the slide cannot undo a display:none.
+        UIUtil.ShowObject(viewRoot);
+
         base.ShowToolkitViewSlide();
     }
 
@@ -318,6 +321,13 @@ public class BaseGameHUD : GameUIPanelBase {
         toolkitChromeShown = shouldShow;
 
         if(shouldShow) {
+            // RESTORE DISPLAY FIRST. TweenUtil's slides deliberately "do NOT touch display/active
+            // state" (TweenUtil.cs: "gate learning #1: tweens never own visibility"), so after the
+            // hide below set display:none, ShowToolkitViewSlide would animate an element that is
+            // still display:none — invisible forever. That is what left the HUD showing nothing but
+            // the legacy 3D bot and staged coin across two rounds.
+            UIUtil.ShowObject(viewRoot);
+
             // Animate IN once, when gameplay actually begins.
             base.ShowToolkitViewSlide();
         }
