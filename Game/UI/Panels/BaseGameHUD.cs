@@ -355,50 +355,83 @@ public class BaseGameHUD : GameUIPanelBase {
     private const string hudTopLeft = "HUDContainer/AnchorTopLeft/TopLeft/Toolbar/DisplayObjectLeft/";
     private const string hudTopRight = "HUDContainer/AnchorTopRight/TopRight/Toolbar";
 
-    private void SuppressLegacyObject(string path) {
+    // Every flat cluster the toolkit view replaces. Resolved once, then RE-ASSERTED every frame —
+    // see ReassertLegacySuppression.
+    private static readonly string[] legacyClusterPaths = {
+        hudTopRight,                                            // pause/overview/level/camera/edit
+        hudTopLeft + "MAN",                                     // M.A.N. face box (flat)
+        hudTopLeft + "Character/Container",                     // the three stat bars
+        hudTopLeft + "Score",
+        hudTopLeft + "Scores",
+        hudTopLeft + "Time",
+        // COINS: flat children only — Coins/HUDCoin is a 3D mesh and must keep rendering.
+        hudTopLeft + "Coins/BackgroundWhite",
+        hudTopLeft + "Coins/LabelCoins",
+        hudTopLeft + "Coins/Labelx",
+        // ButtonGameSmartsShow wraps the 3D bot, so only its flat children can go.
+        hudTopLeft + "Character/ButtonGameSmartsShow/Label",
+        hudTopLeft + "Character/ButtonGameSmartsShow/Background"
+    };
 
-        Transform t = transform.Find(path);
+    private Transform[] legacyClusters;
 
-        if(t == null || !t.gameObject.activeSelf) {
+    private void ResolveLegacyClusters() {
+
+        if(legacyClusters != null) {
             return;
         }
 
-        t.gameObject.Hide();
-        suppressedLegacy.Add(t.gameObject);
+        legacyClusters = new Transform[legacyClusterPaths.Length];
+
+        for(int i = 0; i < legacyClusterPaths.Length; i++) {
+            legacyClusters[i] = transform.Find(legacyClusterPaths[i]);
+        }
+    }
+
+    // Suppression must be CONTINUOUS, not one-shot.
+    //
+    // The first version hid each cluster once, in SuppressLegacyView, and skipped anything that was
+    // not active at that instant. On a level RESTART the game re-activates these clusters AFTER the
+    // view has loaded (Reset/SetLevelInit/Show run again), so the skipped ones came back and stayed
+    // — the legacy HUD rendering permanently on top of the toolkit HUD. That is the reported
+    // "doubles on restart, persists" (user, 2026-08-02).
+    //
+    // Re-asserting each frame is cheap (11 cached transforms, no Find) and is robust to the game
+    // re-showing a cluster at any point in the level lifecycle.
+    private void ReassertLegacySuppression() {
+
+        ResolveLegacyClusters();
+
+        for(int i = 0; i < legacyClusters.Length; i++) {
+
+            Transform t = legacyClusters[i];
+
+            if(t == null || !t.gameObject.activeSelf) {
+                continue;
+            }
+
+            t.gameObject.Hide();
+
+            // Only track it once, so the restore list cannot grow across re-activations.
+            if(!suppressedLegacy.Contains(t.gameObject)) {
+                suppressedLegacy.Add(t.gameObject);
+            }
+        }
+
+        // Same story for the smarts collider: if the game re-enables it mid-level it would start
+        // stealing taps again. Re-disable without clobbering the ORIGINAL state kept for restore.
+        if(smartsButtonCollider != null && smartsButtonCollider.enabled) {
+            smartsButtonCollider.enabled = false;
+        }
     }
 
     protected override void SuppressLegacyView() {
 
-        // TOP RIGHT: pause / overview / level / camera / edit are all FLAT buttons, so hiding the
-        // whole Toolbar takes their colliders inactive with it. Nothing 3D lives here.
-        SuppressLegacyObject(hudTopRight);
-
-        // TOP LEFT, cluster by cluster. Everything here is flat EXCEPT the two noted below.
-        SuppressLegacyObject(hudTopLeft + "MAN");                 // M.A.N. face box (flat)
-        SuppressLegacyObject(hudTopLeft + "Character/Container"); // the three stat bars
-        SuppressLegacyObject(hudTopLeft + "Score");
-        SuppressLegacyObject(hudTopLeft + "Scores");
-        SuppressLegacyObject(hudTopLeft + "Time");
-
-        // COINS: hide the flat children ONLY. Coins/HUDCoin is a real 3D mesh (MeshFilter +
-        // MeshRenderer) and there is no coin sprite to port it to, so it must keep rendering — the
-        // toolkit view leaves a gap where it shows through, exactly like the header's UICoin.
-        // Verified 2026-07-31: nothing under Coins carries a Collider, so unlike the header there is
-        // no pick-stealing hazard from this particular selective hide.
-        SuppressLegacyObject(hudTopLeft + "Coins/BackgroundWhite");
-        SuppressLegacyObject(hudTopLeft + "Coins/LabelCoins");
-        SuppressLegacyObject(hudTopLeft + "Coins/Labelx");
-
-        // THE ONE COLLIDER HAZARD. ButtonGameSmartsShow contains a whole 3D player rig, so we can
-        // only hide its flat children — which leaves the BUTTON's own collider live and pickable
-        // while nothing renders there. That is precisely the bug that made a suppressed header coin
-        // button swallow every top-right tap (games-ui c805b2d). Disable the collider; OnDisable ->
-        // FreeToolkitView restores it.
-        SuppressLegacyObject(hudTopLeft + "Character/ButtonGameSmartsShow/Label");
-        SuppressLegacyObject(hudTopLeft + "Character/ButtonGameSmartsShow/Background");
-
-        SetupHudCoinStage();
-
+        // THE COLLIDER HAZARD, captured before the first sweep so the ORIGINAL enabled state is kept
+        // for restore. ButtonGameSmartsShow contains a whole 3D player rig, so only its flat
+        // children can be hidden — which leaves the BUTTON's own collider live and pickable while
+        // nothing renders there. That is precisely the bug that made a suppressed header coin button
+        // swallow every top-right tap (games-ui c805b2d). FreeToolkitView restores it.
         Transform smarts = transform.Find(hudTopLeft + "Character/ButtonGameSmartsShow");
 
         if(smarts != null) {
@@ -407,9 +440,14 @@ public class BaseGameHUD : GameUIPanelBase {
 
             if(smartsButtonCollider != null) {
                 smartsButtonColliderWasEnabled = smartsButtonCollider.enabled;
-                smartsButtonCollider.enabled = false;
             }
         }
+
+        // Everything else is the per-frame sweep — see ReassertLegacySuppression for why this is
+        // not a one-shot.
+        ReassertLegacySuppression();
+
+        SetupHudCoinStage();
     }
 
     // The green FPS readout was a legacy UILabel owned by FPSDisplay, which the toolkit HUD now
@@ -532,6 +570,10 @@ public class BaseGameHUD : GameUIPanelBase {
         }
 
         suppressedLegacy.Clear();
+
+        // Re-resolve on the next suppression: if a level teardown destroyed and rebuilt any of these
+        // children, the cached Transforms would be stale.
+        legacyClusters = null;
 
         // Let the legacy FPS label be re-hidden if the view is loaded again.
         fpsLegacyHidden = false;
@@ -887,6 +929,13 @@ public class BaseGameHUD : GameUIPanelBase {
     public virtual void Update() {
 
         SyncToolkitChromeVisibility();
+
+        // Legacy suppression is re-asserted every frame the toolkit chrome is up: the game
+        // re-activates these clusters on restart, after the view has already loaded.
+        if(isToolkitPanel && toolkitChromeShown) {
+            ReassertLegacySuppression();
+        }
+
         UpdateToolkitFps();
         /*
         var ry = 0f;
