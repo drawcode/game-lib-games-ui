@@ -320,6 +320,12 @@ public class BaseGameHUD : GameUIPanelBase {
 
         toolkitChromeShown = shouldShow;
 
+        // The 3D bits travel WITH the chrome. Suppression deliberately keeps the bot rig and the
+        // coin mesh rendering (they have no sprite equivalent), but they are part of the HUD — so
+        // when the chrome hides for pause/prepare they must go too. Without this the bot stayed on
+        // screen over the pause menu after the rest of the HUD had gone (user, 2026-08-02).
+        SetLegacyHudVisualsVisible(shouldShow);
+
         if(shouldShow) {
             // RESTORE DISPLAY FIRST. TweenUtil's slides deliberately "do NOT touch display/active
             // state" (TweenUtil.cs: "gate learning #1: tweens never own visibility"), so after the
@@ -398,6 +404,34 @@ public class BaseGameHUD : GameUIPanelBase {
     //
     // Re-asserting each frame is cheap (11 cached transforms, no Find) and is robust to the game
     // re-showing a cluster at any point in the level lifecycle.
+    // The two legacy 3D pieces the toolkit view cannot replace: the bot rig inside
+    // ButtonGameSmartsShow, and the staged coin mesh. They render OUTSIDE the toolkit view, so
+    // hiding the view does not hide them — they need to be toggled with it explicitly.
+    //
+    // The coin is drawn into a RenderTexture and shown through the view's IconCoin element, so the
+    // element itself goes with the view; SetVisible stops the stage camera rendering too rather
+    // than leaving it running for a texture nobody is showing.
+    private void SetLegacyHudVisualsVisible(bool visible) {
+
+        ResolveLegacyClusters();
+
+        Transform smarts = transform.Find(hudTopLeft + "Character/ButtonGameSmartsShow");
+
+        if(smarts != null && smarts.gameObject.activeSelf != visible) {
+
+            if(visible) {
+                smarts.gameObject.Show();
+            }
+            else {
+                smarts.gameObject.Hide();
+            }
+        }
+
+        if(hudCoinStage != null) {
+            hudCoinStage.SetVisible(visible);
+        }
+    }
+
     private void ReassertLegacySuppression() {
 
         ResolveLegacyClusters();

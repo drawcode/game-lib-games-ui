@@ -47,23 +47,43 @@ public class BaseGameUIPanelMain : GameUIPanelBase {
     // panel-main.uxml is picking-Ignore).
     protected override void SuppressLegacyView() {
 
-        if(containerLogoObject != null) {
+        ReassertLegacySuppression();
+
+        // The view arrives ASYNC: the first AnimateIn's AnimateStartCharacter ran while the
+        // panel was still NGUI-only, so replay the CTA pulse onto the freshly bound label.
+        TweenUtil.FadeToObject(startObjectRef, .5f, "label-pulse");
+    }
+
+    // Suppression must be CONTINUOUS, not one-shot — the same defect that made the HUD double on
+    // restart (games-ui a92de60). Hiding these once is only safe if nothing re-activates them, but
+    // the main panel is re-shown on every return to the menu and the show choreography turns
+    // containerStartObject back on, so the legacy "TAP CHARACTER TO PLAY" came back and rendered
+    // alongside the toolkit CTA (user, 2026-08-02: "doubles on the main page").
+    //
+    // Cheap: three null-checked Hide() calls that no-op once already hidden.
+    private void ReassertLegacySuppression() {
+
+        if(containerLogoObject != null && containerLogoObject.activeSelf) {
             containerLogoObject.Hide();
         }
 
-        if(containerStartObject != null) {
+        if(containerStartObject != null && containerStartObject.activeSelf) {
             containerStartObject.Hide();
         }
 
         Transform sponsor = transform.Find("Container/AnchorTopLeft/TopLeft");
 
-        if(sponsor != null) {
+        if(sponsor != null && sponsor.gameObject.activeSelf) {
             sponsor.gameObject.Hide();
         }
+    }
 
-        // The view arrives ASYNC: the first AnimateIn's AnimateStartCharacter ran while the
-        // panel was still NGUI-only, so replay the CTA pulse onto the freshly bound label.
-        TweenUtil.FadeToObject(startObjectRef, .5f, "label-pulse");
+    public virtual void Update() {
+
+        // While the toolkit view owns this panel, the legacy widgets it replaces stay hidden.
+        if(isToolkitPanel) {
+            ReassertLegacySuppression();
+        }
     }
 
     // Kill switch / pooled-away: restore the suppressed NGUI widgets so the legacy path
