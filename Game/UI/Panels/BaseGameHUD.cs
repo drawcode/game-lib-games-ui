@@ -579,6 +579,12 @@ public class BaseGameHUD : GameUIPanelBase {
         fpsLegacyHidden = false;
         lastFpsText = null;
 
+        // MUST reset: this tracks the visibility of a view that no longer exists. Leaving it true
+        // across a teardown makes SyncToolkitChromeVisibility early-return on the NEXT level —
+        // shouldShow(true) == toolkitChromeShown(true) — against a freshly loaded view that
+        // LoadToolkitView's continuation left hidden, giving a blank HUD from the second level on.
+        toolkitChromeShown = false;
+
         if(smartsButtonCollider != null) {
             smartsButtonCollider.enabled = smartsButtonColliderWasEnabled;
             smartsButtonCollider = null;
@@ -930,9 +936,12 @@ public class BaseGameHUD : GameUIPanelBase {
 
         SyncToolkitChromeVisibility();
 
-        // Legacy suppression is re-asserted every frame the toolkit chrome is up: the game
-        // re-activates these clusters on restart, after the view has already loaded.
-        if(isToolkitPanel && toolkitChromeShown) {
+        // Legacy suppression is re-asserted every frame a toolkit view OWNS the HUD — deliberately
+        // NOT gated on the chrome being visible. The invariant is "if the toolkit view exists, the
+        // legacy flat chrome stays hidden": during prepare/tips the toolkit chrome is intentionally
+        // hidden, and if the game re-activated a cluster in that window the LEGACY HUD would flash
+        // there — the exact window that is meant to stay clear.
+        if(isToolkitPanel) {
             ReassertLegacySuppression();
         }
 
