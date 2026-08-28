@@ -261,8 +261,114 @@ public class UICustomizeProfileCharacters : UICustomizeSelectObject {
                 UIUtil.SetInputValue(inputCurrentDisplayCode, profileCharacterItem.characterDisplayCode);
 
                 UIUtil.SetLabelValue(labelCurrentStatus, string.Format("{0}/{1}", index + 1, countPresets));
+
+                // ...and again for the toolkit, by ELEMENT NAME. labelCurrentDisplayName /
+                // labelCurrentType / labelCurrentStatus are declared inside
+                // UICustomizeSelectObject's `#if USE_UI_NGUI_2_7 || USE_UI_NGUI_3` branch — the
+                // branch actually compiled here — so they are legacy UILabels that BindElements
+                // can never rebind. Every write above lands on the NGUI widget SuppressLegacyView
+                // has already hidden, which is why cycling bots moved the 3D model but left the
+                // plate's name/type/status frozen at their authored placeholders (user, 2026-08-28).
+                // Third instance of this trap after the worlds labels and the header band title.
+                UpdateToolkitDisplay(
+                    profileCharacterItem, characterType,
+                    string.Format("{0}/{1}", index + 1, countPresets));
             }
         }
+    }
+
+    // The panel that hosts this control. Resolved by walking up rather than by asking a
+    // specific panel type for its Instance: this control is generic game-lib code and must not
+    // learn the name of the one screen that happens to use it today.
+    private UIPanelBase hostPanel;
+
+    public UIPanelBase HostPanel() {
+
+        if(hostPanel == null) {
+            hostPanel = GetComponentInParent<UIPanelBase>();
+        }
+
+        return hostPanel;
+    }
+
+    // Mirror of the legacy writes above, addressed by element name. No-ops entirely on the NGUI
+    // path (and before the async view lands), because ResolveDeep on a dead ref returns UIRef.none
+    // and every backend op no-ops on a ref that is not alive.
+    public virtual void UpdateToolkitDisplay(
+        GameProfileCharacterItem item, string characterType, string status) {
+
+        UIPanelBase panel = HostPanel();
+
+        if(panel == null || !panel.isToolkitPanel || item == null) {
+            return;
+        }
+
+        Engine.UI.UIRef root = panel.viewRoot;
+
+        UIUtil.SetLabelValue(UIUtil.ResolveDeep(root, "LabelCharacterNameValue"),
+            item.characterDisplayName);
+        UIUtil.SetLabelValue(UIUtil.ResolveDeep(root, "LabelType"), characterType);
+        UIUtil.SetLabelValue(UIUtil.ResolveDeep(root, "LabelStatus"), status);
+
+        UpdateToolkitInfoCard(item, characterType);
+    }
+
+    // The info callout under the plate (user request, 2026-08-28): identity plus the four RPG
+    // attributes, so switching bots shows what actually differs between them.
+    //
+    // The stat scale matches UICustomizeCharacterRPGItem exactly — values are stored 0..1 and
+    // displayed against a modifier of 10 — so the same bot reads the same number here and on the
+    // skills screen. Deliberately reusing that constant rather than inventing a display range.
+    protected virtual void UpdateToolkitInfoCard(
+        GameProfileCharacterItem item, string characterType) {
+
+        Engine.UI.UIRef root = HostPanel().viewRoot;
+
+        UIUtil.SetLabelValue(UIUtil.ResolveDeep(root, "LabelCardName"),
+            item.characterDisplayName);
+        UIUtil.SetLabelValue(UIUtil.ResolveDeep(root, "LabelCardCode"),
+            string.IsNullOrEmpty(item.characterDisplayCode) ? "" : "#" + item.characterDisplayCode);
+
+        // The plate already brackets the type as "- TYPE: X -"; the card wants it plain.
+        UIUtil.SetLabelValue(UIUtil.ResolveDeep(root, "LabelCardType"),
+            characterType.Replace("- ", "").Replace(" -", ""));
+
+        // Read through GetCurrentCharacterRPG, NOT item.profileRPGItem. ChangePreset has already
+        // called SetCurrentCharacterProfileCode for this item, so the two ought to agree — but the
+        // item pulled out of GetCharacters().items carries no RPG data (measured: its getters all
+        // return 0 while the current-character lookup returns the real 0.1), and the authored
+        // placeholder "0/10" made that look like a working card with a zeroed bot. Going through
+        // the same accessor the skills screen uses also guarantees the two screens can never
+        // disagree about the same bot.
+        GameProfileRPGItem rpg = GameProfileCharacters.Current.GetCurrentCharacterRPG();
+
+        if(rpg == null) {
+            rpg = item.profileRPGItem;
+        }
+
+        if(rpg == null) {
+            return;
+        }
+
+        SetToolkitStat(root, "Speed", rpg.GetSpeed());
+        SetToolkitStat(root, "Health", rpg.GetHealth());
+        SetToolkitStat(root, "Energy", rpg.GetEnergy());
+        SetToolkitStat(root, "Attack", rpg.GetAttack());
+    }
+
+    protected virtual void SetToolkitStat(Engine.UI.UIRef root, string code, double val) {
+
+        double modifier = 10;
+
+        UIUtil.SetLabelValue(
+            UIUtil.ResolveDeep(root, "Stat" + code + "Value"),
+            string.Format("{0}/{1}",
+                (val * modifier).ToString("N0"), modifier.ToString("N0")));
+
+        // Falls through the backend to the image-fill path, which sets the element's width as a
+        // percentage of its track.
+        UIUtil.SetSliderValue(
+            UIUtil.ResolveDeep(root, "Stat" + code + "Fill"), (float)val);
     }
 
     public override void Update() {

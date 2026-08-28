@@ -166,6 +166,28 @@ public class BaseGameUIPanelCustomizeCharacter : GameUIPanelBase {
 
     protected override void SuppressLegacyView() {
         ReassertLegacySuppression();
+        ReplayCharacterDisplay();
+    }
+
+    // Re-run the preset control's initial load once the view EXISTS.
+    //
+    // UICustomizeProfileCharacters populates the plate and the info card from ChangePreset, and it
+    // does that first from Start() — which fires a frame or two BEFORE LoadToolkitView's
+    // continuation lands. Its toolkit writes therefore no-op on the very first show and the screen
+    // sits on the placeholders authored into the view ("Bot #1", "3/4", "0/10") until the player
+    // touches an arrow. Same replay problem, and same hook, as the header band title.
+    protected virtual void ReplayCharacterDisplay() {
+
+        if(!isToolkitPanel) {
+            return;
+        }
+
+        UICustomizeProfileCharacters presets =
+            GetComponentInChildren<UICustomizeProfileCharacters>(true);
+
+        if(presets != null) {
+            presets.ShowCurrentProfileCharacter();
+        }
     }
 
     // CONTINUOUS, never one-shot (iter-7 rule 1). Controls/Buttons/ButtonGameProductsCharacter is

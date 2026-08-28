@@ -103,6 +103,22 @@ continuation, so it is the right place to replay.
 **Diagnosing it takes one probe**: reflect the field and print its runtime type. `secRef=UILabel`
 where a `UIRef` was expected is the whole answer.
 
+**Third occurrence, 2026-08-28** — `UICustomizeSelectObject.labelCurrentDisplayName` /
+`labelCurrentType` / `labelCurrentStatus`, which is why cycling bots on the customize screen moved
+the 3D model but left the name plate frozen on its authored placeholders. Same fix, written from
+`UICustomizeProfileCharacters.ChangePreset`. Two things generalise from it:
+
+- **The writer is often not the panel.** `UICustomizeProfileCharacters` is a control living inside
+  the panel prefab, so it reaches the view with `GetComponentInParent<UIPanelBase>().viewRoot`
+  (cached). Walk UP — do NOT reach for a specific panel's `Instance`, or generic game-lib code
+  learns the name of the one screen using it today.
+- **The replay hook belongs to the PANEL.** This control populates from `Start()`, which fires a
+  frame or two BEFORE `LoadToolkitView`'s continuation, so its first write always no-ops.
+  `BaseGameUIPanelCustomizeCharacter.SuppressLegacyView` now re-runs
+  `ShowCurrentProfileCharacter()` — the same replay slot the header title uses for `toolkitTitle`.
+  Any control that populates on Start needs this, or the screen shows authored placeholders until
+  the player touches something.
+
 ## The OnDisable chain (still the standing prerequisite)
 
 `UIPanelBase.OnDisable` is what calls `FreeToolkitView`. Most `BaseGameUIPanel*` classes override
