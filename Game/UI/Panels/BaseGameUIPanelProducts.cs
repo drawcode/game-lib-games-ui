@@ -76,6 +76,17 @@ public class BaseGameUIPanelProducts : GameUIPanelBase {
         Messenger<string, string>.RemoveListener(
             UIControllerMessages.uiPanelAnimateType,
             OnUIControllerPanelAnimateType);
+
+        // Chain to base so UIPanelBase.OnDisable -> FreeToolkitView runs when this panel is pooled
+        // away, else the toolkit view leaks once this panel gets a toolkitViewKey. Standing
+        // Phase-3 migration prerequisite; latent until then.
+        //
+        // OnDisable ONLY: UIPanelBase.OnEnable re-adds EVENT_BUTTON_CLICK ->
+        // OnButtonClickEventHandler, which this panel already subscribes itself, so chaining
+        // OnEnable would fire every button click twice. RemoveListener is idempotent, so the
+        // one-sided chain is safe.
+        base.OnDisable();
+
     }
 
     public override void OnUIControllerPanelAnimateIn(string classNameTo) {
