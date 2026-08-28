@@ -109,6 +109,43 @@ public class BaseGameUIPanelHeader : GameUIPanelBase {
     // originals restored when the toolkit view frees.
     private ParticleSystem[] coinEffectSystems;
     private float[] coinEffectOriginalSizes;
+
+    // 3I — THE CHARACTERLARGE CLUSTER (backdrop card + posed 3D bot + CUSTOMIZE button).
+    //
+    // The header OWNS the shared character rig: main, game-mode, results, customize-character and
+    // the customize/game-mode leaves all display the SAME one. So the conversion belongs here and
+    // nowhere else — staging flips the rig's layers, and if an individual panel staged it every
+    // other screen showing the character would fight over those layers (iter-8 finding: almost
+    // nothing large on the customize screen is actually the panel's).
+    //
+    // It gets its OWN view rather than an element inside panel-header.uxml, because of draw order:
+    // the card must render BEHIND flow panels (their nav arrows and name plates sit on top of it)
+    // while the header band renders ABOVE them. One view in UILayers.backdrop, one owner, and
+    // every character screen is fixed at once.
+    public const string characterLargeViewKey = "panel-character-large";
+
+    // ...and a SECOND view for the pieces that belong IN FRONT of the panel. The cluster
+    // straddles the flow panel in legacy NGUI: the dark backer draws behind a screen's content
+    // while the bot and the CUSTOMIZE button draw over it (the coop baseline is the clear case —
+    // both overlap the green mode buttons, the backer does not). One view per side of the
+    // `panel` band is the only way to reproduce that, since a view is composited as a unit.
+    public const string characterLargeFrontViewKey = "panel-character-large-front";
+
+    private Engine.UI.UIRef characterLargeView = Engine.UI.UIRef.none;
+    private bool characterLargeLoadRequested;
+    private Engine.UI.UIRef characterLargeFrontView = Engine.UI.UIRef.none;
+    private bool characterLargeFrontLoadRequested;
+    private Engine.UI.UIRenderStage characterLargeStage;
+
+    // The flat NGUI pieces the view replaces — hidden while staged, restored on unstage so the
+    // legacy path (and the kill switch) renders whole again.
+    private GameObject characterLargeBacker;
+    private GameObject characterLargeButton;
+
+    // Staged == the toolkit card is what the player is seeing. Screens that have NOT been migrated
+    // still show the rig through NGUI, so this flips per panel rather than latching on.
+    private bool characterLargeStaged;
+
     public GameObject containerCharacters;
     public GameObject containerCharacter;
     public GameObject containerCharacterLarge;
@@ -392,6 +429,11 @@ public class BaseGameUIPanelHeader : GameUIPanelBase {
     }
 
     public virtual void hideTitle() {
+
+        if(isToolkitPanel) {
+            UIUtil.HideLabel(UIUtil.ResolveDeep(viewRoot, "LabelSection"));
+        }
+
         UIUtil.HideLabel(labelSection);
     }
 
@@ -401,7 +443,29 @@ public class BaseGameUIPanelHeader : GameUIPanelBase {
         }
     }
 
+    // WHY THIS WRITES BY ELEMENT NAME instead of through a bound ref: `labelSection` is declared
+    // inside the `#if USE_UI_NGUI_2_7 || USE_UI_NGUI_3` branch at the top of this file, and that
+    // branch IS the one compiled here — so the field is a legacy `UILabel`, not a `UIRef`, and
+    // BindElements can never rebind it however correct binds/panel-header.json looks. The title
+    // was therefore only ever written to the NGUI label, which SuppressLegacyView had already
+    // hidden: the header band has rendered title-less on every migrated screen all along. Same
+    // class of bug (and same fix) as the worlds labelWorldTitle/labelWorldDescription pair.
+    //
+    // Cached because the write can land before the async view exists: the header titles a screen
+    // from AnimateIn, which on a cold header runs a frame or two before LoadToolkitView's
+    // continuation. SuppressLegacyView (which runs IN that continuation) replays it.
+    protected string toolkitTitle = "";
+
     public virtual void showTitle(string title) {
+
+        toolkitTitle = title;
+
+        if(isToolkitPanel) {
+            Engine.UI.UIRef label = UIUtil.ResolveDeep(viewRoot, "LabelSection");
+            UIUtil.ShowLabel(label);
+            UIUtil.SetLabelValue(label, title);
+        }
+
         UIUtil.ShowLabel(labelSection);
         UIUtil.SetLabelValue(labelSection, title);
     }
@@ -468,6 +532,11 @@ public class BaseGameUIPanelHeader : GameUIPanelBase {
 
         if(titleObject != null) {
             titleObject.Hide();
+        }
+
+        // Replay the title requested before the view existed (see showTitle).
+        if(!string.IsNullOrEmpty(toolkitTitle)) {
+            UIUtil.SetLabelValue(UIUtil.ResolveDeep(viewRoot, "LabelSection"), toolkitTitle);
         }
     }
 
@@ -599,6 +668,253 @@ public class BaseGameUIPanelHeader : GameUIPanelBase {
         coinEffectOriginalSizes = null;
     }
 
+    // ---- 3I: the CharacterLarge cluster ------------------------------------
+    //
+    // Entry point, called by the panel coming up (UIPanelBase.HandleCharacterDisplay). `toolkit`
+    // is that panel's isToolkitPanel: a migrated screen gets the converted card, an unmigrated one
+    // keeps the legacy NGUI rig untouched. Toolkit views composite above the ENTIRE camera stack,
+    // so showing the card on an unmigrated screen would bury its NGUI content — this flag is the
+    // migration seam, and once every character screen is converted it is simply always true.
+    public static void SetCharacterLargeToolkit(bool toolkit) {
+
+        if(GameUIPanelHeader.Instance != null) {
+            GameUIPanelHeader.Instance.setCharacterLargeToolkit(toolkit);
+        }
+    }
+
+    public virtual void setCharacterLargeToolkit(bool toolkit) {
+
+        if(toolkit && Engine.UI.UIPlatform.toolkitViewsEnabled) {
+            StageCharacterLarge();
+        }
+        else {
+            UnstageCharacterLarge();
+        }
+    }
+
+    // Hide the flat NGUI chrome the view replaces, stage the 3D rig into a RenderTexture, and
+    // bring the card view up. The 3D subtree is NOT hidden — hiding it would kill the animating
+    // bot; it is staged instead, so it keeps running and renders into the RT.
+    protected virtual void StageCharacterLarge() {
+
+        if(characterLargeStaged || containerCharacterLarge == null) {
+            return;
+        }
+
+        Transform container = containerCharacterLarge.transform.Find("ContainerCharacterLarge");
+
+        if(container == null) {
+            return;
+        }
+
+        characterLargeStaged = true;
+
+        characterLargeBacker = container.Find("Background-a-40") != null
+            ? container.Find("Background-a-40").gameObject : null;
+        characterLargeButton = container.Find("ButtonGameCustomize") != null
+            ? container.Find("ButtonGameCustomize").gameObject : null;
+
+        // Unlike the coin button (which has the 3D coin INSIDE it, so only its children could be
+        // hidden), ButtonGameCustomize holds nothing but flat widgets and its collider — so the
+        // whole GameObject goes down, and with it the invisible-but-pickable trap that cost a
+        // session on the coin. The view draws a name-bridged ButtonGameCustomize in its place.
+        if(characterLargeBacker != null) {
+            characterLargeBacker.Hide();
+        }
+
+        if(characterLargeButton != null) {
+            characterLargeButton.Hide();
+        }
+
+        SetupCharacterLargeStage(container);
+        LoadCharacterLargeView();
+    }
+
+    protected virtual void SetupCharacterLargeStage(Transform container) {
+
+        if(characterLargeStage != null) {
+            return;
+        }
+
+        Transform rig = container.Find("Container");
+
+        if(rig == null) {
+            return;
+        }
+
+        // Dedicated widget layer; UI3D as fallback (older project configs) — same as the coin.
+        int layer = LayerMask.NameToLayer("UIWidget3D");
+
+        if(layer < 0) {
+            layer = LayerMask.NameToLayer("UI3D");
+        }
+
+        // 512, not the coin's 128: the bot is the largest 3D widget in the game and fills a
+        // ~816x514 card. framePadding 1.15 crops tight — this rig has no particle spill to leave
+        // room for, unlike the coin's glow.
+        //
+        // keepColliderLayers KEEPS THE BOT DRAGGABLE. showCharacterLargeCo hands Rotator's
+        // collider to InputSystem as the current draggable; Rotator carries a collider and no
+        // renderer, so it stays on the UI event layer while the meshes move to the stage layer.
+        // Without it the bot would render correctly and silently stop spinning under the finger.
+        // followContent: this rig is TWEENED into place, unlike the coin. Attach happens while the
+        // container is still parked off-screen, so a fixed camera frames empty space ~14 units
+        // above the bot and the RT comes back fully transparent (measured, iter 9). The camera
+        // has to travel with the container.
+        characterLargeStage = Engine.UI.UIRenderStage.Attach(
+            rig.gameObject, layer, 512, 1.15f, true, true);
+
+        SyncCharacterLargeTexture();
+    }
+
+    // ASYNC like every other view load (PanelRenderer builds a frame or two later), so the texture
+    // bind runs in the continuation as well as at attach time — whichever lands second wins.
+    protected virtual void LoadCharacterLargeView() {
+
+        LoadCharacterLargePart(
+            characterLargeViewKey,
+            Engine.UI.UILayers.backdrop,
+            delegate { return characterLargeView; },
+            delegate(Engine.UI.UIRef v) { characterLargeView = v; },
+            delegate { return characterLargeLoadRequested; },
+            delegate(bool b) { characterLargeLoadRequested = b; });
+
+        LoadCharacterLargePart(
+            characterLargeFrontViewKey,
+            Engine.UI.UILayers.foreground,
+            delegate { return characterLargeFrontView; },
+            delegate(Engine.UI.UIRef v) { characterLargeFrontView = v; },
+            delegate { return characterLargeFrontLoadRequested; },
+            delegate(bool b) { characterLargeFrontLoadRequested = b; });
+    }
+
+    // One half of the cluster. Parameterised rather than duplicated because the two halves differ
+    // only in key and band, and the in-flight-orphan handling below is the part that must not
+    // drift between them.
+    protected virtual void LoadCharacterLargePart(
+        string viewKey,
+        int band,
+        System.Func<Engine.UI.UIRef> getView,
+        System.Action<Engine.UI.UIRef> setView,
+        System.Func<bool> getRequested,
+        System.Action<bool> setRequested) {
+
+        if(getView().alive) {
+            SyncCharacterLargeTexture();
+            return;
+        }
+
+        if(getRequested()) {
+            return;
+        }
+
+        Engine.UI.IUIBackend backend = Engine.UI.UIPlatform.viewBackend;
+
+        if(backend == null) {
+            return;
+        }
+
+        setRequested(true);
+
+        backend.LoadView(viewKey, band, (Engine.UI.UIRef view) => {
+
+            if(view == null || !view.alive) {
+                setRequested(false);
+                return;
+            }
+
+            // Unstaged (or already re-loaded) while the build was in flight — destroy the orphan
+            // rather than leak its PanelRenderer. Same contract as UIPanelBase.LoadToolkitView.
+            if(!getRequested() || getView().alive) {
+                backend.DestroyView(view);
+                return;
+            }
+
+            setView(view);
+
+            SyncCharacterLargeTexture();
+
+            if(characterLargeStaged) {
+                backend.Show(view);
+            }
+            else {
+                backend.Hide(view);
+            }
+        });
+    }
+
+    // The stage element moved to the FRONT view when the cluster was split across the panel band.
+    protected virtual void SyncCharacterLargeTexture() {
+
+        if(characterLargeStage == null || !characterLargeFrontView.alive) {
+            return;
+        }
+
+        UIUtil.SetImageTexture(
+            UIUtil.ResolveDeep(characterLargeFrontView, "CharacterLargeStage"),
+            characterLargeStage.texture);
+    }
+
+    // Give the rig back to NGUI: original layers restored, flat widgets shown, card hidden. The
+    // view itself is kept (hidden) so returning to a migrated screen does not pay another async
+    // build; FreeToolkitView is what actually destroys it.
+    protected virtual void UnstageCharacterLarge() {
+
+        characterLargeLoadRequested = false;
+        characterLargeFrontLoadRequested = false;
+
+        if(!characterLargeStaged) {
+            return;
+        }
+
+        characterLargeStaged = false;
+
+        if(characterLargeStage != null) {
+            characterLargeStage.Detach();
+            characterLargeStage = null;
+        }
+
+        if(characterLargeBacker != null) {
+            characterLargeBacker.Show();
+            characterLargeBacker = null;
+        }
+
+        if(characterLargeButton != null) {
+            characterLargeButton.Show();
+            characterLargeButton = null;
+        }
+
+        UIUtil.HideObject(characterLargeView);
+        UIUtil.HideObject(characterLargeFrontView);
+    }
+
+    protected virtual void FreeCharacterLargeView() {
+
+        UnstageCharacterLarge();
+
+        if(characterLargeView.alive) {
+
+            Engine.UI.IUIBackend backend = Engine.UI.UIPlatform.For(characterLargeView);
+
+            if(backend != null) {
+                backend.DestroyView(characterLargeView);
+            }
+        }
+
+        characterLargeView = Engine.UI.UIRef.none;
+
+        if(characterLargeFrontView.alive) {
+
+            Engine.UI.IUIBackend frontBackend = Engine.UI.UIPlatform.For(characterLargeFrontView);
+
+            if(frontBackend != null) {
+                frontBackend.DestroyView(characterLargeFrontView);
+            }
+        }
+
+        characterLargeFrontView = Engine.UI.UIRef.none;
+    }
+
     // The stage + suppressed NGUI pieces belong to the toolkit view's lifetime: when the view is
     // freed (header disabled, or kill switch), restore the NGUI coin/flat widgets so the legacy
     // path renders whole again.
@@ -610,6 +926,8 @@ public class BaseGameUIPanelHeader : GameUIPanelBase {
             coinStage.Detach();
             coinStage = null;
         }
+
+        FreeCharacterLargeView();
 
         if(coinFlatLabel != null) {
             coinFlatLabel.Show();
@@ -705,7 +1023,17 @@ public class BaseGameUIPanelHeader : GameUIPanelBase {
 
     public IEnumerator showCharacterLargeCo() {
         yield return new WaitForSeconds(.55f);
-        TweenUtil.ShowObjectTop(containerCharacterLarge);
+
+        // STAGED: snap the rig into its parked position instead of sliding it (time/delay 0).
+        // The stage camera frames WORLD space at attach time and does not follow, so tweening the
+        // container would slide the bot out through the edge of its own RenderTexture. All the
+        // motion belongs to the toolkit card, which slides as one view just below the panels.
+        if(characterLargeStaged) {
+            TweenUtil.ShowObjectTop(containerCharacterLarge, TweenCoord.local, true, 0f, 0f);
+        }
+        else {
+            TweenUtil.ShowObjectTop(containerCharacterLarge);
+        }
 
         if(containerCharacterLarge != null) {
             containerCharacterLarge.ResetRigidBodiesVelocity();
@@ -714,8 +1042,32 @@ public class BaseGameUIPanelHeader : GameUIPanelBase {
                 containerCustomCharacterLarge.containerRotator;
         }
 
+        if(characterLargeStaged) {
+
+            if(characterLargeStage != null) {
+                characterLargeStage.SetVisible(true);
+            }
+
+            TweenUtil.ShowObjectTop(characterLargeView);
+            TweenUtil.ShowObjectTop(characterLargeFrontView);
+        }
+
         characterLargeShowPose();
         characterLargeZoomOut();
+
+        // The pose and the zoom both change the rig's SIZE, and Attach framed it at whatever size
+        // it happened to be beforehand — leaving the bot correct but small in its own RT. Re-fit
+        // once it has settled. characterLargeZoomOut is an EASED tween (QuadEaseInOut), not a set,
+        // so a next-frame re-fit would measure the rig mid-zoom and then let it grow out of frame;
+        // wait out the ease first. The SkinnedMeshRenderer's bounds update lazily too.
+        if(characterLargeStaged && characterLargeStage != null) {
+
+            yield return new WaitForSeconds(.75f);
+
+            if(characterLargeStage != null) {
+                characterLargeStage.Reframe();
+            }
+        }
     }
 
     public static void HideCharacterLarge() {
@@ -725,7 +1077,24 @@ public class BaseGameUIPanelHeader : GameUIPanelBase {
     }
 
     public virtual void hideCharacterLarge() {
-        TweenUtil.HideObjectTop(containerCharacterLarge);
+
+        // Staged: same reasoning as the show — snap the (invisible) NGUI container to its hidden
+        // state so legacy state stays consistent for a later unstage, and let the card slide out
+        // on its own. The stage camera goes off first, so the RT simply freezes rather than
+        // showing the rig leave frame.
+        if(characterLargeStaged) {
+
+            if(characterLargeStage != null) {
+                characterLargeStage.SetVisible(false);
+            }
+
+            TweenUtil.HideObjectTop(characterLargeView);
+            TweenUtil.HideObjectTop(characterLargeFrontView);
+            TweenUtil.HideObjectTop(containerCharacterLarge, TweenCoord.local, true, 0f, 0f);
+        }
+        else {
+            TweenUtil.HideObjectTop(containerCharacterLarge);
+        }
 
         InputSystem.Instance.currentDraggableUIGameObject = null;
     }

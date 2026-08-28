@@ -34,13 +34,16 @@ public class UIPanelPause : UIPanelBase {
     //     no other toolkit view can cover it. Modal blocking stays legacy — showUIPanelPause shows the
     //     NGUI gameBackgroundAlertObject behind the dialog.
     //
-    // STILL RETURNS "" only because the flip cannot be verified in-editor (scripted PlayGame never
-    // reaches IsGameRunning=True — pause needs a human play-test) and pause is a critical path the
-    // user just spent two sessions repairing. Flip to BaseUIPanel.panelPause at the start of a play
-    // session; kill switch UIPlatform.toolkitViewsEnabled backs it out globally.
+    // FLIPPED 2026-08-17. The last thing holding this at "" was "cannot be verified in-editor —
+    // scripted PlayGame never reaches IsGameRunning=True". That is no longer true: a scripted run
+    // DOES reach real gameplay (gameState=GameStarted, HUD live) by driving
+    //   GameController.PlayGame() -> click ButtonGameInitFinish -> click ButtonGameReady
+    // via UICamera.Notify, pumping EditorApplication.QueuePlayerLoopUpdate() between steps because
+    // an unfocused editor barely ticks the player loop. Kill switch UIPlatform.toolkitViewsEnabled
+    // still backs this out globally.
     public override string toolkitViewKey {
         get {
-            return "";
+            return BaseUIPanel.panelPause;
         }
     }
 

@@ -540,6 +540,19 @@ public class UIPanelBase : UIAppPanel {
         }
     }
 
+    // "This panel is a MIGRATION TARGET" — known synchronously, unlike isToolkitPanel, which only
+    // becomes true once the async view build lands (a frame or two into the first show).
+    //
+    // Decisions made during AnimateIn about what the toolkit will own must use THIS: asking
+    // isToolkitPanel there answers false on every first show, so a migrated screen would take the
+    // legacy branch exactly once and then switch — a one-show flicker that is hard to attribute.
+    public bool isToolkitMigrated {
+        get {
+            return Engine.UI.UIPlatform.toolkitViewsEnabled
+                && !string.IsNullOrEmpty(toolkitViewKey);
+        }
+    }
+
     // A panel migrates to UI Toolkit by overriding this with its view key — the SAME string the
     // NGUI path already uses (e.g. "panel-settings-credits"). Empty means "stay on NGUI".
     //
@@ -1251,6 +1264,14 @@ public class UIPanelBase : UIAppPanel {
             UIPanelCharacterDisplayState.CharacterLarge) {
 
             GameUIPanelHeader.HideCharacter();
+
+            // The character rig belongs to the HEADER, not to us (iter-8: the card, the bot and
+            // the CUSTOMIZE button on the customize screen are all its). All we contribute is
+            // whether the screen about to appear can host the converted card — a toolkit view
+            // draws above the whole NGUI stack, so on an unmigrated screen it would bury the
+            // content. Staging must be decided BEFORE the show, so the entrance uses it.
+            GameUIPanelHeader.SetCharacterLargeToolkit(isToolkitMigrated);
+
             GameUIPanelHeader.ShowCharacterLarge();
         }
         else {

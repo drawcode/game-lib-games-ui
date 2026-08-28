@@ -69,6 +69,11 @@ public class BaseGameUIPanelGameModeChallenge : GameUIPanelBase {
         Messenger<string, string>.RemoveListener(
             UIControllerMessages.uiPanelAnimateType,
             OnUIControllerPanelAnimateType);
+
+        // Chain to the base: UIPanelBase.OnDisable is what calls FreeToolkitView. Without this
+        // the view leaks its PanelRenderer and the kill switch cannot restore the legacy view.
+        // Latent until the panel carries a toolkitViewKey — which it now does.
+        base.OnDisable();
     }
 
     public override void OnUIControllerPanelAnimateIn(string classNameTo) {
