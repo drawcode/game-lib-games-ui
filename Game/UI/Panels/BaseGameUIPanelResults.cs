@@ -160,7 +160,33 @@ public class BaseGameUIPanelResults : GameUIPanelBase {
     public static string labelNameWorldCode = "LabelWorldCode";
 
     public virtual void UpdateLevelMeta() {
+
+        // UpdateDisplay is driven from the end-of-level coroutine in BaseGameController, and
+        // StartCoroutine THROWS on an inactive GameObject -- which would take the rest of that
+        // coroutine (stats, XP, the results show) with it. An inactive panel has no toolkit
+        // view to wait for either, so write straight through.
+
+        if(!gameObject.activeInHierarchy) {
+            WriteLevelMeta();
+            return;
+        }
+
         StartCoroutine(UpdateLevelMetaCo());
+    }
+
+    public virtual void WriteLevelMeta() {
+
+        string levelCodeDisplay = GetLevelCodeDisplay();
+        string worldCodeDisplay = GetWorldCodeDisplay();
+
+        if(isToolkitPanel) {
+            UIUtil.UpdateLabelObject(viewRoot, labelNameLevelCode, levelCodeDisplay);
+            UIUtil.UpdateLabelObject(viewRoot, labelNameWorldCode, worldCodeDisplay);
+            return;
+        }
+
+        UIUtil.UpdateLabelObject(gameObject, labelNameLevelCode, levelCodeDisplay);
+        UIUtil.UpdateLabelObject(gameObject, labelNameWorldCode, worldCodeDisplay);
     }
 
     public virtual IEnumerator UpdateLevelMetaCo() {
@@ -175,17 +201,7 @@ public class BaseGameUIPanelResults : GameUIPanelBase {
             }
         }
 
-        string levelCodeDisplay = GetLevelCodeDisplay();
-        string worldCodeDisplay = GetWorldCodeDisplay();
-
-        if(isToolkitPanel) {
-            UIUtil.UpdateLabelObject(viewRoot, labelNameLevelCode, levelCodeDisplay);
-            UIUtil.UpdateLabelObject(viewRoot, labelNameWorldCode, worldCodeDisplay);
-            yield break;
-        }
-
-        UIUtil.UpdateLabelObject(gameObject, labelNameLevelCode, levelCodeDisplay);
-        UIUtil.UpdateLabelObject(gameObject, labelNameWorldCode, worldCodeDisplay);
+        WriteLevelMeta();
     }
 
     public virtual string GetLevelCodeDisplay() {
@@ -200,11 +216,27 @@ public class BaseGameUIPanelResults : GameUIPanelBase {
 
     public virtual string GetWorldCodeDisplay() {
 
-        if(GameWorlds.Current == null) {
+        // GameWorlds.Current is the world the PROFILE last selected, and it does not track
+        // the level that was actually played -- measured live on level 1-1 (world-planet-z)
+        // with GameWorlds.Current still reading "Planet 337: New Mars". Resolve the world
+        // the level itself names; fall back to Current only when the level has no world.
+
+        GameWorld world = null;
+
+        if(GameLevels.Current != null
+            && !string.IsNullOrEmpty(GameLevels.Current.world_code)) {
+            world = GameWorlds.Instance.GetById(GameLevels.Current.world_code);
+        }
+
+        if(world == null) {
+            world = GameWorlds.Current;
+        }
+
+        if(world == null) {
             return "";
         }
 
-        string displayName = GameWorlds.Current.display_name;
+        string displayName = world.display_name;
 
         if(string.IsNullOrEmpty(displayName)) {
             return "";
