@@ -1805,8 +1805,11 @@ public class GameHUD : GameObjectBehavior {
         
         yield return null;
         
-        //Resources.UnloadUnusedAssets();
-        GC.Collect();
+        // Was a blocking GC.Collect() -- a full stop-the-world pause on
+        // whatever frame this happened to land on. MemoryUtil coalesces the
+        // request and services it incrementally, or at the next safe point.
+        MemoryUtil.RequestCollect("hud-vehicle-sounds-started");
+        MemoryUtil.RequestUnloadUnusedAssets("hud-vehicle-sounds-started");
     }
     
     void FadeAndStopVehicleSounds() {
