@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections;
 using System.Collections.Generic;
 
@@ -150,10 +150,84 @@ public class BaseGameUIPanelResults : GameUIPanelBase {
         }
     }
 
+    // panel-results ships LabelWorldCode / LabelLevelCode as authored placeholder text
+    // ("PLANET 426", "LEVEL 10-10") in BOTH backends, and nothing ever wrote to them, so
+    // every round on every level ended under the same wrong caption. They sit in the shared
+    // Buttons/Row/Level/LevelMeta group, not in a mode variant, and no serialised field
+    // points at them, so they are written BY NAME the way the worlds panel writes its meta.
+
+    public static string labelNameLevelCode = "LabelLevelCode";
+    public static string labelNameWorldCode = "LabelWorldCode";
+
+    public virtual void UpdateLevelMeta() {
+        StartCoroutine(UpdateLevelMetaCo());
+    }
+
+    public virtual IEnumerator UpdateLevelMetaCo() {
+
+        // The toolkit view binds ASYNC, and UpdateDisplay is driven from the end-of-level
+        // coroutine, which can beat the load. Same wait as BaseGameUIPanelWorlds.loadDataCo.
+
+        if(!string.IsNullOrEmpty(toolkitViewKey)) {
+
+            for(int waitFrames = 0; waitFrames < 60 && !isToolkitPanel; waitFrames++) {
+                yield return null;
+            }
+        }
+
+        string levelCodeDisplay = GetLevelCodeDisplay();
+        string worldCodeDisplay = GetWorldCodeDisplay();
+
+        if(isToolkitPanel) {
+            UIUtil.UpdateLabelObject(viewRoot, labelNameLevelCode, levelCodeDisplay);
+            UIUtil.UpdateLabelObject(viewRoot, labelNameWorldCode, worldCodeDisplay);
+            yield break;
+        }
+
+        UIUtil.UpdateLabelObject(gameObject, labelNameLevelCode, levelCodeDisplay);
+        UIUtil.UpdateLabelObject(gameObject, labelNameWorldCode, worldCodeDisplay);
+    }
+
+    public virtual string GetLevelCodeDisplay() {
+
+        if(GameLevels.Current == null
+            || string.IsNullOrEmpty(GameLevels.Current.code)) {
+            return "";
+        }
+
+        return ("level " + GameLevels.Current.code).ToUpper();
+    }
+
+    public virtual string GetWorldCodeDisplay() {
+
+        if(GameWorlds.Current == null) {
+            return "";
+        }
+
+        string displayName = GameWorlds.Current.display_name;
+
+        if(string.IsNullOrEmpty(displayName)) {
+            return "";
+        }
+
+        // "Planet Z: Zedlands" -> "PLANET Z". This is the narrow subtitle next to the level
+        // code; the full name belongs to the worlds panel.
+
+        int separator = displayName.IndexOf(':');
+
+        if(separator > 0) {
+            displayName = displayName.Substring(0, separator);
+        }
+
+        return displayName.Trim().ToUpper();
+    }
+
     public virtual void UpdateDisplay(
         GamePlayerRuntimeData runtimeData, float timeTotal) {
 
         ShowContentState();
+
+        UpdateLevelMeta();
 
         UIUtil.SetLabelValue(
             labelContentStateDisplayName, AppContentStates.Current.display_name);
