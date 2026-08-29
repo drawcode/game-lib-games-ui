@@ -620,7 +620,10 @@ public class BaseGameUIPanelHeader : GameUIPanelBase {
 
         // Modest framing headroom: the coin fills most of the element, with RT room for the
         // boosted glow to reach just past its edge.
-        coinStage = Engine.UI.UIRenderStage.Attach(uiCoin.gameObject, layer, 128, 1.3f);
+        // 0.7, not the 1.1 default: at 1.1 the coin blows out to flat yellow (73% of its pixels
+        // clipped at green=255 against legacy's 0%). Measured, not guessed.
+        coinStage = Engine.UI.UIRenderStage.Attach(
+            uiCoin.gameObject, layer, 128, 1.3f, false, false, 0.7f);
 
         if(coinStage != null) {
             UIUtil.SetImageTexture(coinIconRef, coinStage.texture);
