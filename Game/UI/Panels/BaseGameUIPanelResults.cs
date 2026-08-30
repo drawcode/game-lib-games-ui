@@ -159,6 +159,97 @@ public class BaseGameUIPanelResults : GameUIPanelBase {
     public static string labelNameLevelCode = "LabelLevelCode";
     public static string labelNameWorldCode = "LabelWorldCode";
 
+    // The RUN'S NUMBERS have the same problem one layer down. GameUIPanelResultsArcade /
+    // ...Challenge write them through BaseGameUIPanelResultsBase, whose totalScore/totalScores/
+    // totalCoins/totalKills fields are declared inside the `#if USE_UI_NGUI_2_7` branch — they are
+    // UILabel, so BindElements can never bind them and a toolkit view never sees a value. Every
+    // arcade round therefore ended on the authored placeholder "0" while the legacy panel showed
+    // the real score.
+    //
+    // Those UILabels' legacy GameObject names ARE the toolkit element names (verified live:
+    // totalScore -> LabelTotalPointsValue, totalScores -> LabelScoresValue, totalCoins ->
+    // LabelCoinsCollectedValue, totalKills -> LabelKillsValue), which is the converter's naming
+    // contract, so the values bridge BY NAME. Same shape as the level meta above, including the
+    // wait for the async view load.
+
+    public static string labelNameScores = "LabelScoresValue";
+    public static string labelNameKills = "LabelKillsValue";
+    public static string labelNameCoins = "LabelCoinsCollectedValue";
+    public static string labelNameTotalPoints = "LabelTotalPointsValue";
+    public static string labelNameTimeRunning = "LabelTimeRunningValue";
+    public static string labelNameTotalXP = "LabelTotalXPValue";
+
+    // Held so AnimateIn can replay them: UpdateDisplay is driven from the end-of-level coroutine
+    // and can run while this panel is still inactive, which is exactly when there is no view to
+    // write into.
+    public GamePlayerRuntimeData lastRuntimeData = null;
+    public float lastTimeTotal = 0f;
+
+    public virtual void UpdateResultValues(
+        GamePlayerRuntimeData runtimeData, float timeTotal) {
+
+        lastRuntimeData = runtimeData;
+        lastTimeTotal = timeTotal;
+
+        if(runtimeData == null || string.IsNullOrEmpty(toolkitViewKey)) {
+            return;
+        }
+
+        // StartCoroutine throws on an inactive GameObject, and an inactive panel has no view to
+        // wait for — the AnimateIn replay covers that case.
+
+        if(!gameObject.activeInHierarchy) {
+            WriteResultValues();
+            return;
+        }
+
+        StartCoroutine(UpdateResultValuesCo());
+    }
+
+    public virtual IEnumerator UpdateResultValuesCo() {
+
+        for(int waitFrames = 0; waitFrames < 60 && !isToolkitPanel; waitFrames++) {
+            yield return null;
+        }
+
+        WriteResultValues();
+    }
+
+    public virtual void WriteResultValues() {
+
+        if(!isToolkitPanel || lastRuntimeData == null) {
+            return;
+        }
+
+        UIUtil.UpdateLabelObject(
+            viewRoot, labelNameScores, lastRuntimeData.scores.ToString("N0"));
+        UIUtil.UpdateLabelObject(
+            viewRoot, labelNameKills, lastRuntimeData.kills.ToString("N0"));
+        UIUtil.UpdateLabelObject(
+            viewRoot, labelNameCoins, lastRuntimeData.coins.ToString("N0"));
+        UIUtil.UpdateLabelObject(
+            viewRoot, labelNameTotalPoints, lastRuntimeData.totalScoreValue.ToString("N0"));
+        UIUtil.UpdateLabelObject(
+            viewRoot, labelNameTimeRunning,
+            FormatUtil.GetFormattedTimeHoursMinutesSecondsMs((double)lastTimeTotal));
+
+        // XP is not on the runtime data — GameRPG owns it, and its own labelXPValue is another
+        // UILabel in the legacy branch, so the toolkit's XP field has the same gap. Read it from
+        // the monitor rather than leaving a second placeholder on screen.
+        //
+        // currentTotalScore, NOT lastTotalScore: `last` is the tween cursor GameRPG counts UP
+        // from and it initialises to the sentinel -1, which is what the toolkit XP field showed
+        // when this first went in. Skip the write entirely while the monitor still holds a
+        // sentinel, so the authored placeholder stands rather than a negative number.
+
+        if(GameRPGMonitor.Instance != null
+            && GameRPGMonitor.Instance.currentTotalScore >= 0) {
+            UIUtil.UpdateLabelObject(
+                viewRoot, labelNameTotalXP,
+                GameRPGMonitor.Instance.currentTotalScore.ToString("N0"));
+        }
+    }
+
     public virtual void UpdateLevelMeta() {
 
         // UpdateDisplay is driven from the end-of-level coroutine in BaseGameController, and
@@ -299,6 +390,11 @@ public class BaseGameUIPanelResults : GameUIPanelBase {
                 result.UpdateDisplay(runtimeData, timeTotal);
             }
         }
+
+        // The loops above reach the LEGACY labels only; mirror the same numbers into the toolkit
+        // view by name.
+
+        UpdateResultValues(runtimeData, timeTotal);
     }
 
     public static void LoadData() {
@@ -376,6 +472,11 @@ public class BaseGameUIPanelResults : GameUIPanelBase {
         HandleItems();
 
         loadData();
+
+        // Replay the run's numbers: UpdateDisplay may have run while this panel was inactive, or
+        // before the toolkit view finished loading.
+
+        UpdateResultValues(lastRuntimeData, lastTimeTotal);
 
 #if USE_GAME_LIB_GAMEVERSES
         GameCommunity.ShowSharesCenter();

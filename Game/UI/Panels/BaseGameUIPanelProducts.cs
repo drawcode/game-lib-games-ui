@@ -607,9 +607,14 @@ public class BaseGameUIPanelProducts : GameUIPanelBase {
         base.HandleShow();
 
         buttonDisplayState = UIPanelButtonsDisplayState.ProductsSections;
-        // No character here — see BaseGameUIPanelStatistics: it collides with the
-        // ProductsSections filter tiles in the same column.
-        characterDisplayState = UIPanelCharacterDisplayState.None;
+
+        // RESTORED (user, iter 13). This screen shipped with the SMALL character —
+        // TweenUtil.ShowObjectTop, so it slides in from the top above the filter tiles — and the
+        // migration turned it off in 8ebb01e ("drop 3 that collide"). That pass was reasoning
+        // about the character CARD (CharacterLarge, a 279x476 backer that does own this whole
+        // left column and genuinely does collide with the ProductsSections tiles); the small rig
+        // is a different container and was never the thing in the way.
+        characterDisplayState = UIPanelCharacterDisplayState.Character;
         backgroundDisplayState = UIPanelBackgroundDisplayState.PanelBacker;
         adDisplayState = UIPanelAdDisplayState.BannerBottom;
     }
