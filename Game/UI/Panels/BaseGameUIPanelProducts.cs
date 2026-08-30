@@ -14,6 +14,15 @@ public class BaseGameUIPanelProducts : GameUIPanelBase {
 
     public GameObject listItemItemPrefab;
 
+    // ONE staged 3D coin, shared by every row. Legacy instantiates an independent spinning UICoin
+    // per row, but they are the same prefab at the same phase, so N stages would buy N cameras and
+    // N RenderTextures for an identical image. The donor below is a lone UICoin instantiated out
+    // of listItemItemPrefab — the legacy rows themselves are never built on the toolkit path.
+    protected Engine.UI.UIRenderStage productCoinStage;
+    protected GameObject productCoinDonor;
+    protected ParticleSystem[] productCoinEffects;
+    protected float[] productCoinEffectSizes;
+
     public string currentProductType;
     public string productCodeUse = "";
     public string productTypeUse = "";
@@ -165,6 +174,26 @@ public class BaseGameUIPanelProducts : GameUIPanelBase {
         LogUtil.Log("LoadDataCo");
 
         currentProductType = productType;
+
+        // Toolkit: rows are rebuilt from the view's own template, so the legacy grid below is
+        // skipped entirely. AnimateIn calls LoadData, and the view arrives ASYNC a frame or two
+        // after the first show — wait for it rather than populating a list that does not exist
+        // yet. Same wait the missions list uses.
+        if(!string.IsNullOrEmpty(toolkitViewKey)) {
+
+            for(int waitFrames = 0; waitFrames < 60 && !isToolkitPanel; waitFrames++) {
+                yield return null;
+            }
+
+            if(isToolkitPanel) {
+
+                loadDataProductsToolkit(productType);
+
+                lastProductType = currentProductType;
+
+                yield break;
+            }
+        }
 
         if(listGridRoot != null) {
             //listGridRoot.DestroyChildren();
@@ -323,10 +352,240 @@ public class BaseGameUIPanelProducts : GameUIPanelBase {
         }
     }
 
+    // The toolkit twin of loadDataProductsItems: one row per product, rebuilt from
+    // ProductItemTemplate. Deliberately mirrors the legacy method's field-for-field writes —
+    // name / description / cost, the rpgUpgrade-only inventory line, and the $-encoded button
+    // rename — so the two paths cannot drift.
+    //
+    // Rows carry no per-row component and no GameObject, so the button's NAME is the only place
+    // the buy payload can live. That is already how legacy does it, which is the whole reason this
+    // panel was cheap to convert while panel-customize-character-rpg was not.
+    public virtual void loadDataProductsToolkit(string type) {
+
+        UIUtil.ClearListItems(viewRoot, "ProductList");
+
+        List<GameProduct> products = null;
+
+        if(!string.IsNullOrEmpty(type)) {
+            products = GameProducts.Instance.GetListByType(type);
+        }
+        else {
+            products = GameProducts.Instance.GetAll();
+        }
+
+        LogUtil.Log("Load loadDataProductsToolkit:type:" + type
+            + " products.Count:" + products.Count);
+
+        string characterCode =
+            GameProfileCharacters.Current.GetCurrentCharacterProfileCode();
+
+        int i = 0;
+
+        foreach(GameProduct product in products) {
+
+            Engine.UI.UIRef item = UIUtil.AddListItem(
+                viewRoot, "ProductList", "ProductItemTemplate", "ProductItem" + i);
+
+            GameProductInfo info = product.GetDefaultProductInfoByLocale();
+
+            UIUtil.UpdateLabelObject(item, "LabelName", info.display_name);
+            UIUtil.UpdateLabelObject(item, "LabelDescription", info.description);
+            UIUtil.UpdateLabelObject(item, "LabelCost", info.cost);
+
+            // Inventory line is rpgUpgrade-only in legacy; every other product hides it.
+            Engine.UI.UIRef inventory = UIUtil.ResolveDeep(item, "Inventory");
+
+            if(product.type == GameProductType.rpgUpgrade) {
+
+                UIUtil.ShowObject(inventory);
+
+                UIUtil.UpdateLabelObject(
+                    item,
+                    "LabelCurrentValue",
+                    GameProfileRPGs.Current.GetUpgrades().ToString("N0"));
+            }
+            else {
+                UIUtil.HideObject(inventory);
+            }
+
+            // One staged coin shared by every row — see SetupProductCoinStage.
+            if(productCoinStage != null) {
+
+                UIUtil.SetImageTexture(
+                    UIUtil.ResolveDeep(item, "Coin"), productCoinStage.texture);
+            }
+
+            UIUtil.SetElementName(
+                UIUtil.ResolveDeep(item, "ButtonAction"),
+                BaseUIButtonNames.buttonGameActionItemBuyUse
+                    + "$" + product.type
+                    + "$" + product.code
+                    + "$" + characterCode);
+
+            i++;
+        }
+    }
+
     public virtual void ClearList() {
+
+        if(isToolkitPanel) {
+            UIUtil.ClearListItems(viewRoot, "ProductList");
+        }
+
         if(listGridRoot != null) {
             listGridRoot.DestroyChildren();
         }
+    }
+
+    // Chain to base — hiding panelContainer wholesale is right here, unlike on the COINS screen:
+    // the donor coin is parented to THIS panel, not to the container, so it is not swept up.
+    protected override void SuppressLegacyView() {
+
+        base.SuppressLegacyView();
+
+        SetupProductCoinStage();
+    }
+
+    // Settings carried over from the COINS pack coins, which were tuned against a capture:
+    // framePadding 1.3 (1.7 renders the coin AND its glow away entirely), exposure 0.7 (the 1.1
+    // default clips 73% of the coin's pixels at green=255), particle start size x1.8 (1.3 reads
+    // as no effect at all in a small RT).
+    //
+    // followContent TRUE: UIRenderStage frames its camera ONCE at Attach time, and an RT that
+    // came back fully transparent because the camera was left behind is the single most expensive
+    // bug this migration has hit. Only pinned chrome is safe with false.
+    protected virtual void SetupProductCoinStage() {
+
+        if(productCoinStage != null || listItemItemPrefab == null) {
+            return;
+        }
+
+        int layer = LayerMask.NameToLayer("UIWidget3D");
+
+        if(layer < 0) {
+            layer = LayerMask.NameToLayer("UI3D");
+        }
+
+        if(layer < 0) {
+            return;
+        }
+
+        Transform donor = FindDeepChild(listItemItemPrefab.transform, "UICoin");
+
+        if(donor == null) {
+            return;
+        }
+
+        // Instantiate the coin's PARENT ("Coin", the node that carries the x40), not the UICoin
+        // on its own, and then stage the UICoin inside it. That reproduces the prefab's scale
+        // chain exactly — which is the arrangement the COINS pack coins are staged in, and the
+        // one those settings were tuned against.
+        //
+        // Instantiating the UICoin alone was tried first and is wrong: it drops the parent's x40
+        // while the coin's particle effects keep their world-space size, so the stage camera
+        // framed a cloud of full-size particles around a 40x-too-small coin. Measured 3.1% of the
+        // RT non-transparent against 43% for a correctly framed one. Collapsing the chain into a
+        // single localScale instead is NOT the fix — same numbers, but it also puts a x800 on z,
+        // and the bounds that produces are not what the stage was tuned for.
+        Transform donorRoot = donor.parent != null ? donor.parent : donor;
+
+        productCoinDonor = GameObjectHelper.CreateGameObject(
+            donorRoot.gameObject, Vector3.zero, Quaternion.identity, false);
+
+        if(productCoinDonor == null) {
+            return;
+        }
+
+        productCoinDonor.name = "ProductCoinDonor";
+        productCoinDonor.transform.SetParent(transform, false);
+        productCoinDonor.transform.localScale = donorRoot.localScale;
+
+        Transform staged = FindDeepChild(productCoinDonor.transform, "UICoin");
+
+        if(staged == null) {
+            staged = productCoinDonor.transform;
+        }
+
+        productCoinStage = Engine.UI.UIRenderStage.Attach(
+            staged.gameObject, layer, 128, 1.3f, false, true, 0.7f);
+
+        if(productCoinStage != null) {
+            BoostProductCoinEffect(1.8f);
+        }
+    }
+
+    // A small RT shrinks the glow to nothing unless its particles are scaled up with it. The
+    // multiplier lands on the instantiated donor, but restore anyway — the sizes are read back on
+    // free so a changed prefab default cannot bake in a compounding boost.
+    protected virtual void BoostProductCoinEffect(float multiplier) {
+
+        if(productCoinDonor == null) {
+            return;
+        }
+
+        productCoinEffects = productCoinDonor.GetComponentsInChildren<ParticleSystem>(true);
+        productCoinEffectSizes = new float[productCoinEffects.Length];
+
+        for(int i = 0; i < productCoinEffects.Length; i++) {
+
+            ParticleSystem.MainModule main = productCoinEffects[i].main;
+
+            productCoinEffectSizes[i] = main.startSizeMultiplier;
+            main.startSizeMultiplier = productCoinEffectSizes[i] * multiplier;
+        }
+    }
+
+    protected override void FreeToolkitView() {
+
+        FreeProductCoinStage();
+
+        base.FreeToolkitView();
+    }
+
+    protected virtual void FreeProductCoinStage() {
+
+        if(productCoinEffects != null) {
+
+            for(int i = 0; i < productCoinEffects.Length; i++) {
+
+                if(productCoinEffects[i] != null) {
+                    ParticleSystem.MainModule main = productCoinEffects[i].main;
+                    main.startSizeMultiplier = productCoinEffectSizes[i];
+                }
+            }
+
+            productCoinEffects = null;
+            productCoinEffectSizes = null;
+        }
+
+        if(productCoinStage != null) {
+            productCoinStage.Detach();
+            productCoinStage = null;
+        }
+
+        // The donor is ours — nothing else references it, so it goes with the view.
+        if(productCoinDonor != null) {
+            GameObject.Destroy(productCoinDonor);
+            productCoinDonor = null;
+        }
+    }
+
+    // Name search over the whole subtree rather than a hard-coded
+    // Container/Button/Coin/UICoin path: a silent break here is an invisible coin, not an error.
+    protected static Transform FindDeepChild(Transform root, string name) {
+
+        if(root == null) {
+            return null;
+        }
+
+        foreach(Transform t in root.GetComponentsInChildren<Transform>(true)) {
+
+            if(t.name == name) {
+                return t;
+            }
+        }
+
+        return null;
     }
 
     public override void HandleShow() {
