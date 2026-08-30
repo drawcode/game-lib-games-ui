@@ -308,8 +308,20 @@ public class BaseGameUIPanelProductCurrency : GameUIPanelBase {
             // entirely (three empty RTs), so something in the wider framing breaks this rig.
             // Not chased further: 1.3 demonstrably renders both, and the glow is carried by the
             // start-size boost below instead. Revisit only with a capture to check against.
+            // followContent: TRUE, and it is load-bearing. UIRenderStage frames the camera ONCE
+            // from where the content sits at Attach time, and these coins live INSIDE
+            // panelContainer, which the panel animates into place — so the camera framed empty
+            // space and all three RTs came back fully transparent (measured: 0% non-transparent
+            // pixels against the header coin's 43%). The header coin gets away with false only
+            // because it is pinned chrome that never moves.
+            //
+            // This is also why the first, reparenting version of this code appeared to work:
+            // lifting the coins to the panel root took them OUT of the animating container. When
+            // the reparent had to go (Unity forbids it from OnDisable), the coins went back inside
+            // the container and the stale framing surfaced. Same bug UIRenderStage's own comment
+            // describes for the character card in 3I.
             packCoinStages[i] = Engine.UI.UIRenderStage.Attach(
-                uiCoin.gameObject, layer, 128, 1.3f, false, false, 0.7f);
+                uiCoin.gameObject, layer, 128, 1.3f, false, true, 0.7f);
 
             if(packCoinStages[i] != null) {
                 UIUtil.SetImageTexture(
