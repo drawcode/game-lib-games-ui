@@ -189,7 +189,16 @@ public class BaseGameUIPanelProducts : GameUIPanelBase {
 
                 loadDataProductsToolkit(productType);
 
-                lastProductType = currentProductType;
+                // A filtered list that keeps its old offset reads as EMPTY — go from ALL (30 rows)
+                // scrolled down to UPGRADES (3) and all three sit above the viewport. Same reason
+                // the legacy path calls RepositionListScroll(0) below, and only on a type CHANGE
+                // so re-entering the same filter keeps the player's place.
+                if(lastProductType != currentProductType) {
+
+                    lastProductType = currentProductType;
+
+                    UIUtil.ScrollToTop(UIUtil.ResolveDeep(viewRoot, "ProductList"));
+                }
 
                 yield break;
             }
@@ -506,8 +515,14 @@ public class BaseGameUIPanelProducts : GameUIPanelBase {
             staged = productCoinDonor.transform;
         }
 
+        // lightIntensity 0 = borrow the layer's existing stage light, do NOT add another.
+        // Stage lights are directional with cullingMask = the whole layer, so they do not isolate
+        // the way the stage CAMERA does — a second light here lands on the always-on header coin
+        // as well and over-exposes it (measured: 1.1 + 0.7 = 1.8, and a shaded gold coin renders
+        // flat yellow). The header is chrome and is always present on this screen, so its 1.1 is
+        // exactly the exposure a lone coin wants.
         productCoinStage = Engine.UI.UIRenderStage.Attach(
-            staged.gameObject, layer, 128, 1.3f, false, true, 0.7f);
+            staged.gameObject, layer, 128, 1.3f, false, true, 0f);
 
         if(productCoinStage != null) {
             BoostProductCoinEffect(1.8f);

@@ -620,10 +620,16 @@ public class BaseGameUIPanelHeader : GameUIPanelBase {
 
         // Modest framing headroom: the coin fills most of the element, with RT room for the
         // boosted glow to reach just past its edge.
-        // 0.7, not the 1.1 default: at 1.1 the coin blows out to flat yellow (73% of its pixels
-        // clipped at green=255 against legacy's 0%). Measured, not guessed.
+        // 0.97. The 1.1 default blows the coin out to flat yellow (73% of its pixels clipped at
+        // green=255 against legacy's 0%); 0.7 was the first correction and overshot the other way,
+        // leaving it ~14% dim — measured against baselines/panel-products.png, gold mean
+        // (211,186,18) against legacy's (245,218,20), still 0% clipped, so there was headroom.
+        //
+        // This light is also the ONLY one on the layer: it is directional with cullingMask = the
+        // whole layer, so it lights every other stage's content too, and the products list's coin
+        // deliberately adds none of its own and inherits this. Changing it changes both coins.
         coinStage = Engine.UI.UIRenderStage.Attach(
-            uiCoin.gameObject, layer, 128, 1.3f, false, false, 0.7f);
+            uiCoin.gameObject, layer, 128, 1.3f, false, false, 0.97f);
 
         if(coinStage != null) {
             UIUtil.SetImageTexture(coinIconRef, coinStage.texture);
