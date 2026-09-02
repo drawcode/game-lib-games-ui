@@ -868,6 +868,14 @@ public class BaseGameUIPanelHeader : GameUIPanelBase {
     // view itself is kept (hidden) so returning to a migrated screen does not pay another async
     // build; FreeToolkitView is what actually destroys it.
     protected virtual void UnstageCharacterLarge() {
+        UnstageCharacterLarge(true);
+    }
+
+    // hideViews false is the FREE path: there is no point hiding a view one statement before
+    // destroying it, and during teardown that hide is actively harmful — Unity may already have
+    // destroyed the PanelRenderer GameObject behind it, and styling a view whose host is gone
+    // throws from inside UIElements. The backend now guards that too; this removes the call.
+    protected virtual void UnstageCharacterLarge(bool hideViews) {
 
         characterLargeLoadRequested = false;
         characterLargeFrontLoadRequested = false;
@@ -893,13 +901,15 @@ public class BaseGameUIPanelHeader : GameUIPanelBase {
             characterLargeButton = null;
         }
 
-        UIUtil.HideObject(characterLargeView);
-        UIUtil.HideObject(characterLargeFrontView);
+        if(hideViews) {
+            UIUtil.HideObject(characterLargeView);
+            UIUtil.HideObject(characterLargeFrontView);
+        }
     }
 
     protected virtual void FreeCharacterLargeView() {
 
-        UnstageCharacterLarge();
+        UnstageCharacterLarge(false);
 
         if(characterLargeView.alive) {
 
