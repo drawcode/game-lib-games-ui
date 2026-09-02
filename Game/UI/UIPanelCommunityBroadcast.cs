@@ -130,8 +130,16 @@ public class UIPanelCommunityBroadcast : UIPanelCommunityBase {
         if(UIUtil.IsCheckboxChecked(toggleRecordReplaysLevel, checkboxName)) {
             Debug.Log("OnToggleChangedEventHandler" + " checkboxName:" + checkboxName + " selected:" + selected.ToString());
 
+            // Same guard as the audio volume setters: a full profile save is 50-66 ms across ten
+            // JSON blobs, and a toggle reports its INITIAL value as a change while it is being
+            // set up — one no-op save per boot, measured. Only save when the value really moved.
+            bool changed = GameProfiles.Current.GetBroadcastRecordLevels() != selected;
+
             GameProfiles.Current.SetBroadcastRecordLevels(selected);
-            GameState.SaveProfile();
+
+            if(changed) {
+                GameState.SaveProfile();
+            }
         }
     }
 
