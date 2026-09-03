@@ -29,6 +29,11 @@ public class BaseGameUIPanelEquipment : GameUIPanelBase {
     public Engine.UI.UIRef buttonClose;
 #endif
 
+    // The STORE tile's element name. There is no serialized ref for it on this panel: in legacy
+    // the tile was wired through panel-product-currency's own hierarchy, so the name IS the
+    // contract. See OnButtonClickEventHandler for why that stopped working.
+    public static string buttonNameGameBuyProducts = "ButtonGameBuyProducts";
+
     public static bool isInst {
         get {
             if(Instance != null) {
@@ -116,6 +121,17 @@ public class BaseGameUIPanelEquipment : GameUIPanelBase {
         }
 #if ENABLE_FEATURE_PRODUCTS
         else if(UIUtil.IsButtonClicked(buttonEquipmentPowerups, buttonName)) {
+            GameUIController.ShowProducts();
+        }
+        // STORE. The ONLY listener for this name lives on panel-product-currency, and that panel
+        // is inactive while equipment is showing — its OnDisable has already pulled it off the
+        // bus, so the tile's broadcast reached nobody (user, 2026-09-03: "store button here
+        // doesn't work"). Same shape as rule 69: never leave a button depending on a listener
+        // that belongs to a panel which is not up. Handled here, on the panel that draws it.
+        //
+        // Safe if the product panel IS up: showUIPanel early-returns when the panel code is
+        // already current, so a double dispatch is a no-op rather than a double navigation.
+        else if(buttonName == buttonNameGameBuyProducts) {
             GameUIController.ShowProducts();
         }
 #endif

@@ -99,6 +99,12 @@ public class BaseGameUIPanelHeader : GameUIPanelBase {
     public Engine.UI.UIRef coinIconRef;
 
     private Engine.UI.UIRenderStage coinStage;
+    // The legacy currency driver on this panel's own coin cluster. It is still ALIVE under the
+    // toolkit path — this panel suppresses at a fine grain, so only LabelCoin is hidden and the
+    // UIGameCurrency GameObject that carries the component keeps ticking. It re-reads the profile
+    // every 1s and eases lastValue toward it every frame; the toolkit label mirrors that.
+    private UIGameRPGCurrency coinCurrencyDriver;
+    private string coinLabelLastFormatted;
     private GameObject coinFlatLabel;
     private GameObject coinFlatButtonLabel;
     private GameObject coinFlatButtonBackground;
@@ -498,15 +504,42 @@ public class BaseGameUIPanelHeader : GameUIPanelBase {
         RefreshCoins();
     }
 
-    // Coin count refreshes FROM DATA on show (user decision 2026-07-15): while hidden it may go
-    // stale, but every show re-reads the profile. Replaces the NGUI prefab's UIGameRPGCurrency
-    // 1s poller for the toolkit path — no per-frame work while the header just sits there.
+    // Coin count. This USED to refresh from data on show only (user decision 2026-07-15) on the
+    // grounds that it saved per-frame work while the header sits there. That cost both halves of
+    // the legacy behaviour: the count never moved while a screen was open, and it never ROLLED
+    // when it changed (user, 2026-09-03: "coin amounts don't change and animate anymore").
+    //
+    // The legacy UIGameRPGCurrency is still running — it re-reads the profile every 1s and eases
+    // lastValue toward it every frame — it was just easing into a HIDDEN label. So the toolkit
+    // label MIRRORS that eased value (see UpdateCoinLabel) rather than reproducing the curve, and
+    // there stays exactly one source of truth for the animation. Show still seeds the label when
+    // there is no driver, so it is never blank on a panel that lacks the legacy cluster.
     public virtual void RefreshCoins() {
 
-        if(isToolkitPanel) {
+        if(isToolkitPanel && coinCurrencyDriver == null) {
             UIUtil.SetLabelValue(labelCoin,
                 GameProfileRPGs.Current.GetCurrency().ToString("N0"));
         }
+    }
+
+    // Mirrors the legacy driver's EASED value into the toolkit label. Writes only when the
+    // FORMATTED string changes, so an idle header still does no text work — which is what the
+    // 2026-07-15 decision was actually protecting.
+    protected virtual void UpdateCoinLabel() {
+
+        if(!isToolkitPanel || coinCurrencyDriver == null) {
+            return;
+        }
+
+        string formatted = coinCurrencyDriver.lastValue.ToString("N0");
+
+        if(formatted == coinLabelLastFormatted) {
+            return;
+        }
+
+        coinLabelLastFormatted = formatted;
+
+        UIUtil.SetLabelValue(labelCoin, formatted);
     }
 
     // The 3D character preview containers (Characters) live INSIDE this panel's Container, so the
@@ -547,6 +580,9 @@ public class BaseGameUIPanelHeader : GameUIPanelBase {
         }
 
         Transform t = coinObject.transform;
+
+        coinCurrencyDriver = coinObject.GetComponentInChildren<UIGameRPGCurrency>(true);
+        coinLabelLastFormatted = null;
 
         coinFlatLabel = t.Find("LabelCoin") != null
             ? t.Find("LabelCoin").gameObject : null;
@@ -1253,6 +1289,8 @@ public class BaseGameUIPanelHeader : GameUIPanelBase {
     }
 
     public virtual void Update() {
+
+        UpdateCoinLabel();
 
         if(Input.GetKey(KeyCode.LeftControl)) {
             if(Input.GetKey(KeyCode.LeftAlt)) {
