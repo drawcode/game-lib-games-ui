@@ -242,7 +242,11 @@ public class BaseGameHUD : GameUIPanelBase {
 
     public virtual void ResetIndicators() {
         if(containerOffscreenIndicators != null) {
-            containerOffscreenIndicators.DestroyChildren();
+            // Pass the pooling flag. This called the plain DestroyChildren(), so every level load
+            // destroyed the indicators outright while GamePlayerIndicator.ResetIndicators (the
+            // other path to the same job) returned them to the pool -- the pool was being filled
+            // by one route and bypassed by the other.
+            containerOffscreenIndicators.DestroyChildren(GameConfigs.usePooledIndicators);
         }
 
         GameZoneGoalMarker marker = GameZoneGoalMarker.GetMarker();
