@@ -556,6 +556,122 @@ public class BaseGameHUD : GameUIPanelBase {
         UIUtil.SetLabelColor(UIUtil.ResolveDeep(viewRoot, "LabelFPS"), color);
     }
 
+    // THE STAT BARS. Health / energy / hit-health are driven in legacy by a UIGameRPG* component
+    // sitting ON each slider's own GameObject (Character/Container/ProgressRPG*) — the same family
+    // as the header's UIGameRPGCurrency, easing lastValue toward profileValue every frame.
+    //
+    // Suppression takes the whole "Character/Container" cluster down, so unlike the header coin
+    // (which suppresses at a fine grain and leaves its driver ticking) these drivers stop running
+    // ENTIRELY: a disabled GameObject gets no Update. Nothing else ever wrote the bars — the
+    // panel's sliderHealth/sliderEnergy fields have no writer anywhere in the codebase — so the
+    // toolkit fills sat at their authored width for the whole level.
+    //
+    // So this both PUMPS the suppressed driver (guarded on !activeInHierarchy, so it can never
+    // double-run alongside Unity's own Update if the cluster is ever visible) and mirrors its
+    // eased value into the view. The curve, the refresh interval and the debug keys stay in the
+    // driver — nothing is reimplemented here.
+    private UIGameRPGObject rpgHealthDriver;
+    private UIGameRPGObject rpgEnergyDriver;
+    private UIGameRPGObject rpgHitHealthDriver;
+    private bool rpgDriversResolved;
+
+    private float lastHealthFill = -1f;
+    private float lastEnergyFill = -1f;
+    private float lastHitHealthFill = -1f;
+
+    private UIGameRPGObject ResolveRpgDriver(string childName) {
+
+        Transform t = transform.Find(hudTopLeft + "Character/Container/" + childName);
+
+        if(t == null) {
+            return null;
+        }
+
+        UIGameRPGObject driver = t.GetComponent<UIGameRPGObject>();
+
+        // Start() is where each subclass sets incrementValue/profileValue/lastValue and where the
+        // player driver picks up its controller. It has normally already run (the cluster is active
+        // until the view lands), but if the view loaded first it never did, and the driver would
+        // ease from 0 toward 0 — a permanently EMPTY bar rather than a frozen full one.
+        if(driver != null && !driver.gameObject.activeInHierarchy) {
+            driver.Start();
+        }
+
+        return driver;
+    }
+
+    private void ResolveRpgDrivers() {
+
+        if(rpgDriversResolved) {
+            return;
+        }
+
+        rpgDriversResolved = true;
+
+        rpgHealthDriver = ResolveRpgDriver("ProgressRPGHealth");
+        rpgEnergyDriver = ResolveRpgDriver("ProgressRPGEnergy");
+        rpgHitHealthDriver = ResolveRpgDriver("ProgressRPGPlayerHitHealth");
+    }
+
+    private float PumpRpgDriver(UIGameRPGObject driver) {
+
+        if(driver == null) {
+            return -1f;
+        }
+
+        // The hit-health driver reads through a GamePlayerController it caught in Start(). On a
+        // level that had no player yet at that moment it would stay null forever and the bar would
+        // never move; re-catching only while it is null leaves the legacy behaviour untouched.
+        UIGameRPGPlayerObject playerDriver = driver as UIGameRPGPlayerObject;
+
+        if(playerDriver != null && playerDriver.gamePlayerController == null) {
+            playerDriver.gamePlayerController = GameController.CurrentGamePlayerController;
+        }
+
+        if(!driver.gameObject.activeInHierarchy) {
+            driver.Update();
+        }
+
+        return Mathf.Clamp01((float)driver.lastValue);
+    }
+
+    private void UpdateToolkitStatBar(
+        UIGameRPGObject driver, string elementName, ref float lastFill) {
+
+        float val = PumpRpgDriver(driver);
+
+        if(val < 0f) {
+            return;
+        }
+
+        // Runs every frame: only touch the element when the eased value actually moved. The driver
+        // rounds to 2 decimals, so this settles rather than writing a hair of difference forever.
+        if(Mathf.Abs(val - lastFill) < 0.001f) {
+            return;
+        }
+
+        lastFill = val;
+
+        // Falls through SetSliderValue's Slider -> Scroller -> image-fill fallback to the fill's
+        // width as a percentage of its track. See .hud-bar-track in common.uss for why the fill is
+        // wrapped rather than absolute.
+        UIUtil.SetSliderValue(UIUtil.ResolveDeep(viewRoot, elementName), val);
+    }
+
+    private void UpdateToolkitStatBars() {
+
+        if(!isToolkitPanel || !toolkitChromeShown) {
+            return;
+        }
+
+        ResolveRpgDrivers();
+
+        UpdateToolkitStatBar(rpgHealthDriver, "ProgressRPGHealth", ref lastHealthFill);
+        UpdateToolkitStatBar(rpgEnergyDriver, "ProgressRPGEnergy", ref lastEnergyFill);
+        UpdateToolkitStatBar(
+            rpgHitHealthDriver, "ProgressRPGPlayerHitHealth", ref lastHitHealthFill);
+    }
+
     private Engine.UI.UIRenderStage hudCoinStage;
 
     // The HUD coin rendered DIM and hard to read, because in place it is a raw 3D mesh lit by
@@ -616,6 +732,16 @@ public class BaseGameHUD : GameUIPanelBase {
         // Let the legacy FPS label be re-hidden if the view is loaded again.
         fpsLegacyHidden = false;
         lastFpsText = null;
+
+        // Same reason legacyClusters is dropped above: a level teardown can rebuild these children,
+        // and the mirrored fills belong to a view that no longer exists.
+        rpgDriversResolved = false;
+        rpgHealthDriver = null;
+        rpgEnergyDriver = null;
+        rpgHitHealthDriver = null;
+        lastHealthFill = -1f;
+        lastEnergyFill = -1f;
+        lastHitHealthFill = -1f;
 
         // MUST reset: this tracks the visibility of a view that no longer exists. Leaving it true
         // across a teardown makes SyncToolkitChromeVisibility early-return on the NEXT level —
@@ -984,6 +1110,7 @@ public class BaseGameHUD : GameUIPanelBase {
         }
 
         UpdateToolkitFps();
+        UpdateToolkitStatBars();
         /*
         var ry = 0f;
         //var rx = 0f;
