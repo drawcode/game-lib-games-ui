@@ -42,6 +42,11 @@ public class BaseGameUIPanelProductCurrencyEarn : GameUIPanelBase {
     public Engine.UI.UIRef buttonEarnViewFullscreenAds;
 #endif
 
+    // The HELP tile's element name. Unguarded on purpose (both define branches need it): the
+    // serialized buttonHelp ref is UNASSIGNED on this prefab, so the name IS the contract.
+    // See OnButtonClickEventHandler.
+    public static string buttonNameSettingsHelp = "ButtonSettingsHelp";
+
 
     public static bool isInst {
         get {
@@ -232,6 +237,25 @@ public class BaseGameUIPanelProductCurrencyEarn : GameUIPanelBase {
 
             AdNetworks.ShowFullscreenAd();
         }
+
+        // HELP. The ONLY listener for this name in the codebase is
+        // BaseGameUIPanelSettings.buttonSettingsHelp, and panel-settings is loaded LAZILY by
+        // syncPanelLoaded -- until the player has opened Settings once, that panel does not
+        // exist and this tile's broadcast reaches nobody. Same shape as the STORE tile
+        // (iter 18): never leave a toolkit element depending on a listener that lives on a
+        // panel which may not be up. The serialized buttonHelp ref was already wired to this
+        // tile and simply never checked.
+        //
+        // Safe when panel-settings IS loaded: showUIPanel early-returns on the current panel
+        // code, so the second dispatch is a no-op rather than a double navigation.
+#if ENABLE_FEATURE_SETTINGS_HELP
+        // By NAME, not through buttonHelp: that serialized ref is UNASSIGNED on this prefab
+        // (verified in play 2026-09-04 — panel-product-currency's is wired, this one's is null),
+        // so IsButtonClicked could never match. The element name is the contract.
+        else if(buttonName == buttonNameSettingsHelp) {
+            GameUIController.ShowSettingsHelp();
+        }
+#endif
     }
 
     public static void LoadData() {

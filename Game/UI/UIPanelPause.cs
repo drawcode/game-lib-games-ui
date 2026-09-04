@@ -133,6 +133,9 @@ public class UIPanelPause : UIPanelBase {
 
         Messenger<string>.AddListener(ButtonEvents.EVENT_BUTTON_CLICK, OnButtonClickEventHandler);
 
+        Messenger<string, float>.AddListener(
+            SliderEvents.EVENT_ITEM_CHANGE, OnSliderChangeEventHandler);
+
         Messenger<string>.AddListener(GameMessages.gameLevelPause, OnGameLevelPauseHandler);
         Messenger<string>.AddListener(GameMessages.gameLevelResume, OnGameLevelResumeHandler);
         Messenger<string>.AddListener(GameMessages.gameLevelQuit, OnGameLevelQuitHandler);
@@ -142,6 +145,9 @@ public class UIPanelPause : UIPanelBase {
         base.OnDisable();
 
         Messenger<string>.RemoveListener(ButtonEvents.EVENT_BUTTON_CLICK, OnButtonClickEventHandler);
+
+        Messenger<string, float>.RemoveListener(
+            SliderEvents.EVENT_ITEM_CHANGE, OnSliderChangeEventHandler);
 
         Messenger<string>.RemoveListener(GameMessages.gameLevelPause, OnGameLevelPauseHandler);
         Messenger<string>.RemoveListener(GameMessages.gameLevelResume, OnGameLevelResumeHandler);
@@ -158,6 +164,71 @@ public class UIPanelPause : UIPanelBase {
 
     void OnGameLevelQuitHandler(string levelCode) {
         hideAll();
+    }
+
+    // THE PAUSE AUDIO SLIDERS. Dead since long before the migration (iter 19 audit): each legacy
+    // slider carries a SliderEvents component, so dragging one broadcasts EVENT_ITEM_CHANGE with
+    // its own name — and the only listener in the codebase, UIPanelSettingsAudio, compares against
+    // SliderAudioMusicVolume / SliderAudioEffectsVolume. These are called SliderPauseAudio*Volume,
+    // so nothing has ever matched them, and nothing ever set their value either.
+    //
+    // Both routes are served, the same way BaseGameUIPanelSettingsAudio serves them: the Messenger
+    // bus for the legacy widgets (kill-switch path), and SetSliderHandlerChange for the toolkit
+    // ones — a VisualElement has no GameObject to carry a SliderEvents, so registration is the
+    // ONLY way a migrated slider is heard (rule 88).
+    public static string sliderNamePauseAudioMusic = "SliderPauseAudioMusicVolume";
+    public static string sliderNamePauseAudioEffects = "SliderPauseAudioEffectsVolume";
+
+    public virtual void OnSliderChangeEventHandler(string sliderName, float sliderValue) {
+        HandleVolumeChange(sliderName, sliderValue);
+    }
+
+    // GameAudio's profile setters, NOT GameProfiles + SaveProfile: they apply the volume live and
+    // skip the save when the stored value already matches. A drag broadcasts one change PER FRAME
+    // and a full profile save is 50-66 ms on the main thread.
+    public virtual void HandleVolumeChange(string sliderName, float sliderValue) {
+
+        if(string.IsNullOrEmpty(sliderName)) {
+            return;
+        }
+
+        if(sliderName == sliderNamePauseAudioEffects) {
+            GameAudio.SetProfileEffectsVolume(sliderValue);
+        }
+        else if(sliderName == sliderNamePauseAudioMusic) {
+            GameAudio.SetProfileAmbienceVolume(sliderValue);
+        }
+    }
+
+    // The bitty view authors the two sliders at 0.9 / 0.75. Without this the menu opens showing
+    // those whatever the profile says, and the first drag from there writes a value the player
+    // never chose. A dead UIRef no-ops, so this is safe on both paths.
+    public virtual void SyncSliderValues() {
+
+        float musicVolume = (float)GameProfiles.Current.GetAudioMusicVolume();
+        float effectsVolume = (float)GameProfiles.Current.GetAudioEffectsVolume();
+
+        UIUtil.SetSliderValue(
+            UIUtil.ResolveDeep(viewRoot, sliderNamePauseAudioMusic), musicVolume);
+        UIUtil.SetSliderValue(
+            UIUtil.ResolveDeep(viewRoot, sliderNamePauseAudioEffects), effectsVolume);
+    }
+
+    // The continuation the async LoadView runs once the elements are real — the first moment the
+    // handlers can be attached, and the reason the sync happens here rather than in Init.
+    public override void BindElements(UIRef root) {
+
+        base.BindElements(root);
+
+        UIUtil.SetSliderHandlerChange(
+            UIUtil.ResolveDeep(root, sliderNamePauseAudioMusic),
+            value => HandleVolumeChange(sliderNamePauseAudioMusic, value));
+
+        UIUtil.SetSliderHandlerChange(
+            UIUtil.ResolveDeep(root, sliderNamePauseAudioEffects),
+            value => HandleVolumeChange(sliderNamePauseAudioEffects, value));
+
+        SyncSliderValues();
     }
 
     public override void OnButtonClickEventHandler(string buttonName) {
@@ -225,6 +296,10 @@ public class UIPanelPause : UIPanelBase {
 
         try {
             base.AnimateIn();
+
+            // Re-shows reuse an already-bound view, so BindElements does not run again — and the
+            // player may have changed the volume in Settings since the last pause.
+            SyncSliderValues();
 
             TweenUtil.ShowObjectRight(containerPause, TweenCoord.local, true, .5f);
         }

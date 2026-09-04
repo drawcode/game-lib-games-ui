@@ -211,6 +211,17 @@ public class UIPanelDialogDisplay : UIPanelBase {
             HideAll();
             GameController.GameRunningStateRun();
         }
+        // NEXT is the fourth button of the same family and was simply never compared — the const
+        // existed, the ref existed, nothing read either (iter 19 audit, OPEN 1). Same dismiss as
+        // OK/GO/CANCEL, which is all any of them do.
+        //
+        // Ref OR element name, because showButtonNext already addresses this button both ways and
+        // an unused serialized ref is not an assigned one (rule 93).
+        else if(UIUtil.IsButtonClicked(buttonDialogNext, buttonName)
+            || UIUtil.IsButtonClicked(elementButtonNext, buttonName)) {
+            HideAll();
+            GameController.GameRunningStateRun();
+        }
     }
 
     public static void ShowDefault() {

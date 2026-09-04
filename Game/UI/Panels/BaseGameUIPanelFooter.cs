@@ -234,9 +234,21 @@ public class BaseGameUIPanelFooter : GameUIPanelBase {
         }
     }
 
+    // The footer EARN tile. Dead in legacy too — it carries a ButtonEvents component in the
+    // prefab, so the name has always been broadcast and nothing in the codebase compared it
+    // (iter 19 audit, OPEN 1). Handled here, on the panel that DRAWS it (rule 90), by NAME:
+    // there is no serialized ref for the tile, and an unused ref would not be evidence of an
+    // assigned one anyway (rule 93).
+    public static string buttonNameGameProductCurrencyEarn = "ButtonGameProductCurrencyEarn";
+
     public override void OnButtonClickEventHandler(string buttonName) {
         //LogUtil.Log("OnButtonClickEventHandler: " + buttonName);
 
+#if ENABLE_FEATURE_PRODUCT_CURRENCY
+        if(UIUtil.IsButtonClicked(buttonNameGameProductCurrencyEarn, buttonName)) {
+            GameUIController.ShowProductCurrencyEarn();
+        }
+#endif
     }
 
     public virtual void HideContainerDelayed() {

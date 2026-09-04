@@ -159,6 +159,16 @@ public class BaseGameUIPanelResults : GameUIPanelBase {
     public static string labelNameLevelCode = "LabelLevelCode";
     public static string labelNameWorldCode = "LabelWorldCode";
 
+    // The MODE CAPTION above them is the same defect from the driver side (iter 18's
+    // widget-drivers-left-behind class). UpdateDisplay writes the content state's display_name
+    // into `labelContentStateDisplayName`, which is declared inside the `#if USE_UI_NGUI_2_7`
+    // branch -- a UILabel, so BindElements can never bind it and SuppressLegacyView has already
+    // hidden the widget it writes to. The toolkit element therefore sat on the authored
+    // placeholder "ARCADE MODE" for EVERY mode, including Missions and Coop.
+    //
+    // Written by name here, alongside the untouched legacy write, exactly as the level meta is.
+    public static string labelNameGameMode = "LabelGameMode";
+
     // The RUN'S NUMBERS have the same problem one layer down. GameUIPanelResultsArcade /
     // ...Challenge write them through BaseGameUIPanelResultsBase, whose totalScore/totalScores/
     // totalCoins/totalKills fields are declared inside the `#if USE_UI_NGUI_2_7` branch — they are
@@ -270,9 +280,18 @@ public class BaseGameUIPanelResults : GameUIPanelBase {
         string levelCodeDisplay = GetLevelCodeDisplay();
         string worldCodeDisplay = GetWorldCodeDisplay();
 
+        string gameModeDisplay = GetGameModeDisplay();
+
         if(isToolkitPanel) {
             UIUtil.UpdateLabelObject(viewRoot, labelNameLevelCode, levelCodeDisplay);
             UIUtil.UpdateLabelObject(viewRoot, labelNameWorldCode, worldCodeDisplay);
+
+            // Empty only when the content state has not resolved; leave the authored caption
+            // standing rather than blanking the title.
+            if(!string.IsNullOrEmpty(gameModeDisplay)) {
+                UIUtil.UpdateLabelObject(viewRoot, labelNameGameMode, gameModeDisplay);
+            }
+
             return;
         }
 
@@ -293,6 +312,18 @@ public class BaseGameUIPanelResults : GameUIPanelBase {
         }
 
         WriteLevelMeta();
+    }
+
+    // Verbatim, NOT upper-cased: this mirrors what the legacy UILabel renders
+    // ("Arcade Mode", "Missions Mode"), which is the migration contract. The view's authored
+    // "ARCADE MODE" was never what the legacy panel showed.
+    public virtual string GetGameModeDisplay() {
+
+        if(AppContentStates.Current == null) {
+            return "";
+        }
+
+        return AppContentStates.Current.display_name;
     }
 
     public virtual string GetLevelCodeDisplay() {
@@ -477,6 +508,13 @@ public class BaseGameUIPanelResults : GameUIPanelBase {
         // before the toolkit view finished loading.
 
         UpdateResultValues(lastRuntimeData, lastTimeTotal);
+
+        // Same replay for the CAPTIONS. UpdateLevelMeta's inactive branch writes straight through
+        // with isToolkitPanel still false, so the level code, world code and mode caption land on
+        // the legacy widgets only and the toolkit view keeps its authored placeholders. Nothing
+        // re-ran them once the view arrived until here.
+
+        UpdateLevelMeta();
 
 #if USE_GAME_LIB_GAMEVERSES
         GameCommunity.ShowSharesCenter();

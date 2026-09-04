@@ -145,6 +145,10 @@ public class BaseGameUIPanelProductCurrency : GameUIPanelBase {
         }
     }
 
+    // Element names are the wire contract for the two tiles below — see the handler.
+    public static string buttonNameGameMain = "ButtonGameMain";
+    public static string buttonNameGameBuyModifier = "ButtonGameBuyModifier";
+
     public override void OnButtonClickEventHandler(string buttonName) {
 
         if(UIUtil.IsButtonClicked(buttonGameBuyProducts, buttonName)) {
@@ -183,6 +187,43 @@ public class BaseGameUIPanelProductCurrency : GameUIPanelBase {
         else if(UIUtil.IsButtonClicked(buttonGameEarnCurrency, buttonName)) {
             GameUIController.ShowProductCurrencyEarn();
         }
+
+        // PLAY and BUY COIN BOOST. Both drawn by this screen, both dead in LEGACY too — each
+        // carries a ButtonEvents component in the prefab, so the name was always broadcast and
+        // nothing in the codebase ever compared it (iter 19 audit, OPEN 1). Wired here rather
+        // than on the controller for the same reason as HELP: the panel that DRAWS a tile is the
+        // only listener guaranteed to be alive while the tile is on screen (rule 90).
+        //
+        // By NAME, not through the serialized refs: `buttonGameBuyModifier` exists on this class
+        // but an unused ref is not an assigned one (rule 93, learned on the earn screen's null
+        // buttonHelp), and there is no ref at all for the PLAY tile.
+        else if(UIUtil.IsButtonClicked(buttonNameGameMain, buttonName)) {
+            GameUIController.ShowMain();
+        }
+#if ENABLE_FEATURE_PRODUCTS
+        // "EARN COINS FASTER / BUY COIN BOOST" -> the store filtered to powerups, which is where
+        // the coin boosts live: powerup-double-coins and powerup-triple-coins in
+        // game-product-data. There is no "modifier" product type; powerup is the one they carry.
+        else if(UIUtil.IsButtonClicked(buttonNameGameBuyModifier, buttonName)) {
+            GameUIController.ShowProducts(GameProductType.powerup);
+        }
+#endif
+
+        // HELP. The ONLY listener for this name in the codebase is
+        // BaseGameUIPanelSettings.buttonSettingsHelp, and panel-settings is loaded LAZILY by
+        // syncPanelLoaded -- until the player has opened Settings once, that panel does not
+        // exist and this tile's broadcast reaches nobody. Same shape as the STORE tile
+        // (iter 18): never leave a toolkit element depending on a listener that lives on a
+        // panel which may not be up. The serialized buttonHelp ref was already wired to this
+        // tile and simply never checked.
+        //
+        // Safe when panel-settings IS loaded: showUIPanel early-returns on the current panel
+        // code, so the second dispatch is a no-op rather than a double navigation.
+#if ENABLE_FEATURE_SETTINGS_HELP
+        else if(UIUtil.IsButtonClicked(buttonHelp, buttonName)) {
+            GameUIController.ShowSettingsHelp();
+        }
+#endif
     }
 
 
