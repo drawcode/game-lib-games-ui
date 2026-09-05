@@ -77,7 +77,6 @@ public class UIPanelGameAction : UIAppPanelBaseList {
 
         //Messenger<DeviceOrientation>.AddListener(DeviceOrientationMessages.deviceOrientationChange, OnDeviceOrientationChangeHandler);
         Messenger<float>.AddListener(DeviceOrientationMessages.deviceScreenRatioChange, OnDeviceScreenRatioChangeHandler);
-        Messenger<string>.AddListener(ButtonEvents.EVENT_BUTTON_CLICK, OnButtonClickEventHandler);
 
         //Messenger<SwipeGesture>.AddListener(FingerGesturesMessages.OnSwipe, 
         //                                    OnInputSwipe);
@@ -91,7 +90,6 @@ public class UIPanelGameAction : UIAppPanelBaseList {
 
         //Messenger<DeviceOrientation>.RemoveListener(DeviceOrientationMessages.deviceOrientationChange, OnDeviceOrientationChangeHandler);
         Messenger<float>.RemoveListener(DeviceOrientationMessages.deviceScreenRatioChange, OnDeviceScreenRatioChangeHandler);
-        Messenger<string>.RemoveListener(ButtonEvents.EVENT_BUTTON_CLICK, OnButtonClickEventHandler);
 
         //Messenger<SwipeGesture>.RemoveListener(FingerGesturesMessages.OnSwipe, 
         //                                    OnInputSwipe);

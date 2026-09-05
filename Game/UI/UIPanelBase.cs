@@ -158,6 +158,11 @@ public class UIPanelBase : UIAppPanel {
 
         panelTypes.Add(UIPanelBaseTypes.typeDefault);
 
+        // THE ONLY place a panel subscribes to the click bus. OnButtonClickEventHandler is virtual,
+        // so this registration already resolves to the most-derived override — a subclass that adds
+        // it AGAIN after chaining base.OnEnable() registers the SAME target+method twice, and
+        // Messenger is a plain multicast delegate with no dedupe, so the handler runs once PER
+        // registration. 33 subclasses did exactly that (removed 2026-09-05); do not re-add it.
         Messenger<string>.AddListener(ButtonEvents.EVENT_BUTTON_CLICK, OnButtonClickEventHandler);
         Messenger<string, Dictionary<string, object>>.AddListener(ButtonEvents.EVENT_BUTTON_CLICK_DATA, OnButtonClickEventDataHandler);
 

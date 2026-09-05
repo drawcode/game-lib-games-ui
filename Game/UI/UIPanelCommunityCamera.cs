@@ -53,15 +53,11 @@ public class UIPanelCommunityCamera : UIPanelCommunityBase {
     public override void OnEnable() {
 
         base.OnEnable();
-
-        Messenger<string>.AddListener(ButtonEvents.EVENT_BUTTON_CLICK, OnButtonClickEventHandler);
     }
     
     public override void OnDisable() {
 
         base.OnDisable();
-
-        Messenger<string>.RemoveListener(ButtonEvents.EVENT_BUTTON_CLICK, OnButtonClickEventHandler);
     }
 
     public override void OnButtonClickEventHandler(string buttonName) {

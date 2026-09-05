@@ -207,7 +207,6 @@ public class UIPanelModeTypeTutorial : UIPanelBase {
             GameObjectChoiceMessages.gameChoiceDataResponse,
             OnAppContentChoiceItemHandler);
 */
-        Messenger<string>.AddListener(ButtonEvents.EVENT_BUTTON_CLICK, OnButtonClickEventHandler);
 
 
         Messenger.AddListener(GameDraggableEditorMessages.GameLevelItemsLoaded, OnGameLevelItemsLoadedHandler);
@@ -221,7 +220,6 @@ public class UIPanelModeTypeTutorial : UIPanelBase {
             GameObjectChoiceMessages.gameChoiceDataResponse,
             OnAppContentChoiceItemHandler);
 */
-        Messenger<string>.RemoveListener(ButtonEvents.EVENT_BUTTON_CLICK, OnButtonClickEventHandler);
 
         Messenger.RemoveListener(GameDraggableEditorMessages.GameLevelItemsLoaded, OnGameLevelItemsLoadedHandler);
     }

@@ -87,7 +87,6 @@ public class UIPanelCommunityBroadcast : UIPanelCommunityBase {
 
         base.OnEnable();
 
-        Messenger<string>.AddListener(ButtonEvents.EVENT_BUTTON_CLICK, OnButtonClickEventHandler);
         Messenger<string, bool>.AddListener(CheckboxEvents.EVENT_ITEM_CHANGE, OnToggleChangedEventHandler);
 
         Messenger<string>.AddListener(
@@ -106,7 +105,6 @@ public class UIPanelCommunityBroadcast : UIPanelCommunityBase {
 
         base.OnDisable();
 
-        Messenger<string>.RemoveListener(ButtonEvents.EVENT_BUTTON_CLICK, OnButtonClickEventHandler);
         Messenger<string, bool>.RemoveListener(CheckboxEvents.EVENT_ITEM_CHANGE, OnToggleChangedEventHandler);
 
         Messenger<string>.RemoveListener(

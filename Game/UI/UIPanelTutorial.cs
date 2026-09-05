@@ -102,8 +102,6 @@ public class UIPanelTutorial : UIPanelBase {
 
         base.OnEnable();
 
-        Messenger<string>.AddListener(ButtonEvents.EVENT_BUTTON_CLICK, OnButtonClickEventHandler);
-
         Messenger.AddListener(GameDraggableEditorMessages.GameLevelItemsLoaded, OnGameLevelItemsLoadedHandler);
 
         Messenger<string>.AddListener(UIPanelTipsMessages.tipsCycle, OnTipsCycleHandler);
@@ -112,8 +110,6 @@ public class UIPanelTutorial : UIPanelBase {
     public override void OnDisable() {
 
         base.OnDisable();
-
-        Messenger<string>.RemoveListener(ButtonEvents.EVENT_BUTTON_CLICK, OnButtonClickEventHandler);
 
         Messenger.RemoveListener(GameDraggableEditorMessages.GameLevelItemsLoaded, OnGameLevelItemsLoadedHandler);
 
