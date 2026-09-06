@@ -12,6 +12,7 @@ using UnityEngine.UI;
 
 using Engine.Events;
 using Engine.Utility;
+using Engine.UI;
 using Engine.Game.App;
 using Engine.Game.Data;
 
@@ -68,6 +69,83 @@ public class UIPanelOverlayPrepare : UIPanelBase {
     // GLOBAL
 
     public AppOverviewFlowState flowState = AppOverviewFlowState.GeneralTips;
+
+    // THE LEVEL-LOAD PREPARE / TIPS OVERLAY -- the last unconverted screen a player sees
+    // (contexts: context-remaining-ngui-ugui-inventory.md). The view is authored
+    // (Resources/ui/views/panel-overlay-prepare.uxml) and the bridge below is wired, but the
+    // KEY IS STILL EMPTY, so nothing changes: EnsureToolkitView returns early on an empty key
+    // and this panel keeps rendering NGUI. That is deliberate and is the same staging
+    // UIPanelPause used -- this screen is the LEVEL-LOAD CRITICAL PATH, and the view's font
+    // sizes and its seven stacked semi-transparent backers have not been measured against
+    // baselines/level-load-prepare-tips-red-backer.png yet.
+    //
+    // TO FLIP: return BaseUIPanel.panelOverlayPrepare here, then drive a real level load and
+    // A/B against that baseline. Migrating it is also the standing fix for the open
+    // "header + menu cover the loader" defect (context-3f-pause-loader-levelload.md item D):
+    // the NGUI overlay draws UNDER every toolkit view, and toolkitSortOrder below puts it
+    // above the chrome band where it belongs.
+    public override string toolkitViewKey {
+        get {
+            return "";
+        }
+    }
+
+    // Above the chrome band (10000). The header and the menu screen are only dismissed at the
+    // late onGameStarted, ~1.5s after this overlay appears, so anything below chrome is buried
+    // for that whole window.
+    public override int toolkitSortOrder {
+        get {
+            return UILayers.overlay;
+        }
+    }
+
+    // Scene-resident and enabled at level load, long before the overlay is shown -- the case
+    // preloading exists for. Harmless while toolkitViewKey is "".
+    public override bool toolkitPreloadView {
+        get {
+            return true;
+        }
+    }
+
+    // The six labels this panel writes are declared inside the `#if USE_UI_NGUI_2_7` branch, so
+    // they are UILabel and BindElements can never bind them (rule 91). The toolkit side is
+    // therefore written BY ELEMENT NAME, and every write is remembered so BindElements can
+    // replay it -- the panel sets the loading text long before the async view load returns.
+    protected Dictionary<string, string> viewTextPending = new Dictionary<string, string>();
+
+    protected virtual void SetViewLabel(string elementName, string value) {
+
+        viewTextPending[elementName] = value;
+
+        UIUtil.SetLabelValue(UIUtil.ResolveDeep(viewRoot, elementName), value);
+    }
+
+    protected virtual void SetViewObjectVisible(UIRef root, string elementName, bool visible) {
+
+        UIRef element = UIUtil.ResolveDeep(root, elementName);
+
+        if(visible) {
+            UIUtil.ShowObject(element);
+        }
+        else {
+            UIUtil.HideObject(element);
+        }
+    }
+
+    public override void BindElements(UIRef root) {
+
+        base.BindElements(root);
+
+        foreach(KeyValuePair<string, string> pair in viewTextPending) {
+            UIUtil.SetLabelValue(UIUtil.ResolveDeep(root, pair.Key), pair.Value);
+        }
+
+        SetViewObjectVisible(root, "ButtonGameInitFinish", buttonPlayVisible);
+    }
+
+    // ShowButtonPlay/HideButtonPlay toggle the legacy button's GameObject; the toolkit element
+    // has none, so the state is mirrored here and replayed by BindElements.
+    protected bool buttonPlayVisible = false;
 
     public override void Awake() {
         base.Awake();
@@ -248,6 +326,7 @@ public class UIPanelOverlayPrepare : UIPanelBase {
         UIPanelDialogBackground.ShowDefault();
 
         UIUtil.SetLabelValue(labelOverviewType, AppContentStates.Current.display_name);
+        SetViewLabel("LabelOverviewType", AppContentStates.Current.display_name);
 
         //LogUtil.Log("UIPanelModeTypeChoice:ShowOverview:flowState:" + flowState);
 
@@ -275,6 +354,7 @@ public class UIPanelOverlayPrepare : UIPanelBase {
         UIPanelDialogBackground.ShowDefault();
 
         UIUtil.SetLabelValue(labelOverviewType, AppContentStates.Current.display_name);
+        SetViewLabel("LabelOverviewType", AppContentStates.Current.display_name);
 
         //LogUtil.Log("UIPanelModeTypeChoice:ShowOverview:flowState:" + flowState);
 
@@ -301,6 +381,7 @@ public class UIPanelOverlayPrepare : UIPanelBase {
         }
 
         UIUtil.SetLabelValue(labelOverviewTip, "READY TO PLAY?");
+        SetViewLabel("LabelOverviewTip", "READY TO PLAY?");
         ShowButtonPlay();
     }
 
@@ -309,6 +390,9 @@ public class UIPanelOverlayPrepare : UIPanelBase {
             buttonReady.gameObject.Show();
         }
 
+        buttonPlayVisible = true;
+        SetViewObjectVisible(viewRoot, "ButtonGameInitFinish", true);
+
         HideLoaderSpinner();
     }
 
@@ -316,6 +400,9 @@ public class UIPanelOverlayPrepare : UIPanelBase {
         if(buttonReady != null) {
             buttonReady.gameObject.Hide();
         }
+
+        buttonPlayVisible = false;
+        SetViewObjectVisible(viewRoot, "ButtonGameInitFinish", false);
 
         ShowLoaderSpinner();
     }
@@ -399,6 +486,7 @@ public class UIPanelOverlayPrepare : UIPanelBase {
         UIPanelDialogBackground.ShowDefault();
 
         UIUtil.SetLabelValue(labelOverviewType, AppContentStates.Current.display_name);
+        SetViewLabel("LabelOverviewType", AppContentStates.Current.display_name);
 
         AnimateInBottom(containerOverview);
 
@@ -429,8 +517,11 @@ public class UIPanelOverlayPrepare : UIPanelBase {
         currentTip = currentTips[0];
 
         UIUtil.SetLabelValue(labelTipTitle, currentTip.display_name);
+        SetViewLabel("LabelTipTitle", currentTip.display_name);
         UIUtil.SetLabelValue(labelTipDescription, currentTip.description);
+        SetViewLabel("LabelTipDescription", currentTip.description);
         UIUtil.SetLabelValue(labelTipType, currentTip.keys[0] + " Tips");
+        SetViewLabel("LabelTipType", currentTip.keys[0] + " Tips");
     }
 
     public void HideOverview() {
@@ -453,6 +544,7 @@ public class UIPanelOverlayPrepare : UIPanelBase {
         HideButtonPlay();
 
         UIUtil.SetLabelValue(labelOverviewTip, loadingLevelDisplay);
+        SetViewLabel("LabelOverviewTip", loadingLevelDisplay);
 
         UIPanelDialogBackground.HideAll();
 
