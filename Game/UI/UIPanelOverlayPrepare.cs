@@ -70,23 +70,23 @@ public class UIPanelOverlayPrepare : UIPanelBase {
 
     public AppOverviewFlowState flowState = AppOverviewFlowState.GeneralTips;
 
-    // THE LEVEL-LOAD PREPARE / TIPS OVERLAY -- the last unconverted screen a player sees
-    // (contexts: context-remaining-ngui-ugui-inventory.md). The view is authored
-    // (Resources/ui/views/panel-overlay-prepare.uxml) and the bridge below is wired, but the
-    // KEY IS STILL EMPTY, so nothing changes: EnsureToolkitView returns early on an empty key
-    // and this panel keeps rendering NGUI. That is deliberate and is the same staging
-    // UIPanelPause used -- this screen is the LEVEL-LOAD CRITICAL PATH, and the view's font
-    // sizes and its seven stacked semi-transparent backers have not been measured against
-    // baselines/level-load-prepare-tips-red-backer.png yet.
+    // THE LEVEL-LOAD PREPARE / TIPS OVERLAY -- the last screen a player sees that was still NGUI
+    // (contexts: context-remaining-ngui-ugui-inventory.md, context-panel-overlay-prepare.md).
     //
-    // TO FLIP: return BaseUIPanel.panelOverlayPrepare here, then drive a real level load and
-    // A/B against that baseline. Migrating it is also the standing fix for the open
-    // "header + menu cover the loader" defect (context-3f-pause-loader-levelload.md item D):
-    // the NGUI overlay draws UNDER every toolkit view, and toolkitSortOrder below puts it
-    // above the chrome band where it belongs.
+    // FLIPPED 2026-09-07, in the three-commit staging rule 115 describes: the view was authored
+    // and colour-verified against baselines/level-load-prepare-tips-red-backer.png with the key
+    // left EMPTY (iter 22), and this iteration exercised the things a static render cannot --
+    // a real level load, the slide in, the READY click, tip cycling and the item-loaded handoff.
+    //
+    // Migrating it is also the standing fix for the open "header + menu cover the loader" defect
+    // (context-3f-pause-loader-levelload.md item D): the NGUI overlay drew UNDER every toolkit
+    // view, so the header and the outgoing menu sat on top of it for the ~1.5s between
+    // initLevelCo and onGameStarted. toolkitSortOrder below puts it above the chrome band.
+    //
+    // Backing out is UIPlatform.toolkitViewsEnabled (global) or "" here (this screen only).
     public override string toolkitViewKey {
         get {
-            return "";
+            return BaseUIPanel.panelOverlayPrepare;
         }
     }
 
@@ -146,6 +146,136 @@ public class UIPanelOverlayPrepare : UIPanelBase {
     // ShowButtonPlay/HideButtonPlay toggle the legacy button's GameObject; the toolkit element
     // has none, so the state is mirrored here and replayed by BindElements.
     protected bool buttonPlayVisible = false;
+
+    // SLIDE
+    //
+    // The legacy overlay enters from the BOTTOM -- PanelOverview is parked at y = -3500 in the
+    // scene and ShowOverview tweens it up (AnimateInBottom(containerOverview)). The default view
+    // slide is from the TOP, which would have this screen enter the wrong way round. Time.timeScale
+    // is 1 here (measured in a real level load), so unlike pause this can be an animated slide
+    // rather than ShowViewInPlace.
+    protected override void ShowToolkitViewSlide() {
+        TweenUtil.ShowObjectBottom(viewRoot, toolkitShowPreset);
+    }
+
+    protected override void HideToolkitViewSlide() {
+        TweenUtil.HideObjectBottom(viewRoot, toolkitHidePreset);
+    }
+
+    // ONLY THIS PANEL'S OWN DISMISSAL MAY TAKE THE VIEW OUT
+    //
+    // The prepare overlay is on screen DURING a level load, and the level-load flow animates every
+    // other panel OUT while it is up. Three routes reach this panel's AnimateOut, none of them
+    // meaning "put the loader away":
+    //
+    //   * BaseUIController.HideAllPanels / HideAllPanelsNow sweep FindObjectsOfType(UIPanelBase)
+    //     and call AnimateOut on every one of them -- including this panel;
+    //   * showUIPanelActionsCo runs that sweep for whatever panel is shown next;
+    //   * this panel carries UIPanelBaseTypes.typeDialogHUD, so every other dialog of that type
+    //     broadcasts uiPanelAnimateOutClassType at it as IT animates in.
+    //
+    // Measured in play: the sweep lands one frame after UIPanelOverviewMode animates in, mid-load
+    // ("PROBE outClassType from=UIPanelOverviewMode type=type-dialog-hud f=216", view hidden the
+    // same frame).
+    //
+    // In legacy all three were INVISIBLE here: panelContainer and all ten panelLeft/Right/Top/
+    // Bottom/Center objects are null on this panel (measured), so AnimateOut had nothing to hide.
+    // What the player sees is containerOverview, and that is shown and hidden by ShowOverview /
+    // HideOverview instead. A toolkit view IS driven by AnimateOut (HideToolkitViewSlide +
+    // HidePanel), so the sweep blanked the entire level-load screen -- the white transition flash
+    // and nothing else, for the whole load.
+    //
+    // So AnimateOut only does something when THIS panel is being dismissed: hideAll(), which is
+    // UIPanelOverlayPrepare.HideAll() from the READY click (BaseUIController) and from
+    // initLevelFinishCo. Everything else stays the no-op it has always been.
+    private bool dismissing = false;
+
+    public override void AnimateOut(float time, float delay) {
+
+        if(!dismissing) {
+            return;
+        }
+
+        base.AnimateOut(time, delay);
+    }
+
+    // SUPPRESSION
+    //
+    // The default UIPanelBase.SuppressLegacyView hides panelContainer -- and this panel's
+    // panelContainer is NULL (measured in play; the scene wires containerOverview and nothing
+    // else), so the default is a NO-OP here and all 104 legacy widgets would draw underneath the
+    // toolkit view.
+    //
+    // What it hides instead is PanelOverview/Container, one level BELOW containerOverview, and the
+    // level matters: ShowOverview/HideOverview Show(), Hide() and tween PanelOverview ITSELF, so
+    // suppressing that object would be undone by the panel's own next show. Nothing anywhere
+    // touches the Container child, and hiding it deactivates every descendant -- which is also what
+    // takes the legacy ButtonGameInitFinish and ButtonTipNext COLLIDERS out of UICamera's pick
+    // list. Hiding only the widgets would leave those live and pickable over a screen they no
+    // longer draw (suppressed-ngui-widgets-keep-colliders).
+    private Transform legacyOverviewContent;
+
+    private readonly List<GameObject> suppressedLegacy = new List<GameObject>();
+
+    private Transform ResolveLegacyOverviewContent() {
+
+        if(legacyOverviewContent == null && containerOverview != null) {
+            legacyOverviewContent = containerOverview.transform.Find("Container");
+        }
+
+        return legacyOverviewContent;
+    }
+
+    protected override void SuppressLegacyView() {
+
+        // NOT base.SuppressLegacyView() -- see above, panelContainer is null on this panel.
+        ReassertLegacySuppression();
+    }
+
+    // CONTINUOUS, not one-shot (the HUD's iter-7 rule): the level-load flow re-enters this panel on
+    // every restart and re-runs ShowOverview -> ShowTipsObject, so anything re-activated after the
+    // first sweep would come back on top of the view and stay there.
+    private void ReassertLegacySuppression() {
+
+        if(!isToolkitPanel) {
+            return;
+        }
+
+        Transform t = ResolveLegacyOverviewContent();
+
+        if(t == null || !t.gameObject.activeSelf) {
+            return;
+        }
+
+        t.gameObject.Hide();
+
+        // Tracked once, so the restore list cannot grow across re-activations.
+        if(!suppressedLegacy.Contains(t.gameObject)) {
+            suppressedLegacy.Add(t.gameObject);
+        }
+    }
+
+    public virtual void Update() {
+
+        if(isToolkitPanel) {
+            ReassertLegacySuppression();
+        }
+    }
+
+    // Restore-on-free, so the UIPlatform.toolkitViewsEnabled kill switch returns a working legacy
+    // overlay rather than an empty chassis (rule 116).
+    protected override void FreeToolkitView() {
+
+        foreach(GameObject go in suppressedLegacy) {
+            if(go != null) {
+                go.Show();
+            }
+        }
+
+        suppressedLegacy.Clear();
+
+        base.FreeToolkitView();
+    }
 
     public override void Awake() {
         base.Awake();
@@ -575,7 +705,13 @@ public class UIPanelOverlayPrepare : UIPanelBase {
     }
 
     public void hideAll() {
+
+        dismissing = true;
+
         AnimateOut();
+
+        dismissing = false;
+
         HideStates();
     }
 
