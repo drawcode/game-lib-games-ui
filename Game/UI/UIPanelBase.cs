@@ -879,7 +879,11 @@ public class UIPanelBase : UIAppPanel {
 
                 isVisible = false;
 
-                HidePanel();
+                // NOT HidePanel() -- see HideToolkitViewWhenSlideEnds. Hiding here put
+                // display: none on the view in the same frame, so the slide above ran to
+                // completion on an element nobody could see and every toolkit panel POPPED
+                // out while the legacy ones eased.
+                HideToolkitViewWhenSlideEnds();
 
                 return;
             }
@@ -919,6 +923,66 @@ public class UIPanelBase : UIAppPanel {
         HidePanel();
     }
 
+    // HOW LONG THE HIDE SLIDE RUNS.
+    //
+    // Preset-driven (tokens.json -> TweenPresets), so retiming panel-hide retimes this with it and
+    // there is no constant to drift. It is a SEPARATE virtual from HideToolkitViewSlide rather
+    // than a return value, because that method is a protected virtual in a SHARED lib -- changing
+    // its signature would silently orphan overrides in the other products.
+    //
+    // A panel that hides IN PLACE (no tween) must override this to 0: UIPanelPause and
+    // GameUIPanelLoader both do, and any future TweenUtil.HideViewInPlace override has to. The
+    // cost of forgetting is a view that lingers for the preset duration after it should be gone,
+    // not a stuck panel -- the token below still clears it.
+    protected virtual float toolkitHideSeconds {
+        get {
+            Engine.Animation.TweenPreset preset = Engine.Animation.TweenPresets.Get(toolkitHidePreset);
+
+            return preset.time + preset.delay;
+        }
+    }
+
+    // Bumped by every show and every hide, so a deferred hide belonging to an earlier cycle cannot
+    // fire into a later one (re-show during the slide, or a second hide superseding the first).
+    private int toolkitVisibilityToken = 0;
+
+    // The display hide, landing WITH the slide instead of before it.
+    //
+    // gate learning #1 still holds -- display state is never a tween side effect. Nothing here
+    // listens to the tween or reads its progress; the hide is scheduled off the preset's own
+    // duration and re-checks isVisible before it commits, so a panel re-shown mid-slide stays up.
+    //
+    // Realtime, not scaled: a panel dismissed while the game is paused would otherwise never
+    // reach its hide. The panels that are actually SHOWN at timeScale 0 hide in place anyway
+    // (toolkitHideSeconds 0), so they never get here.
+    protected virtual void HideToolkitViewWhenSlideEnds() {
+
+        int token = ++toolkitVisibilityToken;
+
+        float seconds = toolkitHideSeconds;
+
+        // In-place hides, and a pooled-away panel (StartCoroutine throws on an inactive
+        // GameObject, and a coroutine would be killed by the deactivation anyway).
+        if(seconds <= 0f || !gameObject.activeInHierarchy) {
+            HidePanel();
+            return;
+        }
+
+        StartCoroutine(HideToolkitViewWhenSlideEndsCo(seconds, token));
+    }
+
+    IEnumerator HideToolkitViewWhenSlideEndsCo(float seconds, int token) {
+
+        yield return new WaitForSecondsRealtime(seconds);
+
+        // Superseded, or shown again while the slide was running.
+        if(token != toolkitVisibilityToken || isVisible) {
+            yield break;
+        }
+
+        HidePanel();
+    }
+
     public virtual void HidePanel() {
 
         // Display state, never a tween side effect (gate learning #1). The tween fades opacity;
@@ -941,6 +1005,10 @@ public class UIPanelBase : UIAppPanel {
     }
 
     public virtual void ShowPanel() {
+
+        // Cancels any deferred hide still pending from the last dismissal, so a panel shown again
+        // mid-slide cannot be hidden out from under itself a moment later.
+        toolkitVisibilityToken++;
 
         if(isVisible) {
             return;

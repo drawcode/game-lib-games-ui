@@ -77,6 +77,15 @@ public class UIPanelPause : UIPanelBase {
         TweenUtil.HideViewInPlace(viewRoot);
     }
 
+    // Paired with the in-place hide above: there is no slide to wait for, so the display hide is
+    // immediate. Leaving the base's preset duration here would keep the pause dialog on screen for
+    // .45s after RESUME, over a game that has already resumed.
+    protected override float toolkitHideSeconds {
+        get {
+            return 0f;
+        }
+    }
+
     /*
 #if USE_UI_NGUI_2_7
 #endif
