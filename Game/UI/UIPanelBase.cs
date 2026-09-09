@@ -241,6 +241,85 @@ public class UIPanelBase : UIAppPanel {
         toolkitLoadRequested = false;
     }
 
+    // SAFE-POINT VIEW RECLAIM
+    //
+    // MemoryUtil.onSafePointReclaim had no subscriber at all: a safe point trimmed the pools and
+    // collected, and every toolkit view still in memory stayed in memory. A view is a
+    // PanelRenderer GameObject holding a VisualTreeAsset (and, for a bitty view, a retained
+    // parsed tree) -- exactly the kind of live reference UnloadUnusedAssets cannot get past.
+    //
+    // WHY OnDisable DOES NOT ALREADY COVER THIS, measured rather than assumed. FreeToolkitView
+    // runs from OnDisable because the project POOLS panels with SetActive(false). But a panel
+    // that is merely hidden is NOT deactivated -- it stays active and goes invisible. Measured at
+    // the menu, just after a round -> UI transition: 7 of 7 toolkit panels read isVisible=False
+    // with activeInHierarchy=True, every one of them still holding its view. So the predicate
+    // that matters here is isVisible, NOT activeInHierarchy; a sweep written against
+    // activeInHierarchy frees nothing, which is what the first version of this did.
+    //
+    // WHY ONLY low-memory AND application-paused. Freeing a view means rebuilding it on the next
+    // show, and this set includes panel-main, panel-header and panel-footer -- the panels every
+    // navigation re-shows immediately. Sweeping on every safe point would trade memory for
+    // re-show cost on the hottest panels in the app, which is the opposite of what this branch
+    // wants. On these two reasons the trade is all upside: the app is under memory pressure or
+    // has been backgrounded, and re-show latency does not exist. Scene loads are deliberately not
+    // included -- a single-mode load already destroys the outgoing panels, so OnDestroy has
+    // freed those views before this would ever look at them.
+
+    private static int viewsReclaimed;
+
+    public static int viewsReclaimedAtSafePoint {
+        get {
+            return viewsReclaimed;
+        }
+    }
+
+    public static string lastViewReclaim { get; private set; }
+
+    // AfterSceneLoad, NOT BeforeSceneLoad, and the ordering is the entire reason. MemoryUtil
+    // resets its statics from a BeforeSceneLoad hook, and that reset includes
+    // `onSafePointReclaim = null` ("products re-subscribe from their own boot"). Two
+    // BeforeSceneLoad callbacks have no defined order between them, so subscribing there is a
+    // coin flip -- lose it and the handler is silently gone for the whole session, with nothing
+    // to show that it ever existed. AfterSceneLoad always runs after every BeforeSceneLoad hook.
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
+    private static void HookSafePointReclaim() {
+
+        // Reset first: with "Enter Play Mode Options" skipping the domain reload, these statics
+        // survive into the next play session.
+        viewsReclaimed = 0;
+        lastViewReclaim = "";
+
+        MemoryUtil.onSafePointReclaim -= OnSafePointReclaim;
+        MemoryUtil.onSafePointReclaim += OnSafePointReclaim;
+    }
+
+    private static void OnSafePointReclaim(string reason) {
+
+        if(reason != "low-memory" && reason != "application-paused") {
+            return;
+        }
+
+        UIPanelBase[] panels = UnityEngine.Object.FindObjectsByType<UIPanelBase>(
+            FindObjectsInactive.Include, FindObjectsSortMode.None);
+
+        int freed = 0;
+
+        for(int i = 0; i < panels.Length; i++) {
+
+            UIPanelBase panel = panels[i];
+
+            if(panel == null || panel.isVisible || !panel.isToolkitPanel) {
+                continue;
+            }
+
+            panel.FreeToolkitView();
+            freed++;
+        }
+
+        viewsReclaimed += freed;
+        lastViewReclaim = reason + ":" + freed + "@f" + Time.frameCount;
+    }
+
     public virtual void OnDestroy() {
         FreeToolkitView();
     }
@@ -689,6 +768,21 @@ public class UIPanelBase : UIAppPanel {
             if (view == null || !view.alive) {
                 // No UXML for this key: stay on NGUI. Allow a later retry.
                 toolkitLoadRequested = false;
+                return;
+            }
+
+            // The load is deferred (a frame or two), and the panel can be DESTROYED in that
+            // window — a scene unload does exactly this. The toolkitLoadRequested check below
+            // does not catch it: the managed object outlives the native one, so its fields still
+            // read normally and the guard passes, and then the first member that touches the
+            // native side throws. Observed as
+            // "MissingReferenceException: The object of type 'GameHUD' has been destroyed" out of
+            // SuppressLegacyView() -> get_transform, on a level load that tore the scene down
+            // while the HUD's view was still building. `this == null` is Unity's overloaded
+            // comparison and is true for a destroyed object; the view is orphaned either way, so
+            // it is destroyed here rather than leaked.
+            if (this == null) {
+                backend.DestroyView(view);
                 return;
             }
 
