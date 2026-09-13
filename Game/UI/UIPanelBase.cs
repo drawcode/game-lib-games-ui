@@ -1421,6 +1421,25 @@ public class UIPanelBase : UIAppPanel {
 
         // handle character display
 
+        // LEAVE THE RIG ALONE IF IT IS ALREADY SHOWING WHAT WE WANT.
+        //
+        // The character is shared and lives on the header, but this ran on every panel show and
+        // unconditionally re-drove it: hide the other container, then a coroutine that waits and
+        // slides this one back in. Two consecutive screens that both want the same character
+        // therefore tore it down and rebuilt it, and the rig was ABSENT for the whole wait —
+        // captured as a frame sequence on 2026-09-12: the bot present for three frames, GONE for
+        // three, then sliding in. The header remembers what it was last asked for and every hide
+        // clears that memo, so this can only skip work that is genuinely already done.
+        if(GameUIPanelHeader.IsCharacterDisplayApplied(
+               characterDisplayState == UIPanelCharacterDisplayState.Character
+                   ? GameUIPanelHeader.characterDisplaySmall
+                   : characterDisplayState == UIPanelCharacterDisplayState.CharacterLarge
+                       ? GameUIPanelHeader.characterDisplayLarge
+                       : GameUIPanelHeader.characterDisplayNone,
+               isToolkitMigrated)) {
+            return;
+        }
+
         if(characterDisplayState ==
             UIPanelCharacterDisplayState.Character) {
 

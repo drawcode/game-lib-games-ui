@@ -1017,6 +1017,45 @@ public class BaseGameUIPanelHeader : GameUIPanelBase {
 
     // characters
 
+    // WHAT THE RIG IS CURRENTLY SHOWING.
+    //
+    // The character rig is SHARED across screens and owned by this header, but every panel's
+    // HandleCharacterDisplay used to re-drive it on every show: hide the other container, then
+    // start a coroutine that waits and slides this one back in. Navigating between two screens
+    // that both want the SAME character therefore tore it down and rebuilt it, and because the
+    // show waited before sliding, the bot was simply ABSENT for that whole wait. Captured as a
+    // frame sequence: present, present, present, GONE for three frames, then sliding in.
+    //
+    // So the header remembers what it was last asked for, and HandleCharacterDisplay can ask
+    // before touching anything. Every hide clears it, including the boot and teardown paths, so
+    // the memo can never claim a state the rig is not actually in.
+    public static string characterDisplayApplied = "";
+    public static bool characterDisplayAppliedStaged = false;
+
+    public const string characterDisplayNone = "";
+    public const string characterDisplaySmall = "character";
+    public const string characterDisplayLarge = "character-large";
+
+    public static bool IsCharacterDisplayApplied(string state, bool staged) {
+
+        if (string.IsNullOrEmpty(state) || characterDisplayApplied != state) {
+            return false;
+        }
+
+        // The large rig is staged differently on migrated and unmigrated screens
+        // (SetCharacterLargeToolkit), so a staging change is a real change even when the state
+        // name matches.
+        if (state == characterDisplayLarge && characterDisplayAppliedStaged != staged) {
+            return false;
+        }
+
+        return true;
+    }
+
+    public static void ClearCharacterDisplayApplied() {
+        characterDisplayApplied = characterDisplayNone;
+    }
+
     public static void HideCharacters() {
         HideCharacter();
         HideCharacterLarge();
@@ -1026,6 +1065,7 @@ public class BaseGameUIPanelHeader : GameUIPanelBase {
 
     public static void ShowCharacter() {
         if(GameUIPanelHeader.Instance != null) {
+            characterDisplayApplied = characterDisplaySmall;
             GameUIPanelHeader.Instance.showCharacter();
         }
     }
@@ -1035,7 +1075,9 @@ public class BaseGameUIPanelHeader : GameUIPanelBase {
     }
 
     public IEnumerator showCharacterCo() {
-        yield return new WaitForSeconds(.55f);
+        // Was a hard-coded .55: the rig waited out half a second with nothing on screen before
+        // it started sliding. Takes the panel-show delay now, so it moves with the rest of the UI.
+        yield return new WaitForSeconds(Engine.Animation.TweenPresets.Get("panel-show").delay);
         TweenUtil.ShowObjectTop(containerCharacter);
 
         if(containerCharacter != null) {
@@ -1053,6 +1095,9 @@ public class BaseGameUIPanelHeader : GameUIPanelBase {
 
     public static void HideCharacter() {
         if(GameUIPanelHeader.Instance != null) {
+            if (characterDisplayApplied == characterDisplaySmall) {
+                ClearCharacterDisplayApplied();
+            }
             GameUIPanelHeader.Instance.hideCharacter();
         }
     }
@@ -1068,6 +1113,8 @@ public class BaseGameUIPanelHeader : GameUIPanelBase {
 
     public static void ShowCharacterLarge() {
         if(GameUIPanelHeader.Instance != null) {
+            characterDisplayApplied = characterDisplayLarge;
+            characterDisplayAppliedStaged = GameUIPanelHeader.Instance.characterLargeStaged;
             GameUIPanelHeader.Instance.showCharacterLarge();
         }
     }
@@ -1077,7 +1124,8 @@ public class BaseGameUIPanelHeader : GameUIPanelBase {
     }
 
     public IEnumerator showCharacterLargeCo() {
-        yield return new WaitForSeconds(.55f);
+        // See showCharacterCo: the panel-show delay, not a hard-coded .55.
+        yield return new WaitForSeconds(Engine.Animation.TweenPresets.Get("panel-show").delay);
 
         // STAGED: snap the rig into its parked position instead of sliding it (time/delay 0).
         // The stage camera frames WORLD space at attach time and does not follow, so tweening the
@@ -1127,6 +1175,9 @@ public class BaseGameUIPanelHeader : GameUIPanelBase {
 
     public static void HideCharacterLarge() {
         if(GameUIPanelHeader.Instance != null) {
+            if (characterDisplayApplied == characterDisplayLarge) {
+                ClearCharacterDisplayApplied();
+            }
             GameUIPanelHeader.Instance.hideCharacterLarge();
         }
     }
