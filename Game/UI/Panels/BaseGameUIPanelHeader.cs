@@ -158,6 +158,15 @@ public class BaseGameUIPanelHeader : GameUIPanelBase {
     public GameCustomPlayerContainer containerCustomCharacterSmall;
     public GameCustomPlayerContainer containerCustomCharacterLarge;
 
+    public GameObject containerCharacterSmallRig;
+    private float containerCharacterSmallRigX;
+
+    // The rig coroutines, so a hide can cancel a show that is still waiting out its delay.
+    // Otherwise a quick screen change lets the stale show land AFTER the hide: the rig slides
+    // back in on a screen that asked for none, and takes the draggable with it.
+    private Coroutine showCharacterRoutine;
+    private Coroutine showCharacterLargeRoutine;
+
     public static bool isInst {
         get {
             if(Instance != null) {
@@ -189,6 +198,18 @@ public class BaseGameUIPanelHeader : GameUIPanelBase {
 
         if(containerCustomCharacterSmall == null) {
             containerCustomCharacterSmall = containerCharacter.Get<GameCustomPlayerContainer>();
+        }
+
+        // The small rig's model node, WITHOUT its NGUI backer and CUSTOMIZE button — the only
+        // thing a per-screen offset may move. Its parent is unscaled, so x is in design units.
+        if(containerCharacterSmallRig == null && containerCharacter != null) {
+
+            Transform rig = containerCharacter.transform.Find("ContainerCharacterSmall/Container");
+
+            if(rig != null) {
+                containerCharacterSmallRig = rig.gameObject;
+                containerCharacterSmallRigX = rig.localPosition.x;
+            }
         }
 
         if(containerCustomCharacterLarge == null) {
@@ -1036,7 +1057,15 @@ public class BaseGameUIPanelHeader : GameUIPanelBase {
     public const string characterDisplaySmall = "character";
     public const string characterDisplayLarge = "character-large";
 
+    // Per-screen horizontal nudge of the SMALL rig, in design units. Part of the memo: two
+    // screens that both want the small bot at different offsets are a real change.
+    public static float characterDisplayAppliedOffsetX = 0f;
+
     public static bool IsCharacterDisplayApplied(string state, bool staged) {
+        return IsCharacterDisplayApplied(state, staged, 0f);
+    }
+
+    public static bool IsCharacterDisplayApplied(string state, bool staged, float offsetX) {
 
         if (string.IsNullOrEmpty(state) || characterDisplayApplied != state) {
             return false;
@@ -1046,6 +1075,10 @@ public class BaseGameUIPanelHeader : GameUIPanelBase {
         // (SetCharacterLargeToolkit), so a staging change is a real change even when the state
         // name matches.
         if (state == characterDisplayLarge && characterDisplayAppliedStaged != staged) {
+            return false;
+        }
+
+        if (state == characterDisplaySmall && !Mathf.Approximately(characterDisplayAppliedOffsetX, offsetX)) {
             return false;
         }
 
@@ -1064,21 +1097,49 @@ public class BaseGameUIPanelHeader : GameUIPanelBase {
     // characters 
 
     public static void ShowCharacter() {
+        ShowCharacter(0f);
+    }
+
+    public static void ShowCharacter(float offsetX) {
         if(GameUIPanelHeader.Instance != null) {
             characterDisplayApplied = characterDisplaySmall;
-            GameUIPanelHeader.Instance.showCharacter();
+            characterDisplayAppliedOffsetX = offsetX;
+            GameUIPanelHeader.Instance.showCharacter(offsetX);
         }
     }
 
     public virtual void showCharacter() {
-        StartCoroutine(showCharacterCo());
+        showCharacter(0f);
+    }
+
+    public virtual void showCharacter(float offsetX) {
+
+        if(showCharacterRoutine != null) {
+            StopCoroutine(showCharacterRoutine);
+        }
+
+        showCharacterRoutine = StartCoroutine(showCharacterCo(offsetX));
     }
 
     public IEnumerator showCharacterCo() {
+        return showCharacterCo(0f);
+    }
+
+    public IEnumerator showCharacterCo(float offsetX) {
+
+        Engine.Animation.TweenPreset preset = Engine.Animation.TweenPresets.Get("panel-show");
+
         // Was a hard-coded .55: the rig waited out half a second with nothing on screen before
         // it started sliding. Takes the panel-show delay now, so it moves with the rest of the UI.
-        yield return new WaitForSeconds(Engine.Animation.TweenPresets.Get("panel-show").delay);
+        yield return new WaitForSeconds(preset.delay);
         TweenUtil.ShowObjectTop(containerCharacter);
+
+        if(containerCharacterSmallRig != null) {
+            TweenUtil.MoveToObject(
+                containerCharacterSmallRig,
+                containerCharacterSmallRig.transform.localPosition.WithX(containerCharacterSmallRigX + offsetX),
+                preset.time, 0f, true, TweenCoord.local, preset.easeType);
+        }
 
         if(containerCharacter != null) {
             containerCharacter.ResetRigidBodiesVelocity();
@@ -1103,10 +1164,30 @@ public class BaseGameUIPanelHeader : GameUIPanelBase {
     }
 
     public virtual void hideCharacter() {
+
+        if(showCharacterRoutine != null) {
+            StopCoroutine(showCharacterRoutine);
+            showCharacterRoutine = null;
+        }
+
         TweenUtil.HideObjectTop(containerCharacter);
 
-        InputSystem.Instance.currentDraggableUIGameObject =
-            null;
+        // Only give up the draggable if it is OURS. HandleCharacterDisplay hides the other rig
+        // before showing one, and the header's AnimateOut hides the small rig while the large one
+        // is up — an unconditional null there left the large bot undraggable, and the memo then
+        // skipped the only show that would have handed it back.
+        ReleaseCharacterDraggable(containerCustomCharacterSmall);
+    }
+
+    protected virtual void ReleaseCharacterDraggable(GameCustomPlayerContainer container) {
+
+        if(InputSystem.Instance == null || container == null) {
+            return;
+        }
+
+        if(InputSystem.Instance.currentDraggableUIGameObject == container.containerRotator) {
+            InputSystem.Instance.currentDraggableUIGameObject = null;
+        }
     }
 
     // large
@@ -1120,7 +1201,12 @@ public class BaseGameUIPanelHeader : GameUIPanelBase {
     }
 
     public virtual void showCharacterLarge() {
-        StartCoroutine(showCharacterLargeCo());
+
+        if(showCharacterLargeRoutine != null) {
+            StopCoroutine(showCharacterLargeRoutine);
+        }
+
+        showCharacterLargeRoutine = StartCoroutine(showCharacterLargeCo());
     }
 
     public IEnumerator showCharacterLargeCo() {
@@ -1184,6 +1270,11 @@ public class BaseGameUIPanelHeader : GameUIPanelBase {
 
     public virtual void hideCharacterLarge() {
 
+        if(showCharacterLargeRoutine != null) {
+            StopCoroutine(showCharacterLargeRoutine);
+            showCharacterLargeRoutine = null;
+        }
+
         // Staged: same reasoning as the show — snap the (invisible) NGUI container to its hidden
         // state so legacy state stays consistent for a later unstage, and let the card slide out
         // on its own. The stage camera goes off first, so the RT simply freezes rather than
@@ -1202,7 +1293,8 @@ public class BaseGameUIPanelHeader : GameUIPanelBase {
             TweenUtil.HideObjectTop(containerCharacterLarge);
         }
 
-        InputSystem.Instance.currentDraggableUIGameObject = null;
+        // See hideCharacter: release only our own draggable.
+        ReleaseCharacterDraggable(containerCustomCharacterLarge);
     }
 
     public virtual void ShowBackButtonObject() {

@@ -66,6 +66,14 @@ public class UIPanelBase : UIAppPanel {
     public UIPanelBackgroundDisplayState backgroundDisplayState = UIPanelBackgroundDisplayState.None;
     public UIPanelAdDisplayState adDisplayState = UIPanelAdDisplayState.None;
     public GameObject listGridRoot;
+
+    // Horizontal nudge, in design units, for the SMALL shared character on this screen only.
+    // The rig belongs to the header, so a screen that wants it elsewhere asks rather than moving it.
+    public virtual float characterDisplayOffsetX {
+        get {
+            return 0f;
+        }
+    }
     
 #if USE_UI_NGUI_2_7 || USE_UI_NGUI_3
 
@@ -1436,7 +1444,8 @@ public class UIPanelBase : UIAppPanel {
                    : characterDisplayState == UIPanelCharacterDisplayState.CharacterLarge
                        ? GameUIPanelHeader.characterDisplayLarge
                        : GameUIPanelHeader.characterDisplayNone,
-               isToolkitMigrated)) {
+               isToolkitMigrated,
+               characterDisplayOffsetX)) {
             return;
         }
 
@@ -1444,7 +1453,7 @@ public class UIPanelBase : UIAppPanel {
             UIPanelCharacterDisplayState.Character) {
 
             GameUIPanelHeader.HideCharacterLarge();
-            GameUIPanelHeader.ShowCharacter();
+            GameUIPanelHeader.ShowCharacter(characterDisplayOffsetX);
         }
         else if(characterDisplayState ==
             UIPanelCharacterDisplayState.CharacterLarge) {
