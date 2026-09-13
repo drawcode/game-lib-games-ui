@@ -841,9 +841,7 @@ public class BaseGameHUD : GameUIPanelBase {
 
         DeviceUtil.Vibrate();
 
-        //HideOverlayRed(.1f, 0f, 0f);
-        ShowOverlayRed(.2f, .1f, 0f, .4f);
-        HideOverlayRed(1, .2f, .4f, 0f);
+        FlashOverlayRed(.4f);
     }
 
     public virtual void ShowHitOne(float modifier) {
@@ -851,9 +849,26 @@ public class BaseGameHUD : GameUIPanelBase {
 
         DeviceUtil.Vibrate();
 
-        //HideOverlayRed(.1f, 0f, 0f);
-        ShowOverlayRed(.2f, .1f, 0f, .4f * modifier);
-        HideOverlayRed(1, .2f, .4f * modifier, 0f);
+        FlashOverlayRed(.4f * modifier);
+    }
+
+    // Fade in, THEN fade out. Queuing both back to back (the old ShowOverlayRed + HideOverlayRed
+    // pair) never drew: every fade cancels the target's alpha channel and captures its start alpha
+    // when it is queued, so the hide cancelled the show and faded 0 -> 0. Chain on completion.
+    public virtual void FlashOverlayRed(float peak) {
+
+        if(overlayRedObject == null) {
+            return;
+        }
+
+        TweenMeta meta = TweenUtil.GetMetaDefault(
+            TweenLib.internalEasing, overlayRedObject, .2f, .1f);
+
+        meta.onComplete = () => {
+            HideOverlayRed(1f, .2f, peak, 0f);
+        };
+
+        TweenUtil.FadeToObject(meta, peak);
     }
 
     public virtual void ShowOverlayRed() {
