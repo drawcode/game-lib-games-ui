@@ -362,7 +362,18 @@ public class BaseGameUIPanelCustomizeCharacterRPG : GameUIPanelBase {
             yield return new WaitForEndOfFrame();                
         }
 
-        if(customizeCharacterRPG != null) {
+        // Only the LEGACY driver needs this. Under the toolkit, SuppressLegacyView has
+        // deactivated the NGUI container the driver lives in, so StartCoroutine threw
+        // "Coroutine couldn't be started because the game object 'ContainerRPG' is
+        // inactive!" on every show — and there was nothing for it to build rows into
+        // anyway, because the toolkit path loads its own four values in BindElements.
+        //
+        // Gated on the view having actually LOADED (isToolkitPanel), not on the switch
+        // alone: if the view ever failed to load, suppression never runs, the legacy
+        // container stays up, and it must still get its data.
+        if(customizeCharacterRPG != null
+            && !isToolkitPanel
+            && customizeCharacterRPG.gameObject.activeInHierarchy) {
              customizeCharacterRPG.loadData();
         }
     }
