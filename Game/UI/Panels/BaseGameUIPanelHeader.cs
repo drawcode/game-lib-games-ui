@@ -483,7 +483,69 @@ public class BaseGameUIPanelHeader : GameUIPanelBase {
     // continuation. SuppressLegacyView (which runs IN that continuation) replays it.
     protected string toolkitTitle = "";
 
+    // LOCALIZED TITLES. Callers (showUIPanel and every ShowTitle site, in this lib and in games)
+    // pass English literals. Rather than keying ~45 call sites -- which would show raw keys in any
+    // other game on this lib that doesn't ship them -- the header maps the English title to
+    // "game_ui_title_<slug>" and uses the translation only when that key exists. The English source
+    // is kept so a language change re-renders the title live.
+    protected string titleSource = "";
+    private static readonly Dictionary<string, string> titleKeys = new Dictionary<string, string>();
+    private static bool titleLanguageHooked;
+
+    public static string TitleKey(string title) {
+
+        if (string.IsNullOrEmpty(title)) {
+            return "";
+        }
+
+        string key;
+
+        if (titleKeys.TryGetValue(title, out key)) {
+            return key;
+        }
+
+        System.Text.StringBuilder sb = new System.Text.StringBuilder("game_ui_title_");
+        bool pendingUnderscore = false;
+
+        foreach (char ch in title.ToLowerInvariant()) {
+
+            if ((ch >= 'a' && ch <= 'z') || (ch >= '0' && ch <= '9')) {
+
+                if (pendingUnderscore && sb.Length > "game_ui_title_".Length) {
+                    sb.Append('_');
+                }
+
+                sb.Append(ch);
+                pendingUnderscore = false;
+            }
+            else {
+                pendingUnderscore = true;
+            }
+        }
+
+        key = sb.ToString();
+        titleKeys[title] = key;
+
+        return key;
+    }
+
+    private static void OnTitleLanguageChanged(string code) {
+
+        if (GameUIPanelHeader.Instance != null
+                && !string.IsNullOrEmpty(GameUIPanelHeader.Instance.titleSource)) {
+            GameUIPanelHeader.Instance.showTitle(GameUIPanelHeader.Instance.titleSource);
+        }
+    }
+
     public virtual void showTitle(string title) {
+
+        if (!titleLanguageHooked) {
+            titleLanguageHooked = true;
+            Engine.Game.App.BaseApp.GameLocalizationService.LanguageChanged += OnTitleLanguageChanged;
+        }
+
+        titleSource = title;
+        title = Engine.Game.App.BaseApp.L10n.TrOrDefault(TitleKey(title), title);
 
         toolkitTitle = title;
 

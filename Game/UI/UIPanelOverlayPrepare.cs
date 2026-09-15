@@ -510,8 +510,10 @@ public class UIPanelOverlayPrepare : UIPanelBase {
             //LogUtil.Log("OnGameLevelItemsLoadedHandler2");
         }
 
-        UIUtil.SetLabelValue(labelOverviewTip, "READY TO PLAY?");
-        SetViewLabel("LabelOverviewTip", "READY TO PLAY?");
+        // TrOrDefault: other games on this shared lib keep the English literal.
+        string readyToPlay = Engine.Game.App.BaseApp.L10n.TrOrDefault("game_ui_overlay_prepare_ready_to_play", "READY TO PLAY?");
+        UIUtil.SetLabelValue(labelOverviewTip, readyToPlay);
+        SetViewLabel("LabelOverviewTip", readyToPlay);
         ShowButtonPlay();
     }
 
@@ -650,8 +652,12 @@ public class UIPanelOverlayPrepare : UIPanelBase {
         SetViewLabel("LabelTipTitle", currentTip.display_name);
         UIUtil.SetLabelValue(labelTipDescription, currentTip.description);
         SetViewLabel("LabelTipDescription", currentTip.description);
-        UIUtil.SetLabelValue(labelTipType, currentTip.keys[0] + " Tips");
-        SetViewLabel("LabelTipType", currentTip.keys[0] + " Tips");
+        // The view authors @loc:game_ui_overlay_prepare_action_tips; this overwrite used to put
+        // English "action Tips" back over it. Keyed per tip category, English concat as default.
+        string tipType = Engine.Game.App.BaseApp.L10n.TrOrDefault(
+            "game_ui_overlay_prepare_" + currentTip.keys[0] + "_tips", currentTip.keys[0] + " Tips");
+        UIUtil.SetLabelValue(labelTipType, tipType);
+        SetViewLabel("LabelTipType", tipType);
     }
 
     public void HideOverview() {
@@ -673,8 +679,9 @@ public class UIPanelOverlayPrepare : UIPanelBase {
 
         HideButtonPlay();
 
-        UIUtil.SetLabelValue(labelOverviewTip, loadingLevelDisplay);
-        SetViewLabel("LabelOverviewTip", loadingLevelDisplay);
+        string loadingLevel = Engine.Game.App.BaseApp.L10n.TrOrDefault("game_ui_overlay_prepare_loading_level", loadingLevelDisplay);
+        UIUtil.SetLabelValue(labelOverviewTip, loadingLevel);
+        SetViewLabel("LabelOverviewTip", loadingLevel);
 
         UIPanelDialogBackground.HideAll();
 

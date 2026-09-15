@@ -31,6 +31,11 @@ public class BaseGameUIPanelSettings : GameUIPanelBase {
     public Engine.UI.UIRef buttonSettingsCredits;
 #endif
 
+    // LANGUAGE is new work with no NGUI counterpart (unlike the five buttons above, which are
+    // ported legacy widgets) -- a toolkit-only UIRef, same pattern as Controls'
+    // sliderControlsIndicatorScale.
+    public Engine.UI.UIRef buttonSettingsLanguage = Engine.UI.UIRef.none;
+
     public GameObject listItemPrefab;
 
     public static bool isInst {
@@ -145,6 +150,12 @@ public class BaseGameUIPanelSettings : GameUIPanelBase {
 #if ENABLE_FEATURE_SETTINGS_CREDITS
         else if(UIUtil.IsButtonClicked(buttonSettingsCredits, buttonName)) {
             GameUIController.ShowSettingsCredits();
+        }
+#endif
+
+#if ENABLE_FEATURE_SETTINGS_LANGUAGE
+        else if(UIUtil.IsButtonClicked(buttonSettingsLanguage, buttonName)) {
+            GameUIController.ShowSettingsLanguage();
         }
 #endif
     }

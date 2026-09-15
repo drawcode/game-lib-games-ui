@@ -249,10 +249,10 @@ public class BaseGameUIPanelCustomizeCharacterRPG : GameUIPanelBase {
 
         UIUtil.SetLabelValue(LabelUpgradesValue, upgradesAvailableToolkit.ToString("N0"));
 
-        SyncRPGRow(rpgCodeSpeed, LabelRPGSpeedName, "Speed", LabelRPGSpeedValue, RPGSpeedFill);
-        SyncRPGRow(rpgCodeEnergy, LabelRPGEnergyName, "Energy", LabelRPGEnergyValue, RPGEnergyFill);
-        SyncRPGRow(rpgCodeHealth, LabelRPGHealthName, "Health", LabelRPGHealthValue, RPGHealthFill);
-        SyncRPGRow(rpgCodeAttack, LabelRPGAttackName, "Power", LabelRPGAttackValue, RPGAttackFill);
+        SyncRPGRow(rpgCodeSpeed, LabelRPGSpeedName, L10n.TrOrDefault("game_ui_customize_character_rpg_speed", "Speed"), LabelRPGSpeedValue, RPGSpeedFill);
+        SyncRPGRow(rpgCodeEnergy, LabelRPGEnergyName, L10n.TrOrDefault("game_ui_customize_character_rpg_energy", "Energy"), LabelRPGEnergyValue, RPGEnergyFill);
+        SyncRPGRow(rpgCodeHealth, LabelRPGHealthName, L10n.TrOrDefault("game_ui_customize_character_rpg_health", "Health"), LabelRPGHealthValue, RPGHealthFill);
+        SyncRPGRow(rpgCodeAttack, LabelRPGAttackName, L10n.TrOrDefault("game_ui_customize_character_rpg_power", "Power"), LabelRPGAttackValue, RPGAttackFill);
     }
 
     private void SyncRPGRow(

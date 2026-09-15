@@ -333,6 +333,12 @@ public class BaseGameUIPanelResults : GameUIPanelBase {
             return "";
         }
 
+        // "LEVEL {0}" template when the game ships the key; other games on this shared lib keep
+        // the English concat.
+        if(Engine.Game.App.BaseApp.L10n.Has("game_ui_results_level_code")) {
+            return Engine.Game.App.BaseApp.L10n.Tr("game_ui_results_level_code", GameLevels.Current.code.ToUpper());
+        }
+
         return ("level " + GameLevels.Current.code).ToUpper();
     }
 
