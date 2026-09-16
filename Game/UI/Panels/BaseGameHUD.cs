@@ -532,6 +532,15 @@ public class BaseGameHUD : GameUIPanelBase {
 
         SuppressLegacyFpsLabel();
 
+        // Release builds carry no readout (FPSDisplay.showReadout); hide the element once.
+        if(!FPSDisplay.showReadout) {
+            if(lastFpsText != "") {
+                lastFpsText = "";
+                UIUtil.UpdateLabelObject(viewRoot, "LabelFPS", "");
+            }
+            return;
+        }
+
         float fps = FPSDisplay.GetCurrentFPS();
         string text = string.Format("{0:F2} FPS", fps);
 

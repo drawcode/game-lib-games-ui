@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using UnityEngine;
 
 using Engine.Events;
+using Engine.UI;
 using Engine.Utility;
 
 public class BaseGameUIPanelBackgrounds : GameUIPanelBase {
@@ -29,6 +30,41 @@ public class BaseGameUIPanelBackgrounds : GameUIPanelBase {
 
     public override void Awake() {
         base.Awake();
+        SyncQuadSprites();
+    }
+
+    // THE BACKDROP'S NON-NGUI PATH. The plain, the vignette and the per-screen backer card carry
+    // a UIQuadSprite twin baked from the legacy widget (same GameObject, transform, layer and
+    // camera). It cannot be a UI Toolkit view: toolkit panels composite above every camera, and
+    // the backdrop has to stay BEHIND the worlds rig, the small rig and the menu particles.
+    // Toolkit on -> quads draw and the NGUI widgets are off; kill switch off -> the reverse.
+    // Re-checked on every AnimateIn so a runtime flip lands on the next transition.
+    bool quadSpritesSynced = false;
+    bool quadSpritesUseQuads = false;
+
+    protected void SyncQuadSprites() {
+
+        bool useQuads = UIPlatform.toolkitViewsEnabled;
+
+        if(quadSpritesSynced && useQuads == quadSpritesUseQuads) {
+            return;
+        }
+
+        quadSpritesSynced = true;
+        quadSpritesUseQuads = useQuads;
+
+        foreach(UIQuadSprite quad in GetComponentsInChildren<UIQuadSprite>(true)) {
+
+            quad.SetVisible(useQuads);
+
+#if USE_UI_NGUI_2_7 || USE_UI_NGUI_3
+            UIWidget widget = quad.GetComponent<UIWidget>();
+
+            if(widget != null) {
+                widget.enabled = !useQuads;
+            }
+#endif
+        }
     }
 
     public override void OnEnable() {
@@ -211,6 +247,8 @@ public class BaseGameUIPanelBackgrounds : GameUIPanelBase {
     public override void AnimateIn() {
         
         base.AnimateIn();
+
+        SyncQuadSprites();
         
         ShowBackgroundPlain();
         //
