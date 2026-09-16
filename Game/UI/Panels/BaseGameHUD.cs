@@ -330,6 +330,10 @@ public class BaseGameHUD : GameUIPanelBase {
         // screen over the pause menu after the rest of the HUD had gone (user, 2026-08-02).
         SetLegacyHudVisualsVisible(shouldShow);
 
+        if(!shouldShow) {
+            ReleaseToolkitSticks();
+        }
+
         if(shouldShow) {
             // RESTORE DISPLAY FIRST. TweenUtil's slides deliberately "do NOT touch display/active
             // state" (TweenUtil.cs: "gate learning #1: tweens never own visibility"), so after the
@@ -440,6 +444,8 @@ public class BaseGameHUD : GameUIPanelBase {
 
         ResolveLegacyClusters();
 
+        ReassertLegacyControlSuppression();
+
         for(int i = 0; i < legacyClusters.Length; i++) {
 
             Transform t = legacyClusters[i];
@@ -486,6 +492,137 @@ public class BaseGameHUD : GameUIPanelBase {
         ReassertLegacySuppression();
 
         SetupHudCoinStage();
+
+        SetupToolkitControls();
+    }
+
+    // 1b CONTROLS — the move/attack sticks and the four right-hand buttons.
+    //
+    // The buttons need no wiring: the toolkit click bridge broadcasts the ELEMENT NAME, and the
+    // elements carry the legacy GameObject names (ButtonInputJump / Use / Mount /
+    // InventoryWeaponNext) that BaseUIController.handleHUDButtons already routes.
+    //
+    // The sticks reproduce GameTouchInputAxis exactly: the knob jumps to the thumb and follows it
+    // unclamped, and the axis is the thumb's offset from the pad centre times 10 in HUDCamera world
+    // units (ortho size 1 over the 640 reference height = 320 units per world unit), i.e. the
+    // offset in layout units / 32. The player applies its own deadzone; nothing else clamps.
+    //
+    // While the view drives them, GameTouchInputAxis.touchDrivenExternally stops the legacy
+    // component resetting the axis to zero every idle frame (it keeps the keyboard fallback).
+    private const float stickUnitsPerAxis = 32f;
+
+    private const string padMoveName = "PadMove";
+    private const string padAttackName = "PadAttack";
+
+    private UIRef padMoveKnob = UIRef.none;
+    private UIRef padAttackKnob = UIRef.none;
+    private UIRef buttonInputUseElement = UIRef.none;
+    private int lastUseVisible = -1;
+
+    private readonly List<GameObject> legacyControlVisuals = new List<GameObject>();
+
+    private void SetupToolkitControls() {
+
+        UIRef padMove = UIUtil.ResolveDeep(viewRoot, padMoveName);
+        UIRef padAttack = UIUtil.ResolveDeep(viewRoot, padAttackName);
+
+        padMoveKnob = UIUtil.ResolveDeep(viewRoot, padMoveName + "Knob");
+        padAttackKnob = UIUtil.ResolveDeep(viewRoot, padAttackName + "Knob");
+        buttonInputUseElement = UIUtil.ResolveDeep(viewRoot, BaseHUDButtonNames.buttonInputUse);
+        lastUseVisible = -1;
+
+        UIUtil.SetElementStickHandler(padMove, (offset, released) =>
+            OnToolkitStick(InputSystemKeys.moveKey, padMoveKnob, offset, released));
+
+        UIUtil.SetElementStickHandler(padAttack, (offset, released) =>
+            OnToolkitStick(InputSystemKeys.attackKey, padAttackKnob, offset, released));
+
+        GameTouchInputAxis.touchDrivenExternally = true;
+
+        ResolveLegacyControlVisuals();
+    }
+
+    private void OnToolkitStick(string axisName, UIRef knob, Vector2 offset, bool released) {
+
+        UIUtil.SetElementTranslate(knob, offset);
+
+        Vector3 axis = Vector3.zero;
+
+        if(!released) {
+            axis.x = offset.x / stickUnitsPerAxis;
+            axis.y = offset.y / stickUnitsPerAxis;
+        }
+
+        GameController.SendInputAxisMessage(axisName, axis);
+    }
+
+    // Chrome hidden mid-drag (pause, round end): no pointer-up reaches a display:none view.
+    private void ReleaseToolkitSticks() {
+        OnToolkitStick(InputSystemKeys.moveKey, padMoveKnob, Vector2.zero, true);
+        OnToolkitStick(InputSystemKeys.attackKey, padAttackKnob, Vector2.zero, true);
+    }
+
+    // The legacy pads' art + knob colliders (Highlight and Pad under each GameTouchInputAxis — the
+    // component itself stays active for the keyboard) and the whole Buttons cluster. Found from
+    // the components, not by path: the pad roots are prefab instances.
+    private void ResolveLegacyControlVisuals() {
+
+        legacyControlVisuals.Clear();
+
+        GameObject[] inputs = { containerInputLeft, containerInputRight };
+
+        for(int i = 0; i < inputs.Length; i++) {
+
+            if(inputs[i] == null) {
+                continue;
+            }
+
+            foreach(GameTouchInputAxis axis in inputs[i].GetComponentsInChildren<GameTouchInputAxis>(true)) {
+
+                foreach(Transform child in axis.transform) {
+                    legacyControlVisuals.Add(child.gameObject);
+                }
+            }
+
+            Transform buttons = inputs[i].transform.Find("Buttons");
+
+            if(buttons != null) {
+                legacyControlVisuals.Add(buttons.gameObject);
+            }
+        }
+    }
+
+    private void ReassertLegacyControlSuppression() {
+
+        for(int i = 0; i < legacyControlVisuals.Count; i++) {
+
+            GameObject go = legacyControlVisuals[i];
+
+            if(go == null || !go.activeSelf) {
+                continue;
+            }
+
+            go.Hide();
+
+            if(!suppressedLegacy.Contains(go)) {
+                suppressedLegacy.Add(go);
+            }
+        }
+
+        // Legacy shows ButtonInputUse only in training mode (AnimateIn); mirror it on the element.
+        int useVisible = AppModes.Instance != null && AppModes.Instance.isAppModeGameTraining ? 1 : 0;
+
+        if(useVisible != lastUseVisible) {
+
+            lastUseVisible = useVisible;
+
+            if(useVisible == 1) {
+                UIUtil.ShowObject(buttonInputUseElement);
+            }
+            else {
+                UIUtil.HideObject(buttonInputUseElement);
+            }
+        }
     }
 
     // The green FPS readout was a legacy UILabel owned by FPSDisplay, which the toolkit HUD now
@@ -733,6 +870,17 @@ public class BaseGameHUD : GameUIPanelBase {
         }
 
         suppressedLegacy.Clear();
+
+        // Controls: hand touch back to the legacy pads (kill switch) and drop the stale refs.
+        if(GameTouchInputAxis.touchDrivenExternally) {
+            ReleaseToolkitSticks();
+            GameTouchInputAxis.touchDrivenExternally = false;
+        }
+
+        legacyControlVisuals.Clear();
+        padMoveKnob = UIRef.none;
+        padAttackKnob = UIRef.none;
+        buttonInputUseElement = UIRef.none;
 
         // Re-resolve on the next suppression: if a level teardown destroyed and rebuilt any of these
         // children, the cached Transforms would be stale.
