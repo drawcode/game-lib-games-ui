@@ -163,8 +163,8 @@ public class UICustomizeCharacterRPGItem : GameObjectBehavior {
         double currentSliderMaxValue = 1 * modifier;
 
         displayValue = string.Format("{0}/{1}",
-            currentSliderValue.ToString("N0"),
-            currentSliderMaxValue.ToString("N0"));
+            currentSliderValue.ToString("N0", Engine.Game.App.BaseApp.L10n.NumberFormat),
+            currentSliderMaxValue.ToString("N0", Engine.Game.App.BaseApp.L10n.NumberFormat));
 
         UIUtil.SetLabelValue(labelValue, displayValue);
     }

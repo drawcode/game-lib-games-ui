@@ -129,3 +129,14 @@ checking only the concrete classes misses it.
 `OnDisable` only: `UIPanelBase.OnEnable` re-adds `EVENT_BUTTON_CLICK -> OnButtonClickEventHandler`,
 which these panels already subscribe themselves, so chaining `OnEnable` too would fire every button
 click twice. `RemoveListener` is idempotent, so the one-sided chain is safe.
+
+## The SMALL card's CUSTOMIZE button (2026-09-16)
+
+The small rig (results, products, customize, customize colors/RPG) had the same button as a Latin-1
+NGUI `UILabel`, so it could never localize. Only the button converts: `panel-character-small-front`
+(foreground band), staged through `SetCharacterSmallToolkit(isToolkitMigrated)`, which
+`HandleCharacterDisplay` calls before `ShowCharacter`. The bot and its backer stay NGUI.
+
+One trap: the view finishes loading BEFORE the delayed `showCharacterCo`, and its continuation hides
+it. `TweenUtil.ShowObjectTop(UIRef)` only tweens translate and opacity, never display, so the show
+must call `UIUtil.ShowObject` first or the button never appears.

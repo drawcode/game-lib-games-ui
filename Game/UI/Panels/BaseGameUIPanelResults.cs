@@ -232,13 +232,13 @@ public class BaseGameUIPanelResults : GameUIPanelBase {
         }
 
         UIUtil.UpdateLabelObject(
-            viewRoot, labelNameScores, lastRuntimeData.scores.ToString("N0"));
+            viewRoot, labelNameScores, lastRuntimeData.scores.ToString("N0", Engine.Game.App.BaseApp.L10n.NumberFormat));
         UIUtil.UpdateLabelObject(
-            viewRoot, labelNameKills, lastRuntimeData.kills.ToString("N0"));
+            viewRoot, labelNameKills, lastRuntimeData.kills.ToString("N0", Engine.Game.App.BaseApp.L10n.NumberFormat));
         UIUtil.UpdateLabelObject(
-            viewRoot, labelNameCoins, lastRuntimeData.coins.ToString("N0"));
+            viewRoot, labelNameCoins, lastRuntimeData.coins.ToString("N0", Engine.Game.App.BaseApp.L10n.NumberFormat));
         UIUtil.UpdateLabelObject(
-            viewRoot, labelNameTotalPoints, lastRuntimeData.totalScoreValue.ToString("N0"));
+            viewRoot, labelNameTotalPoints, lastRuntimeData.totalScoreValue.ToString("N0", Engine.Game.App.BaseApp.L10n.NumberFormat));
         UIUtil.UpdateLabelObject(
             viewRoot, labelNameTimeRunning,
             FormatUtil.GetFormattedTimeHoursMinutesSecondsMs((double)lastTimeTotal));
@@ -256,7 +256,7 @@ public class BaseGameUIPanelResults : GameUIPanelBase {
             && GameRPGMonitor.Instance.currentTotalScore >= 0) {
             UIUtil.UpdateLabelObject(
                 viewRoot, labelNameTotalXP,
-                GameRPGMonitor.Instance.currentTotalScore.ToString("N0"));
+                GameRPGMonitor.Instance.currentTotalScore.ToString("N0", Engine.Game.App.BaseApp.L10n.NumberFormat));
         }
     }
 

@@ -445,7 +445,7 @@ public class GameRPG : GameObjectBehavior {
 
         if(labelXPValue) {
 
-            UIUtil.SetLabelValue(labelXPValue, score.ToString("#,##0"));
+            UIUtil.SetLabelValue(labelXPValue, score.ToString("#,##0", Engine.Game.App.BaseApp.L10n.NumberFormat));
             //labelXPValue.text = score.ToString("#,##0");
         }
 

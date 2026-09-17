@@ -226,7 +226,7 @@ public class UIPanelTips : UIAppPanelBaseList {
         GameObject itemObject = LoadObject(prefabPointsTotal, AppViewerSectionNames.points);
         SetItemLabel(itemObject, "LabelPoints", 
             GameProfileStatistics.Current.GetStatisticValue(
-            GameProfileStatisticAttributes.ATT_TOTAL_POINTS).ToString("N0")
+            GameProfileStatisticAttributes.ATT_TOTAL_POINTS).ToString("N0", Engine.Game.App.BaseApp.L10n.NumberFormat)
             );
         
         LoadObject(prefabPointsAbout, AppViewerSectionNames.points);        

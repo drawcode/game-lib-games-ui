@@ -223,7 +223,7 @@ public class UINotificationDisplayTip
         notification.title = title;
         notification.description = description;
         notification.notificationType = notificationType;
-        notification.score = score.ToString("N0");
+        notification.score = score.ToString("N0", Engine.Game.App.BaseApp.L10n.NumberFormat);
         notification.immediate = immediate;
         QueueNotification(notification);
     }

@@ -37,7 +37,7 @@ public class UIGameRPGObject : GameObjectBehavior {
     }
 
     public virtual void SetLabelValue(double val) {
-        UIUtil.SetLabelValue(labelValue, val.ToString("N0"));
+        UIUtil.SetLabelValue(labelValue, val.ToString("N0", Engine.Game.App.BaseApp.L10n.NumberFormat));
     }
 
     public virtual void SetProgress(double val) {

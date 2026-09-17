@@ -299,7 +299,7 @@ public class BaseGameUIPanelProducts : GameUIPanelBase {
                     currentValue = GameProfileRPGs.Current.GetUpgrades();
 
                     UIUtil.UpdateLabelObject(
-                        inventoryItem, "LabelCurrentValue", currentValue.ToString("N0"));
+                        inventoryItem, "LabelCurrentValue", currentValue.ToString("N0", Engine.Game.App.BaseApp.L10n.NumberFormat));
                 }
                 else {
                     inventoryItem.gameObject.Hide();
@@ -411,7 +411,7 @@ public class BaseGameUIPanelProducts : GameUIPanelBase {
                 UIUtil.UpdateLabelObject(
                     item,
                     "LabelCurrentValue",
-                    GameProfileRPGs.Current.GetUpgrades().ToString("N0"));
+                    GameProfileRPGs.Current.GetUpgrades().ToString("N0", Engine.Game.App.BaseApp.L10n.NumberFormat));
             }
             else {
                 UIUtil.HideObject(inventory);

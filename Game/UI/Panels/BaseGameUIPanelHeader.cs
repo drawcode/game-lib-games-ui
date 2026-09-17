@@ -152,6 +152,18 @@ public class BaseGameUIPanelHeader : GameUIPanelBase {
     // still show the rig through NGUI, so this flips per panel rather than latching on.
     private bool characterLargeStaged;
 
+    // The SMALL card's CUSTOMIZE/CHANGE BOT button (results, products, customize colors/RPG). Its
+    // bot and backer stay NGUI; only the button converts, because an NGUI label is Latin-1 and
+    // could never show the localized text. Same seam and band as the large card's front view:
+    // staged per migrated screen, name-bridged ButtonGameCustomize, foreground over the panel.
+    public const string characterSmallFrontViewKey = "panel-character-small-front";
+
+    private Engine.UI.UIRef characterSmallFrontView = Engine.UI.UIRef.none;
+    private bool characterSmallFrontLoadRequested;
+    private GameObject characterSmallButton;
+    private bool characterSmallStaged;
+    private bool characterSmallShown;
+
     public GameObject containerCharacters;
     public GameObject containerCharacter;
     public GameObject containerCharacterLarge;
@@ -601,7 +613,7 @@ public class BaseGameUIPanelHeader : GameUIPanelBase {
 
         if(isToolkitPanel && coinCurrencyDriver == null) {
             UIUtil.SetLabelValue(labelCoin,
-                GameProfileRPGs.Current.GetCurrency().ToString("N0"));
+                GameProfileRPGs.Current.GetCurrency().ToString("N0", Engine.Game.App.BaseApp.L10n.NumberFormat));
         }
     }
 
@@ -614,7 +626,7 @@ public class BaseGameUIPanelHeader : GameUIPanelBase {
             return;
         }
 
-        string formatted = coinCurrencyDriver.lastValue.ToString("N0");
+        string formatted = coinCurrencyDriver.lastValue.ToString("N0", Engine.Game.App.BaseApp.L10n.NumberFormat);
 
         if(formatted == coinLabelLastFormatted) {
             return;
@@ -1053,6 +1065,128 @@ public class BaseGameUIPanelHeader : GameUIPanelBase {
         characterLargeFrontView = Engine.UI.UIRef.none;
     }
 
+    // ---- the small card's CUSTOMIZE/CHANGE BOT button ----------------------
+    //
+    // Called by the panel coming up (UIPanelBase.HandleCharacterDisplay), BEFORE ShowCharacter, with
+    // that panel's isToolkitMigrated — the same seam as SetCharacterLargeToolkit.
+    public static void SetCharacterSmallToolkit(bool toolkit) {
+
+        if(GameUIPanelHeader.Instance != null) {
+            GameUIPanelHeader.Instance.setCharacterSmallToolkit(toolkit);
+        }
+    }
+
+    public virtual void setCharacterSmallToolkit(bool toolkit) {
+
+        if(toolkit && Engine.UI.UIPlatform.toolkitViewsEnabled) {
+            StageCharacterSmall();
+        }
+        else {
+            UnstageCharacterSmall(true);
+        }
+    }
+
+    // The NGUI button holds only flat widgets and its collider (no 3D inside), so the whole
+    // GameObject goes down — no invisible-but-pickable collider left behind.
+    protected virtual void StageCharacterSmall() {
+
+        if(characterSmallStaged || containerCharacter == null) {
+            return;
+        }
+
+        characterSmallStaged = true;
+
+        Transform button = containerCharacter.transform.Find("ContainerCharacterSmall/ButtonGameCustomize");
+
+        characterSmallButton = button != null ? button.gameObject : null;
+
+        if(characterSmallButton != null) {
+            characterSmallButton.Hide();
+        }
+
+        LoadCharacterSmallFrontView();
+
+        if(characterSmallShown) {
+            UIUtil.ShowObject(characterSmallFrontView);
+        }
+    }
+
+    protected virtual void LoadCharacterSmallFrontView() {
+
+        if(characterSmallFrontView.alive || characterSmallFrontLoadRequested) {
+            return;
+        }
+
+        Engine.UI.IUIBackend backend = Engine.UI.UIPlatform.viewBackend;
+
+        if(backend == null) {
+            return;
+        }
+
+        characterSmallFrontLoadRequested = true;
+
+        backend.LoadView(characterSmallFrontViewKey, Engine.UI.UILayers.foreground, (Engine.UI.UIRef view) => {
+
+            if(view == null || !view.alive) {
+                characterSmallFrontLoadRequested = false;
+                return;
+            }
+
+            // Unstaged or re-loaded while the build was in flight: same orphan contract as
+            // LoadCharacterLargePart.
+            if(!characterSmallFrontLoadRequested || characterSmallFrontView.alive) {
+                backend.DestroyView(view);
+                return;
+            }
+
+            characterSmallFrontView = view;
+
+            if(characterSmallStaged && characterSmallShown) {
+                backend.Show(view);
+            }
+            else {
+                backend.Hide(view);
+            }
+        });
+    }
+
+    // hideViews false is the FREE path — see UnstageCharacterLarge(bool).
+    protected virtual void UnstageCharacterSmall(bool hideViews) {
+
+        characterSmallFrontLoadRequested = false;
+
+        if(!characterSmallStaged) {
+            return;
+        }
+
+        characterSmallStaged = false;
+
+        if(characterSmallButton != null) {
+            characterSmallButton.Show();
+            characterSmallButton = null;
+        }
+
+        if(hideViews) {
+            UIUtil.HideObject(characterSmallFrontView);
+        }
+    }
+
+    protected virtual void FreeCharacterSmallView() {
+
+        UnstageCharacterSmall(false);
+
+        if(characterSmallFrontView.alive) {
+
+            Engine.UI.IUIBackend backend = Engine.UI.UIPlatform.For(characterSmallFrontView);
+
+            if(backend != null) {
+                backend.DestroyView(characterSmallFrontView);
+            }
+        }
+
+        characterSmallFrontView = Engine.UI.UIRef.none;
+    }
+
     // The stage + suppressed NGUI pieces belong to the toolkit view's lifetime: when the view is
     // freed (header disabled, or kill switch), restore the NGUI coin/flat widgets so the legacy
     // path renders whole again.
@@ -1066,6 +1200,7 @@ public class BaseGameUIPanelHeader : GameUIPanelBase {
         }
 
         FreeCharacterLargeView();
+        FreeCharacterSmallView();
 
         if(coinFlatLabel != null) {
             coinFlatLabel.Show();
@@ -1133,10 +1268,10 @@ public class BaseGameUIPanelHeader : GameUIPanelBase {
             return false;
         }
 
-        // The large rig is staged differently on migrated and unmigrated screens
-        // (SetCharacterLargeToolkit), so a staging change is a real change even when the state
-        // name matches.
-        if (state == characterDisplayLarge && characterDisplayAppliedStaged != staged) {
+        // Both rigs are staged differently on migrated and unmigrated screens
+        // (SetCharacterLargeToolkit / SetCharacterSmallToolkit), so a staging change is a real
+        // change even when the state name matches.
+        if (characterDisplayAppliedStaged != staged) {
             return false;
         }
 
@@ -1165,6 +1300,7 @@ public class BaseGameUIPanelHeader : GameUIPanelBase {
     public static void ShowCharacter(float offsetX) {
         if(GameUIPanelHeader.Instance != null) {
             characterDisplayApplied = characterDisplaySmall;
+            characterDisplayAppliedStaged = GameUIPanelHeader.Instance.characterSmallStaged;
             characterDisplayAppliedOffsetX = offsetX;
             GameUIPanelHeader.Instance.showCharacter(offsetX);
         }
@@ -1195,6 +1331,15 @@ public class BaseGameUIPanelHeader : GameUIPanelBase {
         // it started sliding. Takes the panel-show delay now, so it moves with the rest of the UI.
         yield return new WaitForSeconds(preset.delay);
         TweenUtil.ShowObjectTop(containerCharacter);
+
+        characterSmallShown = true;
+
+        // The view usually finished loading BEFORE this delayed show, so its continuation hid
+        // it; the slide only tweens position and opacity, so un-hide it first.
+        if(characterSmallStaged) {
+            UIUtil.ShowObject(characterSmallFrontView);
+            TweenUtil.ShowObjectTop(characterSmallFrontView);
+        }
 
         if(containerCharacterSmallRig != null) {
             TweenUtil.MoveToObject(
@@ -1233,6 +1378,12 @@ public class BaseGameUIPanelHeader : GameUIPanelBase {
         }
 
         TweenUtil.HideObjectTop(containerCharacter);
+
+        characterSmallShown = false;
+
+        if(characterSmallStaged) {
+            TweenUtil.HideObjectTop(characterSmallFrontView);
+        }
 
         // Only give up the draggable if it is OURS. HandleCharacterDisplay hides the other rig
         // before showing one, and the header's AnimateOut hides the small rig while the large one

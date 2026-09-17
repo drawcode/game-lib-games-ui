@@ -58,14 +58,14 @@ public class BaseGameUIPanelResultsBase : MonoBehaviour {
         
         UIUtil.SetLabelValue(totalTime, FormatUtil.GetFormattedTimeHoursMinutesSecondsMs((double)timeTotal));
 
-        UIUtil.SetLabelValue(totalCoins, runtimeData.coins.ToString("N0"));
-		UIUtil.SetLabelValue(totalScores, runtimeData.scores.ToString("N0"));
-		UIUtil.SetLabelValue(totalScore, runtimeData.score.ToString("N0"));
-        UIUtil.SetLabelValue(totalSpecials, runtimeData.specials.ToString("N0"));
-        UIUtil.SetLabelValue(totalKills, runtimeData.kills.ToString("N0"));
+        UIUtil.SetLabelValue(totalCoins, runtimeData.coins.ToString("N0", Engine.Game.App.BaseApp.L10n.NumberFormat));
+		UIUtil.SetLabelValue(totalScores, runtimeData.scores.ToString("N0", Engine.Game.App.BaseApp.L10n.NumberFormat));
+		UIUtil.SetLabelValue(totalScore, runtimeData.score.ToString("N0", Engine.Game.App.BaseApp.L10n.NumberFormat));
+        UIUtil.SetLabelValue(totalSpecials, runtimeData.specials.ToString("N0", Engine.Game.App.BaseApp.L10n.NumberFormat));
+        UIUtil.SetLabelValue(totalKills, runtimeData.kills.ToString("N0", Engine.Game.App.BaseApp.L10n.NumberFormat));
 
         double totalScoreValue = runtimeData.totalScoreValue;
-        UIUtil.SetLabelValue(totalScoreComputed, totalScoreValue.ToString("N0"));
+        UIUtil.SetLabelValue(totalScoreComputed, totalScoreValue.ToString("N0", Engine.Game.App.BaseApp.L10n.NumberFormat));
     }
 	
 	public virtual void loadData() {

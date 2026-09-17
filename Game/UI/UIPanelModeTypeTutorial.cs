@@ -769,7 +769,7 @@ public class UIPanelModeTypeTutorial : UIPanelBase {
         string scorePercentageValue = choicesResult.ToString("P0");
         //string scoreTitleValue = ;
         //string scoreTypeValue = "4/5";
-        string scoreCoinsValue = coins.ToString("N0");
+        string scoreCoinsValue = coins.ToString("N0", Engine.Game.App.BaseApp.L10n.NumberFormat);
 
         UIUtil.SetSliderValue(sliderScore, choicesResult);
 

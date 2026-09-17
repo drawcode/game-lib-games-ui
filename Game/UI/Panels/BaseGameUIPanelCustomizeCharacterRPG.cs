@@ -247,7 +247,7 @@ public class BaseGameUIPanelCustomizeCharacterRPG : GameUIPanelBase {
 
     public virtual void SyncRPGToolkit() {
 
-        UIUtil.SetLabelValue(LabelUpgradesValue, upgradesAvailableToolkit.ToString("N0"));
+        UIUtil.SetLabelValue(LabelUpgradesValue, upgradesAvailableToolkit.ToString("N0", Engine.Game.App.BaseApp.L10n.NumberFormat));
 
         SyncRPGRow(rpgCodeSpeed, LabelRPGSpeedName, L10n.TrOrDefault("game_ui_customize_character_rpg_speed", "Speed"), LabelRPGSpeedValue, RPGSpeedFill);
         SyncRPGRow(rpgCodeEnergy, LabelRPGEnergyName, L10n.TrOrDefault("game_ui_customize_character_rpg_energy", "Energy"), LabelRPGEnergyValue, RPGEnergyFill);
@@ -265,7 +265,7 @@ public class BaseGameUIPanelCustomizeCharacterRPG : GameUIPanelBase {
 
         // Legacy formats as value*10 over 10 — "2/10", not "0.2/1".
         UIUtil.SetLabelValue(valueRef, string.Format("{0}/{1}",
-            (val * 10).ToString("N0"), (10).ToString("N0")));
+            (val * 10).ToString("N0", Engine.Game.App.BaseApp.L10n.NumberFormat), (10).ToString("N0", Engine.Game.App.BaseApp.L10n.NumberFormat)));
 
         // Width as a PERCENT of the track, the same contract .cc-stat-fill uses:
         // SetSliderValue falls through to the backend's image-fill path.

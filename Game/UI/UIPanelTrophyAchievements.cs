@@ -143,7 +143,7 @@ public class UIPanelTrophyAchievements : UIAppPanelBaseList {
             }
 
             if(labelPoints != null) {
-                UIUtil.SetLabelValue(labelPoints.gameObject, totalPoints.ToString("N0"));
+                UIUtil.SetLabelValue(labelPoints.gameObject, totalPoints.ToString("N0", Engine.Game.App.BaseApp.L10n.NumberFormat));
             }
 
             yield return new WaitForEndOfFrame();

@@ -436,7 +436,7 @@ public class BaseGameUIPanelWorlds : GameUIPanelBase {
                 j++;
             }
 
-            UIUtil.UpdateLabelObject(item, "LabelScore", scoreMission.ToString("N0"));
+            UIUtil.UpdateLabelObject(item, "LabelScore", scoreMission.ToString("N0", Engine.Game.App.BaseApp.L10n.NumberFormat));
 
             UIUtil.SetElementName(
                 UIUtil.ResolveDeep(item, "ButtonAction"),
@@ -623,7 +623,7 @@ public class BaseGameUIPanelWorlds : GameUIPanelBase {
             Transform scoreObject = item.transform.Find("Container/Stars");
             if(scoreObject != null) {
                 UIUtil.UpdateLabelObject(
-                    scoreObject.gameObject, "LabelScore", scoreMission.ToString("N0"));
+                    scoreObject.gameObject, "LabelScore", scoreMission.ToString("N0", Engine.Game.App.BaseApp.L10n.NumberFormat));
             }
 
             i++;

@@ -363,7 +363,7 @@ public class UICustomizeProfileCharacters : UICustomizeSelectObject {
         UIUtil.SetLabelValue(
             UIUtil.ResolveDeep(root, "Stat" + code + "Value"),
             string.Format("{0}/{1}",
-                (val * modifier).ToString("N0"), modifier.ToString("N0")));
+                (val * modifier).ToString("N0", Engine.Game.App.BaseApp.L10n.NumberFormat), modifier.ToString("N0", Engine.Game.App.BaseApp.L10n.NumberFormat)));
 
         // Falls through the backend to the image-fill path, which sets the element's width as a
         // percentage of its track.

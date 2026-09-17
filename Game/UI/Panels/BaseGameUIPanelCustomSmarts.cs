@@ -148,7 +148,7 @@ public class BaseGameUIPanelCustomSmarts : GameUIPanelBase {
     }
 
     public virtual void SetScore(double score) {
-        UIUtil.SetLabelValue(labelPlaySmartScore, score.ToString("N0"));
+        UIUtil.SetLabelValue(labelPlaySmartScore, score.ToString("N0", Engine.Game.App.BaseApp.L10n.NumberFormat));
     }
 
     public override void AnimateIn() {

@@ -156,7 +156,7 @@ public class UICustomizeCharacter : UIAppPanelBaseList {
     public void SetUpgradesAvailable(double upgradesAvailableTo) {
         if(labelUpgradesAvailable != null) {
             upgradesAvailable = upgradesAvailableTo;
-            labelUpgradesAvailable.text = upgradesAvailableTo.ToString("N0");
+            labelUpgradesAvailable.text = upgradesAvailableTo.ToString("N0", Engine.Game.App.BaseApp.L10n.NumberFormat);
         }
     }
 

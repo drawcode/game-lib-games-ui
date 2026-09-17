@@ -936,7 +936,7 @@ public class BaseGameHUD : GameUIPanelBase {
 
     public virtual void SetScore(double score) {
 
-        string value = score.ToString("N0");
+        string value = score.ToString("N0", Engine.Game.App.BaseApp.L10n.NumberFormat);
 
         if(isToolkitPanel) {
             UIUtil.UpdateLabelObject(viewRoot, "LabelScore", value);
@@ -947,7 +947,7 @@ public class BaseGameHUD : GameUIPanelBase {
 
     public virtual void SetScores(double scores) {
 
-        string value = scores.ToString("N0");
+        string value = scores.ToString("N0", Engine.Game.App.BaseApp.L10n.NumberFormat);
 
         if(isToolkitPanel) {
             UIUtil.UpdateLabelObject(viewRoot, "LabelScoresValue", value);
@@ -958,7 +958,7 @@ public class BaseGameHUD : GameUIPanelBase {
 
     public virtual void SetCoins(double coins) {
 
-        string value = coins.ToString("N0");
+        string value = coins.ToString("N0", Engine.Game.App.BaseApp.L10n.NumberFormat);
 
         if(isToolkitPanel) {
             UIUtil.UpdateLabelObject(viewRoot, "LabelCoins", value);
@@ -970,7 +970,7 @@ public class BaseGameHUD : GameUIPanelBase {
     public virtual void SetSpecials(double specials) {
         // No toolkit element: the specials counter is not part of the 3H chrome (it does not render
         // in the legacy HUD capture either).
-        UIUtil.SetLabelValue(labelSpecials, specials.ToString("N0"));
+        UIUtil.SetLabelValue(labelSpecials, specials.ToString("N0", Engine.Game.App.BaseApp.L10n.NumberFormat));
     }
 
     public virtual void SetLevel(string levelName) {

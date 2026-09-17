@@ -252,7 +252,7 @@ public class UINotificationDisplay
         notification.title = title;
         notification.description = description;
         notification.notificationType = notificationType;
-        notification.score = score.ToString("N0");
+        notification.score = score.ToString("N0", Engine.Game.App.BaseApp.L10n.NumberFormat);
         QueueNotification(notification);
     }
 
@@ -602,7 +602,7 @@ public void Update() {
                         score *= 50; // 50 coins per   
                         lastScore = 0;
                         currentScore = score;
-                        currentItem.score = currentScore.ToString("N0");
+                        currentItem.score = currentScore.ToString("N0", Engine.Game.App.BaseApp.L10n.NumberFormat);
                         GameProfileRPGs.Current.AddCurrency(currentScore);
                     }
 

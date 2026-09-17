@@ -1453,6 +1453,11 @@ public class UIPanelBase : UIAppPanel {
             UIPanelCharacterDisplayState.Character) {
 
             GameUIPanelHeader.HideCharacterLarge();
+
+            // Same seam as SetCharacterLargeToolkit below: the small card's CUSTOMIZE button
+            // converts only on a screen that can host a toolkit view.
+            GameUIPanelHeader.SetCharacterSmallToolkit(isToolkitMigrated);
+
             GameUIPanelHeader.ShowCharacter(characterDisplayOffsetX);
         }
         else if(characterDisplayState ==
