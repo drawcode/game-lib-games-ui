@@ -156,7 +156,9 @@ public class BaseGameUIPanelCustomizeLevels : GameUIPanelBase {
             //loadDataPowerups();
             
             yield return new WaitForEndOfFrame();
+#if USE_UI_NGUI_2_7 || USE_UI_NGUI_3
             listGridRoot.GetComponent<UIGrid>().Reposition();
+#endif
             yield return new WaitForEndOfFrame();               
         }
     }

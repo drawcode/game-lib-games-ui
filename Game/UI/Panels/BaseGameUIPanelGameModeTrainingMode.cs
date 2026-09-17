@@ -14,9 +14,15 @@ public class BaseGameUIPanelGameModeTrainingMode : GameUIPanelBase {
 
     public GameObject listItemPrefab;
 
+#if USE_UI_NGUI_2_7 || USE_UI_NGUI_3
     public UIImageButton buttonGamePlayChoiceQuiz; // quiz
     public UIImageButton buttonGamePlayCollectionSmarts; // concussions,
     public UIImageButton buttonGamePlayCollectionSafety; // equipment
+#else
+    public Engine.UI.UIRef buttonGamePlayChoiceQuiz; // quiz
+    public Engine.UI.UIRef buttonGamePlayCollectionSmarts; // concussions,
+    public Engine.UI.UIRef buttonGamePlayCollectionSafety; // equipment
+#endif
 
     public static bool isInst {
         get {

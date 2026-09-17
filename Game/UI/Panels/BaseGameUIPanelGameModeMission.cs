@@ -15,9 +15,15 @@ public class BaseGameUIPanelGameModeMission : GameUIPanelBase {
 
     public GameObject listItemPrefab;
 
+#if USE_UI_NGUI_2_7 || USE_UI_NGUI_3
     public UIImageButton buttonGamePlayEpisode1;
     public UIImageButton buttonGamePlayEpisode2;
     public UIImageButton buttonGamePlayEpisode3;
+#else
+    public Engine.UI.UIRef buttonGamePlayEpisode1;
+    public Engine.UI.UIRef buttonGamePlayEpisode2;
+    public Engine.UI.UIRef buttonGamePlayEpisode3;
+#endif
 
     public static bool isInst {
         get {
@@ -142,7 +148,9 @@ public class BaseGameUIPanelGameModeMission : GameUIPanelBase {
             loadDataMissions();
 
             yield return new WaitForEndOfFrame();
+#if USE_UI_NGUI_2_7 || USE_UI_NGUI_3
             listGridRoot.GetComponent<UIGrid>().Reposition();
+#endif
             yield return new WaitForEndOfFrame();
         }
     }
@@ -181,7 +189,12 @@ public class BaseGameUIPanelGameModeMission : GameUIPanelBase {
 
         foreach(AppContentCollect mission in AppContentCollects.GetMissions()) {
 
+#if USE_UI_NGUI_2_7 || USE_UI_NGUI_3
             GameObject item = NGUITools.AddChild(listGridRoot, listItemPrefab);
+#else
+            GameObject item = Instantiate(listItemPrefab, listGridRoot.transform, false);
+            item.layer = listGridRoot.layer;
+#endif
             item.name = "MissionItem" + i;
 
             UIUtil.UpdateLabelObject(item, "Container/LabelName", mission.display_name);

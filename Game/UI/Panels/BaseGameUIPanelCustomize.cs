@@ -18,11 +18,19 @@ public class BaseGameUIPanelCustomize : GameUIPanelBase {
     public GameDataItemRPG currentRPG;
     public int currentUpgradesAvailable = 0;
 
+#if USE_UI_NGUI_2_7 || USE_UI_NGUI_3
     public UIImageButton buttonCustomizeCharacterColors;
     public UIImageButton buttonCustomizeCharacterRPG;
 
     public UIInput inputCurrentDisplayCode;
     public UIInput inputCurrentDisplayName;
+#else
+    public Engine.UI.UIRef buttonCustomizeCharacterColors;
+    public Engine.UI.UIRef buttonCustomizeCharacterRPG;
+
+    public Engine.UI.UIRef inputCurrentDisplayCode;
+    public Engine.UI.UIRef inputCurrentDisplayName;
+#endif
 
     public static bool isInst {
         get {
@@ -135,7 +143,9 @@ public class BaseGameUIPanelCustomize : GameUIPanelBase {
             //loadDataPowerups();
 
             yield return new WaitForEndOfFrame();
+#if USE_UI_NGUI_2_7 || USE_UI_NGUI_3
             listGridRoot.GetComponent<UIGrid>().Reposition();
+#endif
             yield return new WaitForEndOfFrame();
         }
     }

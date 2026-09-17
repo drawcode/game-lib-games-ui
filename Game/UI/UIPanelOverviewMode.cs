@@ -11,6 +11,7 @@ using UnityEngine.UI;
 #endif
 
 using Engine.Events;
+using Engine.UI;
 using Engine.Utility;
 using Engine.Game.App;
 using Engine.Game.Data;
@@ -53,6 +54,141 @@ public class UIPanelOverviewMode : UIPanelBase {
     // GLOBAL
 
     public AppOverviewFlowState flowState = AppOverviewFlowState.Mode;
+
+    // THE MODE OVERVIEW / READY SCREEN as a toolkit view (iter 29). The same M.A.N. chassis as
+    // UIPanelOverlayPrepare, and the same seams, for the same reasons (see that class):
+    //   * labels live in the #if NGUI branch, so the view is written BY ELEMENT NAME and every
+    //     write is replayed after the async load;
+    //   * suppression hides PanelOverview/Container, one level below containerOverview, because
+    //     ShowOverview/HideOverview show, hide and tween containerOverview itself;
+    //   * suppression is re-asserted every frame and restored on free (kill switch).
+    public override string toolkitViewKey {
+        get {
+            return BaseUIPanel.panelOverviewMode;
+        }
+    }
+
+    // Above the chrome band, like the prepare overlay it follows.
+    public override int toolkitSortOrder {
+        get {
+            return UILayers.overlay;
+        }
+    }
+
+    public override bool toolkitPreloadView {
+        get {
+            return true;
+        }
+    }
+
+    protected Dictionary<string, string> viewTextPending = new Dictionary<string, string>();
+
+    protected virtual void SetViewLabel(string elementName, string value) {
+
+        viewTextPending[elementName] = value;
+
+        UIUtil.SetLabelValue(UIUtil.ResolveDeep(viewRoot, elementName), value);
+    }
+
+    public override void BindElements(UIRef root) {
+
+        base.BindElements(root);
+
+        foreach(KeyValuePair<string, string> pair in viewTextPending) {
+            UIUtil.SetLabelValue(UIUtil.ResolveDeep(root, pair.Key), pair.Value);
+        }
+    }
+
+    // The legacy overview slides in from the bottom (AnimateInBottom(containerOverview)).
+    protected override void ShowToolkitViewSlide() {
+        TweenUtil.ShowObjectBottom(viewRoot, toolkitShowPreset);
+    }
+
+    protected override void HideToolkitViewSlide() {
+        TweenUtil.HideObjectBottom(viewRoot, toolkitHidePreset);
+    }
+
+    private Transform legacyOverviewContent;
+    private readonly List<GameObject> suppressedLegacy = new List<GameObject>();
+
+    protected override void SuppressLegacyView() {
+        // NOT base: that hides panelContainer, which the panel's own AnimateIn re-shows.
+        ReassertLegacySuppression();
+    }
+
+    private void ReassertLegacySuppression() {
+
+        if(!isToolkitPanel) {
+            return;
+        }
+
+        if(legacyOverviewContent == null && containerOverview != null) {
+            legacyOverviewContent = containerOverview.transform.Find("Container");
+        }
+
+        Transform t = legacyOverviewContent;
+
+        if(t == null || !t.gameObject.activeSelf) {
+            return;
+        }
+
+        t.gameObject.Hide();
+
+        if(!suppressedLegacy.Contains(t.gameObject)) {
+            suppressedLegacy.Add(t.gameObject);
+        }
+    }
+
+    protected override void FreeToolkitView() {
+
+        foreach(GameObject go in suppressedLegacy) {
+            if(go != null) {
+                go.Show();
+            }
+        }
+
+        suppressedLegacy.Clear();
+        legacyOverviewContent = null;
+        lastTipStatus = null;
+
+        base.FreeToolkitView();
+    }
+
+    // "Tip n of m" is written by the active UIPanelTips into its own NGUI label; mirror it from
+    // the component's state, localized.
+    private string lastTipStatus;
+
+    private void UpdateToolkitTipStatus() {
+
+        if(containerTips == null) {
+            return;
+        }
+
+        UIPanelTips active = null;
+
+        // Include inactive: suppression deactivates the legacy Container above the tips, so
+        // activeInHierarchy is false for all of them. The shown one is the activeSelf one.
+        foreach(UIPanelTips tips in containerTips.GetComponentsInChildren<UIPanelTips>(true)) {
+            if(tips.gameObject.activeSelf) {
+                active = tips;
+                break;
+            }
+        }
+
+        // No tips set matches most content states (ShowTipsObject shows none), and then the legacy
+        // screen shows ContainerTips/LabelCurrentTipStatus as AUTHORED: "Tip 1 of 3" (measured).
+        string status = active != null
+            ? Engine.Game.App.BaseApp.L10n.Tr("game_ui_overview_mode_tip_status",
+                active.currentTipIndex + 1, active.tipsTotal)
+            : Engine.Game.App.BaseApp.L10n.Tr("game_ui_overview_mode_tip_status", 1, 3);
+
+        if(status == lastTipStatus) {
+            return;
+        }
+
+        lastTipStatus = status;
+        SetViewLabel("LabelCurrentTipStatus", status);
+    }
 
     public override void Awake() {
         base.Awake();
@@ -236,6 +372,7 @@ public class UIPanelOverviewMode : UIPanelBase {
         UIPanelDialogBackground.ShowDefault();
 
         UIUtil.SetLabelValue(labelOverviewType, AppContentStates.Current.display_name);
+        SetViewLabel("LabelOverviewType", AppContentStates.Current.display_name);
 
         //LogUtil.Log("UIPanelModeTypeChoice:ShowOverview:flowState:" + flowState);
 
@@ -263,6 +400,7 @@ public class UIPanelOverviewMode : UIPanelBase {
         UIPanelDialogBackground.ShowDefault();
 
         UIUtil.SetLabelValue(labelOverviewType, AppContentStates.Current.display_name);
+        SetViewLabel("LabelOverviewType", AppContentStates.Current.display_name);
 
         //LogUtil.Log("UIPanelModeTypeChoice:ShowOverview:flowState:" + flowState);
 
@@ -334,6 +472,7 @@ public class UIPanelOverviewMode : UIPanelBase {
         UpdateOverviewWorld();
 
         UIUtil.SetLabelValue(labelOverviewType, AppContentStates.Current.display_name);
+        SetViewLabel("LabelOverviewType", AppContentStates.Current.display_name);
 
         AnimateInBottom(containerOverview);
 
@@ -445,5 +584,9 @@ public class UIPanelOverviewMode : UIPanelBase {
 
     public void Update() {
 
+        if(isToolkitPanel) {
+            ReassertLegacySuppression();
+            UpdateToolkitTipStatus();
+        }
     }
 }
