@@ -177,10 +177,13 @@ public class UIPanelOverviewMode : UIPanelBase {
 
         // No tips set matches most content states (ShowTipsObject shows none), and then the legacy
         // screen shows ContainerTips/LabelCurrentTipStatus as AUTHORED: "Tip 1 of 3" (measured).
+        // TrOrDefault, not Tr: this lib ships to games that don't have the key, and Tr would put
+        // the raw key on screen there -- the English format is the fallback.
         string status = active != null
-            ? Engine.Game.App.BaseApp.L10n.Tr("game_ui_overview_mode_tip_status",
-                active.currentTipIndex + 1, active.tipsTotal)
-            : Engine.Game.App.BaseApp.L10n.Tr("game_ui_overview_mode_tip_status", 1, 3);
+            ? Engine.Game.App.BaseApp.L10n.TrOrDefault("game_ui_overview_mode_tip_status",
+                "Tip {0} of {1}", active.currentTipIndex + 1, active.tipsTotal)
+            : Engine.Game.App.BaseApp.L10n.TrOrDefault("game_ui_overview_mode_tip_status",
+                "Tip {0} of {1}", 1, 3);
 
         if(status == lastTipStatus) {
             return;

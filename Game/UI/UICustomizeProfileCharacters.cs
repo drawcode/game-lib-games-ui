@@ -250,8 +250,12 @@ public class UICustomizeProfileCharacters : UICustomizeSelectObject {
                 string characterType = "";
                 GameCharacter gameCharacter = GameCharacters.Instance.GetById(profileCharacterItem.characterCode);
                 if(gameCharacter != null) {
-                    characterType = gameCharacter.display_name;
-                    characterType = "- TYPE: " + characterType + " -";
+                    // The bot's own name is a proper noun and stays as authored; only the
+                    // "- TYPE: X -" chrome around it is keyed. TrOrDefault, because games on
+                    // this shared lib that don't ship the key must keep the English form.
+                    characterType = Engine.Game.App.BaseApp.L10n.TrOrDefault(
+                        "game_ui_customize_character_type_plate", "- TYPE: {0} -",
+                        gameCharacter.display_name);
                 }
 
                 UIUtil.SetInputValue(inputCurrentDisplayName, profileCharacterItem.characterDisplayName);

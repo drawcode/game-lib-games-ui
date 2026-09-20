@@ -130,7 +130,7 @@ public class BaseGameUIPanelSettingsLanguage : GameUIPanelBase {
     public virtual void PopulateChoices() {
 
         List<string> choices = new List<string>();
-        choices.Add(L10n.Tr("lang_system_default"));
+        choices.Add(L10n.TrOrDefault("lang_system_default", "SYSTEM DEFAULT"));
 
         List<GameLocaleInfo> all = GameLocales.All;
 
