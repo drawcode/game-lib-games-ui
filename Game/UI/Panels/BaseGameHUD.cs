@@ -544,7 +544,20 @@ public class BaseGameHUD : GameUIPanelBase {
 
     private void OnToolkitStick(string axisName, UIRef knob, Vector2 offset, bool released) {
 
-        UIUtil.SetElementTranslate(knob, offset);
+        OnToolkitStick(axisName, knob, offset, released, true);
+    }
+
+    // updateKnob = false on the teardown path: the view host is already destroyed there, and a
+    // UIRef cannot tell us so. UIRef.alive is a plain null check for a VisualElement native (it is
+    // not a UnityEngine.Object, so there is no destroyed-but-not-null overload to lean on), which
+    // means the ref still reports alive after FreeToolkitView and the inline style write NREs
+    // inside UIElements' ApplyStyleTranslate. Skipping the knob move costs nothing — the element
+    // is on its way out — while the axis zero below still has to reach the player.
+    private void OnToolkitStick(string axisName, UIRef knob, Vector2 offset, bool released, bool updateKnob) {
+
+        if(updateKnob) {
+            UIUtil.SetElementTranslate(knob, offset);
+        }
 
         Vector3 axis = Vector3.zero;
 
@@ -558,8 +571,12 @@ public class BaseGameHUD : GameUIPanelBase {
 
     // Chrome hidden mid-drag (pause, round end): no pointer-up reaches a display:none view.
     private void ReleaseToolkitSticks() {
-        OnToolkitStick(InputSystemKeys.moveKey, padMoveKnob, Vector2.zero, true);
-        OnToolkitStick(InputSystemKeys.attackKey, padAttackKnob, Vector2.zero, true);
+        ReleaseToolkitSticks(true);
+    }
+
+    private void ReleaseToolkitSticks(bool updateKnobs) {
+        OnToolkitStick(InputSystemKeys.moveKey, padMoveKnob, Vector2.zero, true, updateKnobs);
+        OnToolkitStick(InputSystemKeys.attackKey, padAttackKnob, Vector2.zero, true, updateKnobs);
     }
 
     // The legacy pads' art + knob colliders (Highlight and Pad under each GameTouchInputAxis — the
@@ -872,8 +889,10 @@ public class BaseGameHUD : GameUIPanelBase {
         suppressedLegacy.Clear();
 
         // Controls: hand touch back to the legacy pads (kill switch) and drop the stale refs.
+        // No knob write here — this runs from FreeToolkitView / OnDisable / OnDestroy, where the
+        // view host is already gone (see OnToolkitStick's updateKnob note).
         if(GameTouchInputAxis.touchDrivenExternally) {
-            ReleaseToolkitSticks();
+            ReleaseToolkitSticks(false);
             GameTouchInputAxis.touchDrivenExternally = false;
         }
 
