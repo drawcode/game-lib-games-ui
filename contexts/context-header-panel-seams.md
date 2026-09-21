@@ -140,3 +140,27 @@ NGUI `UILabel`, so it could never localize. Only the button converts: `panel-cha
 One trap: the view finishes loading BEFORE the delayed `showCharacterCo`, and its continuation hides
 it. `TweenUtil.ShowObjectTop(UIRef)` only tweens translate and opacity, never display, so the show
 must call `UIUtil.ShowObject` first or the button never appears.
+
+## The localization consequence of a mirror (2026-09-19)
+
+Every bridge built for §2 — read the legacy `UILabel`'s text, write it onto the toolkit element —
+**overwrites whatever the view authored**, including `@loc:` text that resolved correctly at build
+time. The label is localized for exactly as long as it takes the selector to run once.
+
+Found by a qps pseudo-locale sweep, which is the only reliable way to see it: the view file says
+`@loc:`, the key exists in all 15 locales, the validator passes, and the screen still reads English.
+
+Three placeholders came back this way on the customize colours panel —
+`SELECT A COLOR PRESET`, `SELECT A  STYLE` (authored double space) and `My Previous Uniform` — all
+mirrored from the NGUI label by `GameUIPanelCustomizeCharacterColors.MirrorLabel`. The fix keeps
+one writer: the mirror still owns the element, but `LocalizePresetName` maps each sentinel string
+back to its key on the way through, so a mirrored write and a localized write can never race.
+
+The same pass keyed the `- TYPE: X -` plate in `UICustomizeProfileCharacters`: the bot's name is a
+proper noun and stays, only the chrome around it is keyed, and it goes through
+`L10n.TrOrDefault(key, "- TYPE: {0} -", name)` so games that don't ship the key keep the English
+template. `UpdateToolkitInfoCard` still derives the card's plain form by stripping `"- "` and
+`" -"`, which holds for every locale template added so far — revisit it if that card is refactored.
+
+**Rule:** a label that a mirror writes is not localized by its view. Key it where the mirror
+writes, or stop mirroring it.
