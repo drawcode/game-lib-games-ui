@@ -566,6 +566,11 @@ public class BaseGameHUD : GameUIPanelBase {
             axis.y = offset.y / stickUnitsPerAxis;
         }
 
+        if(axisName == InputSystemKeys.moveKey) {
+            GameTouchInputAxis.externalMoveHeld = !released;
+            GameTouchInputAxis.externalMoveAxis = axis;
+        }
+
         GameController.SendInputAxisMessage(axisName, axis);
     }
 
