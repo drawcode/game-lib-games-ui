@@ -188,6 +188,13 @@ public class BaseGameUIPanelHeader : GameUIPanelBase {
         }
     }
 
+    // Shared chrome: never drives the character rig (see UIPanelBase.drivesCharacterDisplay).
+    public override bool drivesCharacterDisplay {
+        get {
+            return false;
+        }
+    }
+
     public override void Awake() {
         base.Awake();
     }

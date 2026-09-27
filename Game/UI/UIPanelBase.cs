@@ -1425,9 +1425,26 @@ public class UIPanelBase : UIAppPanel {
 
     // PANEL SECTIONS STATES
 
+    // Whether this panel's own show drives the shared character rig. Content screens do; the
+    // shared chrome (footer, header, backgrounds) must not. A content panel's AnimateIn can bring
+    // the footer in mid-entrance (HandleButtonDisplay -> ShowButtonGameNetworks -> footer
+    // AnimateIn), and the footer always declares characterDisplayState None, so its None branch
+    // HideCharacters()'d the bot the content panel had started showing one call earlier. That is
+    // how Results lost its bot after a round (the footer was hidden during play, so its AnimateIn
+    // ran in full). Chrome overrides this to false and leaves the rig to the screen it frames.
+    public virtual bool drivesCharacterDisplay {
+        get {
+            return true;
+        }
+    }
+
     public void HandleCharacterDisplay() {
 
         // handle character display
+
+        if(!drivesCharacterDisplay) {
+            return;
+        }
 
         // LEAVE THE RIG ALONE IF IT IS ALREADY SHOWING WHAT WE WANT.
         //
