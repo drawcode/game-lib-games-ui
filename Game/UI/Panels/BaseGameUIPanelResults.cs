@@ -188,6 +188,7 @@ public class BaseGameUIPanelResults : GameUIPanelBase {
     public static string labelNameTotalPoints = "LabelTotalPointsValue";
     public static string labelNameTimeRunning = "LabelTimeRunningValue";
     public static string labelNameTotalXP = "LabelTotalXPValue";
+    public static string labelNameLifetimeXP = "LabelLifetimeXPValue";
 
     // Held so AnimateIn can replay them: UpdateDisplay is driven from the end-of-level coroutine
     // and can run while this panel is still inactive, which is exactly when there is no view to
@@ -243,20 +244,27 @@ public class BaseGameUIPanelResults : GameUIPanelBase {
             viewRoot, labelNameTimeRunning,
             FormatUtil.GetFormattedTimeHoursMinutesSecondsMs((double)lastTimeTotal));
 
-        // XP is not on the runtime data — GameRPG owns it, and its own labelXPValue is another
-        // UILabel in the legacy branch, so the toolkit's XP field has the same gap. Read it from
-        // the monitor rather than leaving a second placeholder on screen.
-        //
-        // currentTotalScore, NOT lastTotalScore: `last` is the tween cursor GameRPG counts UP
-        // from and it initialises to the sentinel -1, which is what the toolkit XP field showed
-        // when this first went in. Skip the write entirely while the monitor still holds a
-        // sentinel, so the authored placeholder stands rather than a negative number.
+        // XP EARNED is THIS ROUND's XP (owner, iter 33). It used to read
+        // GameRPGMonitor.currentTotalScore, which is the lifetime RPG tally (achievement +
+        // times-played + time-played points), filled on a worker thread — it showed 0 after a
+        // round that had just granted 1,064 XP. The round's grant is what
+        // BaseGameController hands to CurrentCharacterAddGamePlayerProgressXP at round end:
+        // totalScoreValue (so it equals TOTAL SCORE until that "TODO by skill/RPG" lands; read
+        // the same field so the two stay in step if it ever changes).
+        UIUtil.UpdateLabelObject(
+            viewRoot, labelNameTotalXP,
+            lastRuntimeData.totalScoreValue.ToString("N0", Engine.Game.App.BaseApp.L10n.NumberFormat));
 
-        if(GameRPGMonitor.Instance != null
-            && GameRPGMonitor.Instance.currentTotalScore >= 0) {
+        // TOTAL XP is the current character's progress XP. The round's grant is applied BEFORE
+        // UpdateDisplay runs, so this already includes it.
+        var character = GameProfileCharacters.Current != null
+            ? GameProfileCharacters.Current.GetCurrentCharacter()
+            : null;
+
+        if(character != null && character.profilePlayerProgress != null) {
             UIUtil.UpdateLabelObject(
-                viewRoot, labelNameTotalXP,
-                GameRPGMonitor.Instance.currentTotalScore.ToString("N0", Engine.Game.App.BaseApp.L10n.NumberFormat));
+                viewRoot, labelNameLifetimeXP,
+                character.profilePlayerProgress.GetGamePlayerProgressXP().ToString("N0", Engine.Game.App.BaseApp.L10n.NumberFormat));
         }
     }
 
