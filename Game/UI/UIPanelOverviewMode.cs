@@ -297,6 +297,13 @@ public class UIPanelOverviewMode : UIPanelBase {
 
     public void Ready() {
 
+        // The round goes live here, so the level-load sequence is over even if its finish
+        // coroutine never completed -- release its flag and its overlay rather than carry them
+        // into the round (iter 25, items 21/22).
+        if(GameController.isInst) {
+            GameController.Instance.releaseLevelInitializing();
+        }
+
         Messenger.Broadcast(GameMessages.gameLevelPlayerReady);
 
         HideAll();
