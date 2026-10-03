@@ -6,11 +6,6 @@ using UnityEngine;
 using Engine.Utility;
 using Engine.Game.App;
 
-#if USE_UI_NGUI_2_7 || USE_UI_NGUI_3
-#else
-using UnityEngine.UI;
-#endif
-
 using Engine.Events;
 using Engine.UI;
 
@@ -75,36 +70,38 @@ public class UINotificationDisplay
     public UILabel tipScore;
     public UIImageButton tipContinue;
 #else
+    // B10: agnostic UIRef handles (was UGUI), the BaseGameHUD pattern. Unbound (null) until
+    // something binds them by name; every UIUtil call no-ops on a null ref.
 
     // Achievement
-    public Text achievementTitle;
-    public Text achievementDescription;
-    public Text achievementScore;
-    public Button achievementIcon;
+    public Engine.UI.UIRef achievementTitle;
+    public Engine.UI.UIRef achievementDescription;
+    public Engine.UI.UIRef achievementScore;
+    public Engine.UI.UIRef achievementIcon;
 
     // Point
-    public Text pointTitle;
-    public Text pointDescription;
-    public Text pointScore;
-    public Button pointContinue;
+    public Engine.UI.UIRef pointTitle;
+    public Engine.UI.UIRef pointDescription;
+    public Engine.UI.UIRef pointScore;
+    public Engine.UI.UIRef pointContinue;
 
     // Error
-    public Text errorTitle;
-    public Text errorDescription;
-    public Text errorScore;
-    public Button errorContinue;
+    public Engine.UI.UIRef errorTitle;
+    public Engine.UI.UIRef errorDescription;
+    public Engine.UI.UIRef errorScore;
+    public Engine.UI.UIRef errorContinue;
 
     // Info
-    public Text infoTitle;
-    public Text infoDescription;
-    public Text infoScore;
-    public Button infoContinue;
+    public Engine.UI.UIRef infoTitle;
+    public Engine.UI.UIRef infoDescription;
+    public Engine.UI.UIRef infoScore;
+    public Engine.UI.UIRef infoContinue;
 
     // Tip
-    public Text tipTitle;
-    public Text tipDescription;
-    public Text tipScore;
-    public Button tipContinue;
+    public Engine.UI.UIRef tipTitle;
+    public Engine.UI.UIRef tipDescription;
+    public Engine.UI.UIRef tipScore;
+    public Engine.UI.UIRef tipContinue;
 #endif
 
     public GameObject notificationPanel;

@@ -7,7 +7,6 @@ using UnityEngine;
 using Engine.Events;
 using Engine.UI;
 using Engine.Utility;
-using UnityEngine.UI;
 
 public enum UIPanelBackgroundDisplayState {
     None,
@@ -1414,7 +1413,10 @@ public class UIPanelBase : UIAppPanel {
             UILabel label = t.GetComponent<UILabel>();
 #else
 
-            Text label = t.GetComponent<Text>();
+            // B10: was GetComponent<Text>(). The backend's label getter returns null (not "")
+            // when the object carries no label, which is the same test without the UGUI type.
+            GameObject label = UIUtil.GetLabelValue(Engine.UI.UIRef.Of(t.gameObject)) != null
+                ? t.gameObject : null;
 #endif
             if(label != null) {
                 return label.gameObject;

@@ -3,11 +3,6 @@ using System.Collections;
 using UnityEngine;
 using Engine.Content;
 
-#if USE_UI_NGUI_2_7 || USE_UI_NGUI_3
-#else
-using UnityEngine.UI;
-#endif
-
 using Engine.Events;
 
 #if ENABLE_FEATURE_AR
@@ -23,11 +18,13 @@ public class GameUISceneRoot : GameObjectBehavior {
     public UISlider sliderProgress = null;
     public UISlider sliderProgressItem = null;
 #else
-    public Text labelProgressTitle = null;
-    public Text labelProgressMessage = null;
-    public Text labelProgressPercentage = null;
-    public Slider sliderProgress = null;
-    public Slider sliderProgressItem = null;
+    // B10: agnostic UIRef handles (was UGUI), the BaseGameHUD pattern. Unbound (null) until
+    // something binds them by name; every UIUtil call no-ops on a null ref.
+    public Engine.UI.UIRef labelProgressTitle = null;
+    public Engine.UI.UIRef labelProgressMessage = null;
+    public Engine.UI.UIRef labelProgressPercentage = null;
+    public Engine.UI.UIRef sliderProgress = null;
+    public Engine.UI.UIRef sliderProgressItem = null;
 #endif
 
     public LoadSceneAsync loadAsync;

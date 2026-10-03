@@ -3,10 +3,6 @@ using System.Collections;
 using System.Collections.Generic;
 
 using UnityEngine;
-#if USE_UI_NGUI_2_7 || USE_UI_NGUI_3
-#else
-using UnityEngine.UI;
-#endif
 
 using Engine.Events;
 using Engine.Utility;
@@ -27,10 +23,12 @@ public class UIPanelTips : UIAppPanelBaseList {
     public UIButton buttonClose;
     public UILabel labelCurrentTipStatus;
 #else
-    public Button buttonBack;
-    public Button buttonNext;
-    public Button buttonClose;
-    public Text labelCurrentTipStatus;
+    // B10: agnostic UIRef handles (was UGUI), the BaseGameHUD pattern. Unbound (null) until
+    // something binds them by name; every UIUtil call no-ops on a null ref.
+    public Engine.UI.UIRef buttonBack;
+    public Engine.UI.UIRef buttonNext;
+    public Engine.UI.UIRef buttonClose;
+    public Engine.UI.UIRef labelCurrentTipStatus;
 #endif
 
     public GameObject containerObject;

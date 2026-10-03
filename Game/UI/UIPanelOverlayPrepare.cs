@@ -5,10 +5,6 @@ using System.Collections.Generic;
 using System.Linq;
 
 using UnityEngine;
-#if USE_UI_NGUI_2_7 || USE_UI_NGUI_3
-#else
-using UnityEngine.UI;
-#endif
 
 using Engine.Events;
 using Engine.Utility;
@@ -32,19 +28,21 @@ public class UIPanelOverlayPrepare : UIPanelBase {
 
     public UIImageButton buttonTipNext;
 #else
+    // B10: agnostic UIRef handles (was UGUI), the BaseGameHUD pattern. Unbound (null) until
+    // something binds them by name; every UIUtil call no-ops on a null ref.
     // OVERVIEW
 
-    public Text labelOverviewTip;
-    public Text labelOverviewType;
-    public Text labelOverviewStatus;
+    public Engine.UI.UIRef labelOverviewTip;
+    public Engine.UI.UIRef labelOverviewType;
+    public Engine.UI.UIRef labelOverviewStatus;
 
-    public Text labelTipTitle;
-    public Text labelTipDescription;
-    public Text labelTipType;
+    public Engine.UI.UIRef labelTipTitle;
+    public Engine.UI.UIRef labelTipDescription;
+    public Engine.UI.UIRef labelTipType;
 
-    public Button buttonReady;
+    public Engine.UI.UIRef buttonReady;
 
-    public Button buttonTipNext;
+    public Engine.UI.UIRef buttonTipNext;
 #endif
 
     public static UIPanelOverlayPrepare Instance;
@@ -519,7 +517,11 @@ public class UIPanelOverlayPrepare : UIPanelBase {
 
     public void ShowButtonPlay() {
         if(buttonReady != null) {
+#if USE_UI_NGUI_2_7 || USE_UI_NGUI_3
             buttonReady.gameObject.Show();
+#else
+            UIUtil.ShowObject(buttonReady);
+#endif
         }
 
         buttonPlayVisible = true;
@@ -530,7 +532,11 @@ public class UIPanelOverlayPrepare : UIPanelBase {
 
     public void HideButtonPlay() {
         if(buttonReady != null) {
+#if USE_UI_NGUI_2_7 || USE_UI_NGUI_3
             buttonReady.gameObject.Hide();
+#else
+            UIUtil.HideObject(buttonReady);
+#endif
         }
 
         buttonPlayVisible = false;

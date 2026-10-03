@@ -5,7 +5,6 @@ using System.Collections.Generic;
 using UnityEngine;
 
 using Engine.Events;
-using UnityEngine.UI;
 
 public class BaseGameUIPanelAchievements : GameUIPanelBase {
 

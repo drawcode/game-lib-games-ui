@@ -5,11 +5,6 @@ using System.Collections.Generic;
 using UnityEngine;
 using Engine.Game.App.BaseApp;
 
-#if USE_UI_NGUI_2_7 || USE_UI_NGUI_3
-#else
-using UnityEngine.UI;
-#endif
-
 using Engine.Events;
 
 public class UICustomizeCharacterRPGItem : GameObjectBehavior {
@@ -21,12 +16,14 @@ public class UICustomizeCharacterRPGItem : GameObjectBehavior {
     public UILabel labelName;
     public UILabel labelValue;
 #else
-    public Slider sliderProfileValue;
-    public Slider sliderCurrentValue;
-    public Button buttonRPGItemUp;
-    public Button buttonRPGItemDown;
-    public Text labelName;
-    public Text labelValue;
+    // B10: agnostic UIRef handles (was UGUI), the BaseGameHUD pattern. Unbound (null) until
+    // something binds them by name; every UIUtil call no-ops on a null ref.
+    public Engine.UI.UIRef sliderProfileValue;
+    public Engine.UI.UIRef sliderCurrentValue;
+    public Engine.UI.UIRef buttonRPGItemUp;
+    public Engine.UI.UIRef buttonRPGItemDown;
+    public Engine.UI.UIRef labelName;
+    public Engine.UI.UIRef labelValue;
 #endif
 
     public string rpgCode = "energy"; // attack, defense, energy, health, skill, power
@@ -52,12 +49,23 @@ public class UICustomizeCharacterRPGItem : GameObjectBehavior {
 
     void OnButtonClickObjectHandler(GameObject go) {
 
+#if USE_UI_NGUI_2_7 || USE_UI_NGUI_3
         if(go == buttonRPGItemUp.gameObject) {
             Up();
         }
         else if(go == buttonRPGItemDown.gameObject) {
             Down();
         }
+#else
+        // B10: a UIRef is unbound (null) until something binds it, and a toolkit one has no
+        // GameObject -- either way it is simply not the clicked object.
+        if(buttonRPGItemUp != null && go == buttonRPGItemUp.gameObject) {
+            Up();
+        }
+        else if(buttonRPGItemDown != null && go == buttonRPGItemDown.gameObject) {
+            Down();
+        }
+#endif
     }
 
     void OnRPGItemHandler(string rpgCodeFrom, string characterCodeFrom, double valFrom) {
@@ -145,12 +153,20 @@ public class UICustomizeCharacterRPGItem : GameObjectBehavior {
 
     public void SetCurrentValue(double val) {
         currentValue = Math.Round(val, 1);
+#if USE_UI_NGUI_2_7 || USE_UI_NGUI_3
         UIUtil.SetSliderValue(sliderCurrentValue, currentValue);
+#else
+        UIUtil.SetSliderValue(sliderCurrentValue, (float)currentValue);
+#endif
     }
 
     public void SetProfileValue(double val) {
         profileValue = Math.Round(val, 1);
+#if USE_UI_NGUI_2_7 || USE_UI_NGUI_3
         UIUtil.SetSliderValue(sliderProfileValue, profileValue);
+#else
+        UIUtil.SetSliderValue(sliderProfileValue, (float)profileValue);
+#endif
     }
 
     public void SetDisplayName(string nameTo) {

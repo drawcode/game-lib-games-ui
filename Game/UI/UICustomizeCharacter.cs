@@ -5,11 +5,6 @@ using System.Collections.Generic;
 using UnityEngine;
 using Engine.Game.App.BaseApp;
 
-#if USE_UI_NGUI_2_7 || USE_UI_NGUI_3
-#else
-using UnityEngine.UI;
-#endif
-
 using Engine.Events;
 
 public class UICustomizeCharacterItemMessages {
@@ -29,10 +24,12 @@ public class UICustomizeCharacter : UIAppPanelBaseList {
     public UIImageButton buttonSaveRPG;
     public UIImageButton buttonBuyUpgrades;
 #else
-    public Text labelUpgradesAvailable;
-    public Button buttonResetRPG;
-    public Button buttonSaveRPG;
-    public Button buttonBuyUpgrades;
+    // B10: agnostic UIRef handles (was UGUI), the BaseGameHUD pattern. Unbound (null) until
+    // something binds them by name; every UIUtil call no-ops on a null ref.
+    public Engine.UI.UIRef labelUpgradesAvailable;
+    public Engine.UI.UIRef buttonResetRPG;
+    public Engine.UI.UIRef buttonSaveRPG;
+    public Engine.UI.UIRef buttonBuyUpgrades;
 #endif
 
     GameProfileRPGItem profileGameDataItemRPG;
@@ -156,7 +153,11 @@ public class UICustomizeCharacter : UIAppPanelBaseList {
     public void SetUpgradesAvailable(double upgradesAvailableTo) {
         if(labelUpgradesAvailable != null) {
             upgradesAvailable = upgradesAvailableTo;
+#if USE_UI_NGUI_2_7 || USE_UI_NGUI_3
             labelUpgradesAvailable.text = upgradesAvailableTo.ToString("N0", Engine.Game.App.BaseApp.L10n.NumberFormat);
+#else
+            UIUtil.SetLabelValue(labelUpgradesAvailable, upgradesAvailableTo.ToString("N0", Engine.Game.App.BaseApp.L10n.NumberFormat));
+#endif
         }
     }
 

@@ -3,10 +3,6 @@ using System.Collections;
 using System.Collections.Generic;
 
 using UnityEngine;
-#if USE_UI_NGUI_2_7 || USE_UI_NGUI_3
-#else
-using UnityEngine.UI;
-#endif
 
 using Engine.Events;
 using Engine.Utility;
@@ -502,8 +498,9 @@ public class BaseGameUIPanelWorlds : GameUIPanelBase {
 
                 GameObject button = null;
 
-                if(buttonObject.gameObject.Has<Button>()) {
-                    button = buttonObject.gameObject.Get<Button>().gameObject;
+                // B10: was Has<Button>(); the backend's button test.
+                if(UIUtil.IsButton(Engine.UI.UIRef.Of(buttonObject.gameObject))) {
+                    button = buttonObject.gameObject;
                 }
 #endif
 

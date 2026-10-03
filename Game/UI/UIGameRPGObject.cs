@@ -2,10 +2,6 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-#if USE_UI_NGUI_2_7 || USE_UI_NGUI_3
-#else
-using UnityEngine.UI;
-#endif
 
 // using Engine.Data.Json;
 using Engine.Events;
@@ -17,9 +13,10 @@ public class UIGameRPGObject : GameObjectBehavior {
     public UILabel labelProgress;
     public UILabel labelValue;
 #else
-    public Slider sliderProgress;
-    public Text labelProgress;
-    public Text labelValue;
+    // Agnostic handles (BaseGameHUD.cs pattern): not serialized, bound by name at runtime.
+    public Engine.UI.UIRef sliderProgress;
+    public Engine.UI.UIRef labelProgress;
+    public Engine.UI.UIRef labelValue;
 #endif
 
     public double profileValue = 0;
@@ -32,11 +29,104 @@ public class UIGameRPGObject : GameObjectBehavior {
         UpdateValue();
     }
 
+    // WORLD-SPACE QUADS. A bar that floats in the level (the bot health bar on GamePlayerObject)
+    // cannot become a toolkit view — overlay panels draw above every camera — so with the kill
+    // switch on its sprites draw as runtime UIQuadSprite twins (Engine.UI.UIQuadSpriteTwins) and
+    // the NGUI widgets stand down. Screen-space bars (HUD, header) keep useWorldQuads false: the
+    // toolkit view already replaces them.
+    protected virtual bool useWorldQuads {
+        get {
+            return false;
+        }
+    }
+
+    // NGUI depth + this. 0 keeps the twins in the default sorting band like the NGUI draw call
+    // (render queue + depth, sorting order 0) instead of below the world's particles.
+    protected virtual int worldQuadSortingBase {
+        get {
+            return 0;
+        }
+    }
+
+    private bool worldQuadsActive;
+#if USE_UI_NGUI_2_7
+    private Engine.UI.UIQuadSprite progressFillQuad;
+    private UISprite progressFillSprite;
+#endif
+
+    public virtual void OnEnable() {
+        SyncWorldQuads();
+    }
+
+    // Build/refresh the twins and apply the kill switch (every enable, so a re-shown bar follows
+    // the current switch). A no-op for screen-space bars.
+    public void SyncWorldQuads() {
+
+        if (!useWorldQuads) {
+            return;
+        }
+
+        Engine.UI.UIQuadSpriteTwins.Sync(gameObject, worldQuadSortingBase);
+
+        worldQuadsActive = Engine.UI.UIQuadSpriteTwins.quadsActive;
+
+#if USE_UI_NGUI_2_7
+        progressFillQuad = null;
+        progressFillSprite = null;
+
+        if (sliderProgress != null && sliderProgress.foreground != null) {
+
+            UISprite fg = sliderProgress.foreground.GetComponent<UISprite>();
+
+            if (fg != null) {
+                progressFillQuad = fg.GetComponent<Engine.UI.UIQuadSprite>();
+                progressFillSprite = progressFillQuad != null ? fg : null;
+            }
+        }
+
+        MirrorProgressFill();
+#endif
+    }
+
+    // The legacy slider stays the source of truth: it sets the foreground's fillAmount (filled
+    // sprite) or its localScale (scaled sprite), and the twin copies that. Runs from SetProgress,
+    // i.e. every frame while the bar is live: unchanged -> one float compare, no allocation.
+    void MirrorProgressFill() {
+#if USE_UI_NGUI_2_7
+        if (progressFillQuad == null) {
+            return;
+        }
+
+        if (progressFillSprite.type == UISprite.Type.Filled) {
+            progressFillQuad.SetFillAmount(progressFillSprite.fillAmount);
+            return;
+        }
+
+        // A scaled foreground follows the transform scale by itself, but UISlider re-enables the
+        // widget whenever the value rises above 0.001 and disables it at 0. With the quads active,
+        // take that visibility over and keep the widget down.
+        if (worldQuadsActive && progressFillSprite.enabled) {
+            progressFillSprite.enabled = false;
+            progressFillQuad.SetVisible(true);
+        }
+        else if (worldQuadsActive && sliderProgress.sliderValue < 0.001f && progressFillQuad.isVisible) {
+            progressFillQuad.SetVisible(false);
+        }
+#endif
+    }
+
     public virtual void UpdateValue() {
         profileValue = 0;
     }
 
     public virtual void SetLabelValue(double val) {
+
+        // Runs every frame from HandleUpdate: with no label wired (the bot health bar) skip the
+        // ToString, which allocated a string per bar per frame for nothing.
+        if (labelValue == null) {
+            return;
+        }
+
         UIUtil.SetLabelValue(labelValue, val.ToString("N0", Engine.Game.App.BaseApp.L10n.NumberFormat));
     }
 
@@ -46,11 +136,17 @@ public class UIGameRPGObject : GameObjectBehavior {
     }
 
     public virtual void SetProgressLabelValue(double val) {
+
+        if (labelProgress == null) {
+            return;
+        }
+
         UIUtil.SetLabelValue(labelProgress, val.ToString("P0"));
     }
 
     public virtual void SetProgressValue(double val) {
-        UIUtil.SetSliderValue(sliderProgress, val);
+        UIUtil.SetSliderValue(sliderProgress, (float)val);
+        MirrorProgressFill();
     }
 
     public virtual void UpdateInterval() {

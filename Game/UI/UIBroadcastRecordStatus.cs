@@ -4,10 +4,6 @@ using System.Collections.Generic;
 
 using UnityEngine;
 using Engine.Utility;
-#if USE_UI_NGUI_2_7 || USE_UI_NGUI_3
-#else
-using UnityEngine.UI;
-#endif
 
 using Engine.Events;
 
@@ -17,8 +13,10 @@ public class UIBroadcastRecordStatus : GameObjectBehavior {
     public UILabel labelStatus;
     public UILabel labelStatusAction;
 #else
-    public Text labelStatus;
-    public Text labelStatusAction;
+    // B10: agnostic UIRef handles (was UGUI), the BaseGameHUD pattern. Unbound (null) until
+    // something binds them by name; every UIUtil call no-ops on a null ref.
+    public Engine.UI.UIRef labelStatus;
+    public Engine.UI.UIRef labelStatusAction;
 #endif
 
     public GameObject objectRecordStatusLight;

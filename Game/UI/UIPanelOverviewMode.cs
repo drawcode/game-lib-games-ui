@@ -5,10 +5,6 @@ using System.Collections.Generic;
 using System.Linq;
 
 using UnityEngine;
-#if USE_UI_NGUI_2_7 || USE_UI_NGUI_3
-#else
-using UnityEngine.UI;
-#endif
 
 using Engine.Events;
 using Engine.UI;
@@ -29,16 +25,18 @@ public class UIPanelOverviewMode : UIPanelBase {
     public UIImageButton buttonOverviewMode;
     public UILabel labelOverviewTeamEnemy;
 #else
+    // B10: agnostic UIRef handles (was UGUI), the BaseGameHUD pattern. Unbound (null) until
+    // something binds them by name; every UIUtil call no-ops on a null ref.
     // OVERVIEW
 
-    public Text labelOverviewTip;
-    public Text labelOverviewType;
-    public Text labelOverviewStatus;
-    public Button buttonOverviewReady;
-    public Button buttonOverviewTutorial;
-    public Button buttonOverviewTips;
-    public Button buttonOverviewMode;
-    public Text labelOverviewTeamEnemy;
+    public Engine.UI.UIRef labelOverviewTip;
+    public Engine.UI.UIRef labelOverviewType;
+    public Engine.UI.UIRef labelOverviewStatus;
+    public Engine.UI.UIRef buttonOverviewReady;
+    public Engine.UI.UIRef buttonOverviewTutorial;
+    public Engine.UI.UIRef buttonOverviewTips;
+    public Engine.UI.UIRef buttonOverviewMode;
+    public Engine.UI.UIRef labelOverviewTeamEnemy;
 #endif
 
     public static UIPanelOverviewMode Instance;
@@ -325,14 +323,24 @@ public class UIPanelOverviewMode : UIPanelBase {
     }
 
     public void ShowTipsObjectGameplay() {
+#if USE_UI_NGUI_2_7 || USE_UI_NGUI_3
         UIUtil.HideButton(buttonOverviewTips);
         UIUtil.ShowButton(buttonOverviewMode);
+#else
+        UIUtil.HideObject(buttonOverviewTips);
+        UIUtil.ShowObject(buttonOverviewMode);
+#endif
         ShowTipsObject("gameplay");
     }
 
     public void ShowTipsObjectMode() {
+#if USE_UI_NGUI_2_7 || USE_UI_NGUI_3
         UIUtil.HideButton(buttonOverviewMode);
         UIUtil.ShowButton(buttonOverviewTips);
+#else
+        UIUtil.HideObject(buttonOverviewMode);
+        UIUtil.ShowObject(buttonOverviewTips);
+#endif
         string currentAppContentState = AppContentStates.Current.code;
         ShowTipsObject(currentAppContentState);
     }

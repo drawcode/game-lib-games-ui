@@ -4,7 +4,6 @@ using System.Collections;
 using System.Collections.Generic;
 
 using UnityEngine;
-using UnityEngine.UI;
 
 using Engine.Events;
 using Engine.Game.Data;
@@ -18,8 +17,10 @@ public class UISettingsAudio : GameObjectBehavior {
     public UISlider sliderMusicVolume;
     public UISlider sliderEffectsVolume;
 #else
-    public Slider sliderMusicVolume;
-    public Slider sliderEffectsVolume;
+    // B10: agnostic UIRef handles (was UGUI), the BaseGameHUD pattern. Unbound (null) until
+    // something binds them by name; every UIUtil call no-ops on a null ref.
+    public Engine.UI.UIRef sliderMusicVolume;
+    public Engine.UI.UIRef sliderEffectsVolume;
 #endif
     
     public GameObject sliderMusicVolumeObject;
@@ -67,14 +68,22 @@ public class UISettingsAudio : GameObjectBehavior {
         if(gameAudioData.code == BaseDataObjectKeys.effects) {
             if(sliderEffectsVolume != null) {
                 if(volume != UIUtil.GetSliderValue(sliderEffectsVolume)) {
+#if USE_UI_NGUI_2_7 || USE_UI_NGUI_3
                     UIUtil.SetSliderValue(sliderEffectsVolume, gameAudioData.volume);
+#else
+                    UIUtil.SetSliderValue(sliderEffectsVolume, volume);
+#endif
                 }
             }
         }
         else if(gameAudioData.code == BaseDataObjectKeys.music) {
             if(sliderMusicVolume != null) {
                 if(volume != UIUtil.GetSliderValue(sliderMusicVolume)) {
+#if USE_UI_NGUI_2_7 || USE_UI_NGUI_3
                     UIUtil.SetSliderValue(sliderMusicVolume, gameAudioData.volume);
+#else
+                    UIUtil.SetSliderValue(sliderMusicVolume, volume);
+#endif
                 }
             }
         }

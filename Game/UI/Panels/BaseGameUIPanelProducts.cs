@@ -5,7 +5,6 @@ using System.Collections.Generic;
 using UnityEngine;
 
 using Engine.Events;
-using UnityEngine.UI;
 using Engine.Game.App.BaseApp;
 
 public class BaseGameUIPanelProducts : GameUIPanelBase {
@@ -339,7 +338,9 @@ public class BaseGameUIPanelProducts : GameUIPanelBase {
 #if USE_UI_NGUI_2_7 || USE_UI_NGUI_3
                 UIImageButton button = buttonObject.gameObject.GetComponent<UIImageButton>();
 #else
-                Button button = buttonObject.gameObject.Get<Button>();
+                // B10: was Get<Button>(); the backend's button test, the GameObject keeps the name.
+                GameObject button = UIUtil.IsButton(Engine.UI.UIRef.Of(buttonObject.gameObject))
+                    ? buttonObject.gameObject : null;
 #endif
 
                 if(button != null) {

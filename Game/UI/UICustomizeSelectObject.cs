@@ -2,10 +2,6 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-#if USE_UI_NGUI_2_7 || USE_UI_NGUI_3
-#else
-using UnityEngine.UI;
-#endif
 
 // using Engine.Data.Json;
 using Engine.Events;
@@ -21,12 +17,14 @@ public class UICustomizeSelectObject : UICustomizeObject {
     public UILabel labelCurrentStatus;
     public UIInput inputCurrentDisplayName;
 #else
-    public Button buttonCycleLeft;
-    public Button buttonCycleRight;
-    public Text labelCurrentDisplayName;
-    public Text labelCurrentType;
-    public Text labelCurrentStatus;
-    public InputField inputCurrentDisplayName;
+    // B10: agnostic UIRef handles (was UGUI), the BaseGameHUD pattern. Unbound (null) until
+    // something binds them by name; every UIUtil call no-ops on a null ref.
+    public Engine.UI.UIRef buttonCycleLeft;
+    public Engine.UI.UIRef buttonCycleRight;
+    public Engine.UI.UIRef labelCurrentDisplayName;
+    public Engine.UI.UIRef labelCurrentType;
+    public Engine.UI.UIRef labelCurrentStatus;
+    public Engine.UI.UIRef inputCurrentDisplayName;
 #endif
 
     public int currentIndex = -1;

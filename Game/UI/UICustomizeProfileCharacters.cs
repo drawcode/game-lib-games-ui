@@ -3,10 +3,6 @@ using System.Collections;
 using System.Collections.Generic;
 
 using UnityEngine;
-#if USE_UI_NGUI_2_7 || USE_UI_NGUI_3
-#else
-using UnityEngine.UI;
-#endif
 
 // using Engine.Data.Json;
 using Engine.Events;
@@ -18,8 +14,10 @@ public class UICustomizeProfileCharacters : UICustomizeSelectObject {
     public UIInput inputCurrentDisplayCode;
     public UIImageButton buttonSave;
 #else
-    public InputField inputCurrentDisplayCode;
-    public Button buttonSave;
+    // B10: agnostic UIRef handles (was UGUI), the BaseGameHUD pattern. Unbound (null) until
+    // something binds them by name; every UIUtil call no-ops on a null ref.
+    public Engine.UI.UIRef inputCurrentDisplayCode;
+    public Engine.UI.UIRef buttonSave;
 #endif
 
     public string type = "character";
@@ -133,7 +131,11 @@ public class UICustomizeProfileCharacters : UICustomizeSelectObject {
             return;
         }
 
+#if USE_UI_NGUI_2_7 || USE_UI_NGUI_3
         ChangeCharacterDisplayName(inputCurrentDisplayName.text);
+#else
+        ChangeCharacterDisplayName(UIUtil.GetInputValue(inputCurrentDisplayName));
+#endif
     }
 
     public virtual void SaveCharacterDisplayCodeInput() {
@@ -142,7 +144,11 @@ public class UICustomizeProfileCharacters : UICustomizeSelectObject {
             return;
         }
 
+#if USE_UI_NGUI_2_7 || USE_UI_NGUI_3
         ChangeCharacterDisplayCode(inputCurrentDisplayCode.text);
+#else
+        ChangeCharacterDisplayCode(UIUtil.GetInputValue(inputCurrentDisplayCode));
+#endif
     }
 
     public virtual void ChangeCharacterDisplayName(string val) {

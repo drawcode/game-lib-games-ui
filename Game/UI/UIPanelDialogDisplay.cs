@@ -4,10 +4,6 @@ using System.Collections;
 using System.Collections.Generic;
 
 using UnityEngine;
-#if USE_UI_NGUI_2_7 || USE_UI_NGUI_3
-#else
-using UnityEngine.UI;
-#endif
 
 using Engine.Events;
 using Engine.UI;
@@ -22,12 +18,14 @@ public class UIPanelDialogDisplay : UIPanelBase {
     public UIImageButton buttonDialogGo;
     public UIImageButton buttonDialogNext;
 #else
-    public Text labelTitle;
-    public Text labelDescription;
-    public Button buttonDialogOk;
-    public Button buttonDialogCancel;
-    public Button buttonDialogGo;
-    public Button buttonDialogNext;
+    // B10: agnostic UIRef handles (was UGUI), the BaseGameHUD pattern. Unbound (null) until
+    // something binds them by name; every UIUtil call no-ops on a null ref.
+    public Engine.UI.UIRef labelTitle;
+    public Engine.UI.UIRef labelDescription;
+    public Engine.UI.UIRef buttonDialogOk;
+    public Engine.UI.UIRef buttonDialogCancel;
+    public Engine.UI.UIRef buttonDialogGo;
+    public Engine.UI.UIRef buttonDialogNext;
 #endif
 
     public static UIPanelDialogDisplay Instance;
@@ -300,42 +298,74 @@ public class UIPanelDialogDisplay : UIPanelBase {
     // only HIDDEN under suppression, never destroyed, and OnButtonClickEventHandler still reads
     // its GameObject name through UIUtil.IsButtonClicked — so it has to stay in step.
     public void showButtonOk() {
+#if USE_UI_NGUI_2_7 || USE_UI_NGUI_3
         UIUtil.ShowButton(buttonDialogOk);
+#else
+        UIUtil.ShowObject(buttonDialogOk);
+#endif
         SetToolkitButtonVisible(elementButtonOk, true);
     }
 
     public void showButtonCancel() {
+#if USE_UI_NGUI_2_7 || USE_UI_NGUI_3
         UIUtil.ShowButton(buttonDialogCancel);
+#else
+        UIUtil.ShowObject(buttonDialogCancel);
+#endif
         SetToolkitButtonVisible(elementButtonCancel, true);
     }
 
     public void showButtonGo() {
+#if USE_UI_NGUI_2_7 || USE_UI_NGUI_3
         UIUtil.ShowButton(buttonDialogGo);
+#else
+        UIUtil.ShowObject(buttonDialogGo);
+#endif
         SetToolkitButtonVisible(elementButtonGo, true);
     }
 
     public void showButtonNext() {
+#if USE_UI_NGUI_2_7 || USE_UI_NGUI_3
         UIUtil.ShowButton(buttonDialogNext);
+#else
+        UIUtil.ShowObject(buttonDialogNext);
+#endif
         SetToolkitButtonVisible(elementButtonNext, true);
     }
 
     public void hideButtonOk() {
+#if USE_UI_NGUI_2_7 || USE_UI_NGUI_3
         UIUtil.HideButton(buttonDialogOk);
+#else
+        UIUtil.HideObject(buttonDialogOk);
+#endif
         SetToolkitButtonVisible(elementButtonOk, false);
     }
 
     public void hideButtonCancel() {
+#if USE_UI_NGUI_2_7 || USE_UI_NGUI_3
         UIUtil.HideButton(buttonDialogCancel);
+#else
+        UIUtil.HideObject(buttonDialogCancel);
+#endif
         SetToolkitButtonVisible(elementButtonCancel, false);
     }
 
     public void hideButtonGo() {
+#if USE_UI_NGUI_2_7 || USE_UI_NGUI_3
         UIUtil.HideButton(buttonDialogGo);
+#else
+        UIUtil.HideObject(buttonDialogGo);
+#endif
         SetToolkitButtonVisible(elementButtonGo, false);
     }
 
     public void hideButtonNext() {
+#if USE_UI_NGUI_2_7 || USE_UI_NGUI_3
         UIUtil.HideButton(buttonDialogNext);
+#else
+        UIUtil.HideObject(buttonDialogNext);
+#endif
         SetToolkitButtonVisible(elementButtonNext, false);
     }
 
