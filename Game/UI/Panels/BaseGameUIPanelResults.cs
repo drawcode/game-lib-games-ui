@@ -50,6 +50,23 @@ public class BaseGameUIPanelResults : GameUIPanelBase {
         Messenger<string, string>.AddListener(
             UIControllerMessages.uiPanelAnimateType,
             OnUIControllerPanelAnimateType);
+
+        Engine.Game.App.BaseApp.GameLocalizationService.LanguageChanged += OnLanguageChanged;
+    }
+
+    // Every value on this card is a game write (mode title, level, planet, the numbers), and a game
+    // write releases the label's @loc binding, so a language change would otherwise leave them in
+    // the locale Results opened in (the mode title stayed "Arcade-Modus" under en/ja). Replay both
+    // writers: they re-derive the localized strings and re-format the numbers for the new locale.
+    // The toolkit's own re-apply subscribed at boot, so it has already run by the time this does.
+    protected virtual void OnLanguageChanged(string code) {
+
+        if(!isToolkitPanel) {
+            return;
+        }
+
+        WriteLevelMeta();
+        WriteResultValues();
     }
 
     public override void OnDisable() {
@@ -69,6 +86,8 @@ public class BaseGameUIPanelResults : GameUIPanelBase {
         Messenger<string, string>.RemoveListener(
             UIControllerMessages.uiPanelAnimateType,
             OnUIControllerPanelAnimateType);
+
+        Engine.Game.App.BaseApp.GameLocalizationService.LanguageChanged -= OnLanguageChanged;
 
         // Chain to base so UIPanelBase.OnDisable -> FreeToolkitView runs when this panel is pooled
         // away, else the toolkit view leaks once panel-results gets a toolkitViewKey. Phase-3
