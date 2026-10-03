@@ -25,6 +25,38 @@ public class UIPanelDialogRPGHealth : UIPanelDialogRPGObject {
         panelTypes.Add(UIPanelBaseTypes.typeDialogHUD);
     }
 
+    // TOOLKIT (B3): the shared panel-dialog-rpg view, filled with this stat. Same read as the
+    // UIGameRPGHealth meter in the scene tree (rounded to 2 places, default 1).
+    public override string toolkitStatCode {
+        get {
+            return "health";
+        }
+    }
+
+    public override double GetToolkitStatValue() {
+        return Math.Round(GameProfileCharacters.currentProgress.GetGamePlayerProgressHealth(1), 2);
+    }
+
+    // The Health scene tree has no LabelProgress under its meter, and its hidden third button is
+    // ButtonRPGHealthTraining / "TRAINING" rather than Energy's Missions.
+    public override bool toolkitShowStatPercent {
+        get {
+            return false;
+        }
+    }
+
+    public override string toolkitEarnLabelKey {
+        get {
+            return "game_ui_dialog_rpg_training";
+        }
+    }
+
+    protected override string toolkitButtonEarnSuffix {
+        get {
+            return "Training";
+        }
+    }
+
     public static bool isInst {
         get {
             if(Instance != null) {

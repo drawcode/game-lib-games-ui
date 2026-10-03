@@ -7,11 +7,6 @@ using System.Linq;
 using UnityEngine;
 using Engine.Game.App.BaseApp;
 
-#if USE_UI_NGUI_2_7 || USE_UI_NGUI_3
-#else
-using UnityEngine.UI;
-#endif
-
 using Engine.Events;
 
 public class UIPanelDialogRPGAttack : UIPanelBase {
@@ -20,9 +15,11 @@ public class UIPanelDialogRPGAttack : UIPanelBase {
     public UIImageButton buttonBuyRecharge;
     public UIImageButton buttonEarn;
 #else
-    public Text labelTitle;
-    public Button buttonBuyRecharge;
-    public Button buttonEarn;
+    // B10: agnostic UIRef handles. No scene object and no view of its own: this panel derives
+    // from UIPanelBase, not UIPanelDialogRPGObject, so it does not share panel-dialog-rpg.
+    public Engine.UI.UIRef labelTitle;
+    public Engine.UI.UIRef buttonBuyRecharge;
+    public Engine.UI.UIRef buttonEarn;
 #endif
 
     public static UIPanelDialogRPGAttack Instance;

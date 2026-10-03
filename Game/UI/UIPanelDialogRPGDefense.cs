@@ -5,14 +5,15 @@ using System.Collections.Generic;
 using System.Linq;
 
 using UnityEngine;
-#if USE_UI_NGUI_2_7 || USE_UI_NGUI_3
-#else
-using UnityEngine.UI;
-#endif
 
 using Engine.Events;
 
 public class UIPanelDialogRPGDefense : UIPanelDialogRPGObject {
+
+    // B3: no scene object, so no layout of its own. It inherits the shared panel-dialog-rpg view
+    // from UIPanelDialogRPGObject with the static copy only (toolkitStatCode stays empty, there
+    // are no defense strings) and no meter (GetToolkitStatValue stays -1); its button names fall
+    // back to ButtonRPGDefenseBuyRecharge / -Resume / -Missions. The stale UGUI using went with B10.
 
     public static UIPanelDialogRPGDefense Instance;
 
