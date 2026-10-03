@@ -531,10 +531,16 @@ public class BaseGameHUD : GameUIPanelBase {
         buttonInputUseElement = UIUtil.ResolveDeep(viewRoot, BaseHUDButtonNames.buttonInputUse);
         lastUseVisible = -1;
 
-        UIUtil.SetElementStickHandler(padMove, (offset, released) =>
+        // FLOATING, as the legacy pads were: a press anywhere in a stick's zone (the legacy
+        // AxisInputPlacement-* rect) brings the stick to the thumb, so it suits any thumb size and
+        // grip. A view without the zones gets the anchored stick (UIUtil falls back).
+        UIRef padMoveZone = UIUtil.ResolveDeep(viewRoot, padMoveName + "Zone");
+        UIRef padAttackZone = UIUtil.ResolveDeep(viewRoot, padAttackName + "Zone");
+
+        UIUtil.SetElementFloatingStickHandler(padMoveZone, padMove, (offset, released) =>
             OnToolkitStick(InputSystemKeys.moveKey, padMoveKnob, offset, released));
 
-        UIUtil.SetElementStickHandler(padAttack, (offset, released) =>
+        UIUtil.SetElementFloatingStickHandler(padAttackZone, padAttack, (offset, released) =>
             OnToolkitStick(InputSystemKeys.attackKey, padAttackKnob, offset, released));
 
         GameTouchInputAxis.touchDrivenExternally = true;

@@ -183,6 +183,10 @@ public class BaseGameUIPanelResults : GameUIPanelBase {
     // wait for the async view load.
 
     public static string labelNameScores = "LabelScoresValue";
+
+    // The ATTACK POINTS row (gameplay iter 25): runtimeData.score, the term of totalScoreValue
+    // that had no row of its own, so the rows on the card never summed to TOTAL SCORE.
+    public static string labelNameScore = "LabelScoreValue";
     public static string labelNameKills = "LabelKillsValue";
     public static string labelNameCoins = "LabelCoinsCollectedValue";
     public static string labelNameTotalPoints = "LabelTotalPointsValue";
@@ -238,6 +242,8 @@ public class BaseGameUIPanelResults : GameUIPanelBase {
             viewRoot, labelNameKills, lastRuntimeData.kills.ToString("N0", Engine.Game.App.BaseApp.L10n.NumberFormat));
         UIUtil.UpdateLabelObject(
             viewRoot, labelNameCoins, lastRuntimeData.coins.ToString("N0", Engine.Game.App.BaseApp.L10n.NumberFormat));
+        UIUtil.UpdateLabelObject(
+            viewRoot, labelNameScore, lastRuntimeData.score.ToString("N0", Engine.Game.App.BaseApp.L10n.NumberFormat));
         UIUtil.UpdateLabelObject(
             viewRoot, labelNameTotalPoints, lastRuntimeData.totalScoreValue.ToString("N0", Engine.Game.App.BaseApp.L10n.NumberFormat));
         UIUtil.UpdateLabelObject(
