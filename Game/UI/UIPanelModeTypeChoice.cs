@@ -16,7 +16,7 @@ using UnityEngine.UI;
 
 using Engine.Events;
 
-public class UIPanelModeTypeChoice : UIPanelBase {
+public class UIPanelModeTypeChoice : UIPanelModeTypeBase {
 #if USE_UI_NGUI_2_7 || USE_UI_NGUI_3    
     // OVERVIEW
 
@@ -77,60 +77,125 @@ public class UIPanelModeTypeChoice : UIPanelBase {
 #else
     // OVERVIEW
 
-    public Text labelOverviewTip;
-    public Text labelOverviewType;
-    public Text labelOverviewStatus;
+    public Engine.UI.UIRef labelOverviewTip;
+    public Engine.UI.UIRef labelOverviewType;
+    public Engine.UI.UIRef labelOverviewStatus;
 
-    public Text labelOverviewTitle;
-    public Text labelOverviewBlurb;
-    public Text labelOverviewBlurb2;
-    public Text labelOverviewNextSteps;
+    public Engine.UI.UIRef labelOverviewTitle;
+    public Engine.UI.UIRef labelOverviewBlurb;
+    public Engine.UI.UIRef labelOverviewBlurb2;
+    public Engine.UI.UIRef labelOverviewNextSteps;
 
-    public Button buttonOverviewAdvance;
+    public Engine.UI.UIRef buttonOverviewAdvance;
 
     // DISPLAY ITEM
 
-    public Text labelDisplayItemTip;
-    public Text labelDisplayItemType;
-    public Text labelDisplayItemStatus;
+    public Engine.UI.UIRef labelDisplayItemTip;
+    public Engine.UI.UIRef labelDisplayItemType;
+    public Engine.UI.UIRef labelDisplayItemStatus;
 
-    public Text labelDisplayItemTitle;
-    public Text labelDisplayItemAnswers;
-    public Text labelDisplayItemNote;
-    public Text labelDisplayItemQuestion;
+    public Engine.UI.UIRef labelDisplayItemTitle;
+    public Engine.UI.UIRef labelDisplayItemAnswers;
+    public Engine.UI.UIRef labelDisplayItemNote;
+    public Engine.UI.UIRef labelDisplayItemQuestion;
 
-    public Button buttonDisplayItemAdvance;
+    public Engine.UI.UIRef buttonDisplayItemAdvance;
 
     // RESULT ITEM
 
-    public Text labelResultItemTip;
-    public Text labelResultItemType;
-    public Text labelResultItemStatus;
+    public Engine.UI.UIRef labelResultItemTip;
+    public Engine.UI.UIRef labelResultItemType;
+    public Engine.UI.UIRef labelResultItemStatus;
 
-    public Text labelResultItemChoiceDescription;
-    public Text labelResultItemChoiceResultValue;
-    public Text labelResultItemChoiceResultType;
-    public Text labelResultItemChoiceDisplayName;
-    public Text labelResultItemNextSteps;
+    public Engine.UI.UIRef labelResultItemChoiceDescription;
+    public Engine.UI.UIRef labelResultItemChoiceResultValue;
+    public Engine.UI.UIRef labelResultItemChoiceResultType;
+    public Engine.UI.UIRef labelResultItemChoiceDisplayName;
+    public Engine.UI.UIRef labelResultItemNextSteps;
 
-    public Button buttonResultItemAdvance;
+    public Engine.UI.UIRef buttonResultItemAdvance;
 
     // RESULTS
 
-    public Text labelResultsTip;
-    public Text labelResultsType;
-    public Text labelResultsStatus;
+    public Engine.UI.UIRef labelResultsTip;
+    public Engine.UI.UIRef labelResultsType;
+    public Engine.UI.UIRef labelResultsStatus;
 
-    public Text labelResultsTitle;
-    public Text labelResultsCoinsValue;
-    public Text labelResultsScorePercentageValue;
-    public Text labelResultsScoreFractionValue;
+    public Engine.UI.UIRef labelResultsTitle;
+    public Engine.UI.UIRef labelResultsCoinsValue;
+    public Engine.UI.UIRef labelResultsScorePercentageValue;
+    public Engine.UI.UIRef labelResultsScoreFractionValue;
 
-    public Slider sliderScore;
+    public Engine.UI.UIRef sliderScore;
 
-    public Button buttonResultsAdvance;
-    public Button buttonResultsReplay;
-    public Button buttonResultsModes;
+    public Engine.UI.UIRef buttonResultsAdvance;
+    public Engine.UI.UIRef buttonResultsReplay;
+    public Engine.UI.UIRef buttonResultsModes;
+#endif
+
+    // B5: THE QUIZ CARDS as a toolkit view (Resources/ui/views/panel-mode-type-choice.uxml, shared
+    // with UIPanelModeTypeCollection). Hosting, suppression, card show/hide and the mode colours are
+    // UIPanelModeTypeBase's; this panel names its view and mirrors every label write and every card
+    // tween into it by path (UIPanelModeTypeViews). Only the TrainingChoiceQuiz state opens it
+    // (GameController), and nothing enters that state today: verified by a direct Show.
+    public override string toolkitViewKey {
+        get {
+            return BaseUIPanel.panelModeTypeChoice;
+        }
+    }
+
+    protected override string[][] toolkitModeColorTargets {
+        get {
+            return UIPanelModeTypeViews.quizModeColorTargets;
+        }
+    }
+
+#if USE_UI_NGUI_2_7 || USE_UI_NGUI_3
+#else
+    // The UIRef fields above bind by NAME, and every card repeats its children's names (each has a
+    // LabelOverviewTip, a LabelTitle...), so the convention pass would hand every field the FIRST
+    // card's element. Re-bound by path once it has run.
+    public override void BindElements(Engine.UI.UIRef root) {
+
+        base.BindElements(root);
+
+        labelOverviewTip = ResolveViewPath(root, UIPanelModeTypeViews.labelOverviewTip);
+        labelOverviewType = ResolveViewPath(root, UIPanelModeTypeViews.labelOverviewType);
+        labelOverviewStatus = ResolveViewPath(root, UIPanelModeTypeViews.labelOverviewStatus);
+        labelOverviewTitle = ResolveViewPath(root, UIPanelModeTypeViews.labelOverviewTitle);
+        labelOverviewBlurb = ResolveViewPath(root, UIPanelModeTypeViews.labelOverviewBlurb);
+        labelOverviewBlurb2 = ResolveViewPath(root, UIPanelModeTypeViews.labelOverviewBlurb2);
+        labelOverviewNextSteps = ResolveViewPath(root, UIPanelModeTypeViews.labelOverviewNextSteps);
+        buttonOverviewAdvance = ResolveViewPath(root, UIPanelModeTypeViews.buttonOverviewAdvance);
+        labelDisplayItemTip = ResolveViewPath(root, UIPanelModeTypeViews.labelDisplayItemTip);
+        labelDisplayItemType = ResolveViewPath(root, UIPanelModeTypeViews.labelDisplayItemType);
+        labelDisplayItemStatus = ResolveViewPath(root, UIPanelModeTypeViews.labelDisplayItemStatus);
+        labelDisplayItemTitle = ResolveViewPath(root, UIPanelModeTypeViews.labelDisplayItemTitle);
+        labelDisplayItemAnswers = ResolveViewPath(root, UIPanelModeTypeViews.labelDisplayItemAnswers);
+        labelDisplayItemNote = ResolveViewPath(root, UIPanelModeTypeViews.labelDisplayItemNote);
+        labelDisplayItemQuestion = ResolveViewPath(root, UIPanelModeTypeViews.labelDisplayItemQuestion);
+        buttonDisplayItemAdvance = ResolveViewPath(root, UIPanelModeTypeViews.buttonDisplayItemAdvance);
+        labelResultItemTip = ResolveViewPath(root, UIPanelModeTypeViews.labelResultItemTip);
+        labelResultItemType = ResolveViewPath(root, UIPanelModeTypeViews.labelResultItemType);
+        labelResultItemStatus = ResolveViewPath(root, UIPanelModeTypeViews.labelResultItemStatus);
+        labelResultItemChoiceDescription = ResolveViewPath(root, UIPanelModeTypeViews.labelResultItemChoiceDescription);
+        labelResultItemChoiceResultValue = ResolveViewPath(root, UIPanelModeTypeViews.labelResultItemChoiceResultValue);
+        labelResultItemChoiceResultType = ResolveViewPath(root, UIPanelModeTypeViews.labelResultItemChoiceResultType);
+        labelResultItemChoiceDisplayName = ResolveViewPath(root, UIPanelModeTypeViews.labelResultItemChoiceDisplayName);
+        labelResultItemNextSteps = ResolveViewPath(root, UIPanelModeTypeViews.labelResultItemNextSteps);
+        buttonResultItemAdvance = ResolveViewPath(root, UIPanelModeTypeViews.buttonResultItemAdvance);
+        labelResultsTip = ResolveViewPath(root, UIPanelModeTypeViews.labelResultsTip);
+        labelResultsType = ResolveViewPath(root, UIPanelModeTypeViews.labelResultsType);
+        labelResultsStatus = ResolveViewPath(root, UIPanelModeTypeViews.labelResultsStatus);
+        labelResultsTitle = ResolveViewPath(root, UIPanelModeTypeViews.labelResultsTitle);
+        labelResultsCoinsValue = ResolveViewPath(root, UIPanelModeTypeViews.labelResultsCoinsValue);
+        labelResultsScorePercentageValue = ResolveViewPath(root, UIPanelModeTypeViews.labelResultsScorePercentageValue);
+        labelResultsScoreFractionValue = ResolveViewPath(root, UIPanelModeTypeViews.labelResultsScoreFractionValue);
+        sliderScore = ResolveViewPath(root, UIPanelModeTypeViews.sliderScore);
+        buttonResultsAdvance = ResolveViewPath(root, UIPanelModeTypeViews.buttonResultsAdvance);
+        buttonResultsReplay = ResolveViewPath(root, UIPanelModeTypeViews.buttonResultsReplay);
+        buttonResultsModes = ResolveViewPath(root, UIPanelModeTypeViews.buttonResultsModes);
+    }
 #endif
 
     public static UIPanelModeTypeChoice Instance;
@@ -634,6 +699,7 @@ public class UIPanelModeTypeChoice : UIPanelBase {
         //LogUtil.Log("UIPanelModeTypeChoice:DisplayStateOverview:flowState:" + flowState);
 
         UIUtil.SetLabelValue(labelOverviewStatus, GetStatusOverview());
+        SetViewLabel(UIPanelModeTypeViews.labelOverviewStatus, GetStatusOverview());
 
         ShowOverview();
     }
@@ -663,6 +729,7 @@ public class UIPanelModeTypeChoice : UIPanelBase {
         UIColors.UpdateColors();
 
         UIUtil.SetLabelValue(labelDisplayItemStatus, GetStatusItemProgress());
+        SetViewLabel(UIPanelModeTypeViews.labelDisplayItemStatus, GetStatusItemProgress());
 
         AppContentChoice choice = GetCurrentChoice();
 
@@ -677,7 +744,9 @@ public class UIPanelModeTypeChoice : UIPanelBase {
             }
 
             UIUtil.SetLabelValue(labelDisplayItemTitle, choiceTitle);
+            SetViewLabel(UIPanelModeTypeViews.labelDisplayItemTitle, choiceTitle);
             UIUtil.SetLabelValue(labelDisplayItemQuestion, choiceQuestion);
+            SetViewLabel(UIPanelModeTypeViews.labelDisplayItemQuestion, choiceQuestion);
         }
     }
 
@@ -693,6 +762,7 @@ public class UIPanelModeTypeChoice : UIPanelBase {
         LogUtil.Log("UIPanelModeTypeChoice:UpdateResultItemData");
 
         UIUtil.SetLabelValue(labelResultItemStatus, GetStatusItemProgress());
+        SetViewLabel(UIPanelModeTypeViews.labelResultItemStatus, GetStatusItemProgress());
 
         UIColors.UpdateColors();
 
@@ -703,12 +773,14 @@ public class UIPanelModeTypeChoice : UIPanelBase {
 
         if(isCorrect) {//currentChoiceData.CheckChoices(true)) {
             UIColors.UpdateColor(containerChoiceResultItem, UIColors.colorGreen);
+            SetViewModeColor(UIPanelModeTypeViews.cardResultItem, UIColors.colorGreen);
             typeValue = "CORRECT!";
             GameAudioController.PlaySoundPlayerActionGood();
             choicesCorrect += 1;
         }
         else {
             UIColors.UpdateColor(containerChoiceResultItem, UIColors.colorRed);
+            SetViewModeColor(UIPanelModeTypeViews.cardResultItem, UIColors.colorRed);
             typeValue = "INCORRECT...";
             GameAudioController.PlaySoundPlayerActionBad();
         }
@@ -733,9 +805,13 @@ public class UIPanelModeTypeChoice : UIPanelBase {
             }
 
             UIUtil.SetLabelValue(labelResultItemChoiceDisplayName, choiceResultDisplayName);
+            SetViewLabel(UIPanelModeTypeViews.labelResultItemChoiceDisplayName, choiceResultDisplayName);
             UIUtil.SetLabelValue(labelResultItemChoiceDescription, choiceResultDescription);
+            SetViewLabel(UIPanelModeTypeViews.labelResultItemChoiceDescription, choiceResultDescription);
             UIUtil.SetLabelValue(labelResultItemChoiceResultValue, choiceResultValue);
+            SetViewLabel(UIPanelModeTypeViews.labelResultItemChoiceResultValue, choiceResultValue);
             UIUtil.SetLabelValue(labelResultItemChoiceResultType, choiceResultType);
+            SetViewLabel(UIPanelModeTypeViews.labelResultItemChoiceResultType, choiceResultType);
         }
     }
 
@@ -744,6 +820,7 @@ public class UIPanelModeTypeChoice : UIPanelBase {
         //LogUtil.Log("UIPanelModeTypeChoice:DisplayStateResults:flowState:" + flowState);
 
         UIUtil.SetLabelValue(labelResultsStatus, "Results");
+        SetViewLabel(UIPanelModeTypeViews.labelResultsStatus, "Results");
 
         UpdateDisplayStateResultsData();
 
@@ -757,6 +834,7 @@ public class UIPanelModeTypeChoice : UIPanelBase {
         UIColors.UpdateColors();
 
         UIUtil.SetLabelValue(labelResultsStatus, "Results");
+        SetViewLabel(UIPanelModeTypeViews.labelResultsStatus, "Results");
 
         GameAudioController.PlaySoundPlayerActionGood();
 
@@ -773,13 +851,16 @@ public class UIPanelModeTypeChoice : UIPanelBase {
         //string scoreTypeValue = "4/5";
         string scoreCoinsValue = coins.ToString("N0", Engine.Game.App.BaseApp.L10n.NumberFormat);
 
-        UIUtil.SetSliderValue(sliderScore, choicesResult);
+        UIUtil.SetSliderValue(sliderScore, (float)choicesResult);
 
         UIUtil.SetLabelValue(labelResultsScoreFractionValue, scoreFractionValue);
+        SetViewLabel(UIPanelModeTypeViews.labelResultsScoreFractionValue, scoreFractionValue);
         UIUtil.SetLabelValue(labelResultsScorePercentageValue, scorePercentageValue);
+        SetViewLabel(UIPanelModeTypeViews.labelResultsScorePercentageValue, scorePercentageValue);
         //UIUtil.SetLabelValue(labelResultsTitle, choiceResultValue);
         //UIUtil.SetLabelValue(labelResultsType, choiceResultType);
         UIUtil.SetLabelValue(labelResultsCoinsValue, scoreCoinsValue);
+        SetViewLabel(UIPanelModeTypeViews.labelResultsCoinsValue, scoreCoinsValue);
 
         // REWARDS
 
@@ -850,6 +931,7 @@ public class UIPanelModeTypeChoice : UIPanelBase {
         //LogUtil.Log("UIPanelModeTypeChoice:ShowOverview:flowState:" + flowState);
 
         AnimateInBottom(containerChoiceOverview);
+        SetViewVisible(UIPanelModeTypeViews.cardOverview, true);
 
         ContentPause();
 
@@ -861,6 +943,7 @@ public class UIPanelModeTypeChoice : UIPanelBase {
         //LogUtil.Log("UIPanelModeTypeChoice:ShowOverview:flowState:" + flowState);
 
         AnimateOutBottom(containerChoiceOverview, 0f, 0f);
+        SetViewVisible(UIPanelModeTypeViews.cardOverview, false);
 
         ContentRun();
     }
@@ -887,6 +970,7 @@ public class UIPanelModeTypeChoice : UIPanelBase {
         //LogUtil.Log("UIPanelModeTypeChoice:ShowDisplayItem:flowState:" + flowState);
 
         AnimateInBottom(containerChoiceDisplayItem);
+        SetViewVisible(UIPanelModeTypeViews.cardDisplayItem, true);
 
         loadDataChoice();
 
@@ -903,6 +987,7 @@ public class UIPanelModeTypeChoice : UIPanelBase {
         listGridRoot.DestroyChildren();
 
         AnimateOutBottom(containerChoiceDisplayItem, 0f, 0f);
+        SetViewVisible(UIPanelModeTypeViews.cardDisplayItem, false);
 
         ContentRun();
     }
@@ -918,6 +1003,7 @@ public class UIPanelModeTypeChoice : UIPanelBase {
         //LogUtil.Log("UIPanelModeTypeChoice:ShowResultItem:flowState:" + flowState);
 
         AnimateInBottom(containerChoiceResultItem);
+        SetViewVisible(UIPanelModeTypeViews.cardResultItem, true);
 
         ContentPause();
     }
@@ -927,6 +1013,7 @@ public class UIPanelModeTypeChoice : UIPanelBase {
         //LogUtil.Log("UIPanelModeTypeChoice:HideResultItem:flowState:" + flowState);
 
         AnimateOutBottom(containerChoiceResultItem, 0f, 0f);
+        SetViewVisible(UIPanelModeTypeViews.cardResultItem, false);
 
         ContentRun();
     }
@@ -937,6 +1024,7 @@ public class UIPanelModeTypeChoice : UIPanelBase {
         HideStates();
         //LogUtil.Log("UIPanelModeTypeChoice:ShowResults:flowState:" + flowState);
         AnimateInBottom(containerChoiceResults);
+        SetViewVisible(UIPanelModeTypeViews.cardResults, true);
         ContentPause();
 
         Messenger.Broadcast(GameMessages.gameResultsStart);
@@ -945,6 +1033,7 @@ public class UIPanelModeTypeChoice : UIPanelBase {
     public void HideResults() {
         //LogUtil.Log("UIPanelModeTypeChoice:HideResults:flowState:" + flowState);
         AnimateOutBottom(containerChoiceResults, 0f, 0f);
+        SetViewVisible(UIPanelModeTypeViews.cardResults, false);
         ContentRun();
 
         Messenger.Broadcast(GameMessages.gameResultsEnd);
@@ -999,7 +1088,12 @@ public class UIPanelModeTypeChoice : UIPanelBase {
             }
 
             yield return new WaitForEndOfFrame();
-            ListReposition(listGrid, listGridRoot);
+            // The legacy answer grid is hidden while the toolkit view is up, and NGUI's bounds maths
+            // NREs on a hidden grid (NGUIMath.CalculateRelativeWidgetBounds, once per show). Nothing
+            // of it is on screen then, so only lay it out on the legacy path.
+            if(!isToolkitPanel) {
+                ListReposition(listGrid, listGridRoot);
+            }
             yield return new WaitForEndOfFrame();
         }
     }

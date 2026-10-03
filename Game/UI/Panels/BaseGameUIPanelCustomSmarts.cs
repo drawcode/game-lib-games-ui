@@ -75,6 +75,10 @@ public class BaseGameUIPanelCustomSmarts : GameUIPanelBase {
         Messenger<string, string>.RemoveListener(
             UIControllerMessages.uiPanelAnimateType,
             OnUIControllerPanelAnimateType);
+
+        // B7 (2026-10-03): chain to the base. UIPanelBase.OnDisable is what calls FreeToolkitView;
+        // without it the view leaks its PanelRenderer and the kill switch cannot restore legacy.
+        base.OnDisable();
     }
 
     public override void OnUIControllerPanelAnimateIn(string classNameTo) {
@@ -148,7 +152,54 @@ public class BaseGameUIPanelCustomSmarts : GameUIPanelBase {
     }
 
     public virtual void SetScore(double score) {
-        UIUtil.SetLabelValue(labelPlaySmartScore, score.ToString("N0", Engine.Game.App.BaseApp.L10n.NumberFormat));
+
+        string val = score.ToString("N0", Engine.Game.App.BaseApp.L10n.NumberFormat);
+
+        UIUtil.SetLabelValue(labelPlaySmartScore, val);
+
+        // B7: the toolkit copy. Under USE_UI_NGUI_2_7 the field above is a UILabel and can never
+        // bind to the view, so the view's label is written BY NAME, and remembered for the replay
+        // in BindElements (Init calls this before the async view exists).
+        toolkitScoreText = val;
+
+        SetToolkitScore();
+    }
+
+    // ----------------------------------------------------------------------------------------
+    // B7 (2026-10-03): UI Toolkit hosting -- Resources/ui/views/panel-custom-smarts.uxml.
+    //
+    // The key is BaseUIPanel.panelCustomSmartsCode ("panel-custom-smarts", the prefab's name), NOT
+    // panelCustomSmarts, whose value "panelcustom-smarts" is a typo kept for compatibility.
+    // Flat panel: nothing under panelContainer has to survive, so the default whole-container
+    // suppression applies. Buttons route by name through the GLOBAL handler
+    // (ButtonGameEquipmentRoom -> ShowEquipment, ButtonGameModeTraining -> training).
+    public override string toolkitViewKey {
+        get {
+            return BaseUIPanel.panelCustomSmartsCode;
+        }
+    }
+
+    // The bind target of labelPlaySmartScore (also aliased in Resources/ui/binds/panel-custom-smarts.json
+    // for builds without NGUI, where the field is a UIRef).
+    public const string elementScoreValue = "LabelValue";
+
+    protected string toolkitScoreText = null;
+
+    // Runs from LoadToolkitView's continuation, every time a view is (re)built.
+    public override void BindElements(Engine.UI.UIRef root) {
+
+        base.BindElements(root);
+
+        SetToolkitScore();
+    }
+
+    protected virtual void SetToolkitScore() {
+
+        if(!isToolkitPanel || toolkitScoreText == null) {
+            return;
+        }
+
+        UIUtil.SetLabelValue(UIUtil.ResolveDeep(viewRoot, elementScoreValue), toolkitScoreText);
     }
 
     public override void AnimateIn() {

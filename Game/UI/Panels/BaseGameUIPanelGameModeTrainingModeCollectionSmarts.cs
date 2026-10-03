@@ -69,6 +69,11 @@ public class BaseGameUIPanelGameModeTrainingModeCollectionSmarts : GameUIPanelBa
         Messenger<string, string>.RemoveListener(
             UIControllerMessages.uiPanelAnimateType,
             OnUIControllerPanelAnimateType);
+
+        // B4 (2026-10-03): chain to the base. UIPanelBase.OnDisable is what calls FreeToolkitView;
+        // without this the view leaks its PanelRenderer and the kill switch cannot restore the
+        // legacy view. Same fix as the chooser (B0b) and the arcade/challenge screens.
+        base.OnDisable();
     }
 
     public override void OnUIControllerPanelAnimateIn(string classNameTo) {
@@ -127,6 +132,76 @@ public class BaseGameUIPanelGameModeTrainingModeCollectionSmarts : GameUIPanelBa
         base.AnimateOut();
 
         ClearList();
+    }
+
+    // ----------------------------------------------------------------------------------------
+    // B4 (2026-10-03): the toolkit view's SMARTS / HEALTH ENERGY meter.
+    //
+    // On legacy the meter is driven by a UIGameRPGHealth on the SmartsScore widget, which stops ticking
+    // once LoadToolkitView suppresses the container -- so the view reads the profile itself, the
+    // same source as that component (and the same model as UIPanelDialogRPGObject's toolkit
+    // meter): written on bind, then re-read once a second while the panel is up, and written
+    // only on change. The legacy count-up animation is not reproduced.
+
+    public const string elementMeterFill = "ProgressForeground";
+    public const string elementMeterPercent = "LabelProgress";
+
+    public const float toolkitMeterInterval = 1f;
+
+    protected float toolkitMeterElapsed = 0f;
+    protected double toolkitLastMeter = double.NaN;
+
+    public virtual double GetToolkitMeterValue() {
+        return Math.Round(GameProfileCharacters.currentProgress.GetGamePlayerProgressHealth(1), 2);
+    }
+
+    // Runs from LoadToolkitView's continuation, every time a view is (re)built.
+    public override void BindElements(Engine.UI.UIRef root) {
+
+        base.BindElements(root);
+
+        if(!isToolkitPanel) {
+            return;
+        }
+
+        RefreshToolkitMeter(true);
+    }
+
+    protected virtual void RefreshToolkitMeter(bool force) {
+
+        if(!isToolkitPanel) {
+            return;
+        }
+
+        double val = GetToolkitMeterValue();
+
+        if(!force && val == toolkitLastMeter) {
+            return;
+        }
+
+        toolkitLastMeter = val;
+
+        // A plain VisualElement fill: SetSliderValue falls back to width-percent, the same model
+        // as NGUI 2.7's UISlider scaling its foreground sprite.
+        UIUtil.SetSliderValue(UIUtil.ResolveDeep(viewRoot, elementMeterFill), (float)val);
+        UIUtil.SetLabelValue(UIUtil.ResolveDeep(viewRoot, elementMeterPercent), val.ToString("P0"));
+    }
+
+    public virtual void Update() {
+
+        if(!isVisible || !isToolkitPanel) {
+            return;
+        }
+
+        toolkitMeterElapsed += Time.unscaledDeltaTime;
+
+        if(toolkitMeterElapsed < toolkitMeterInterval) {
+            return;
+        }
+
+        toolkitMeterElapsed = 0f;
+
+        RefreshToolkitMeter(false);
     }
 }
 #endif
