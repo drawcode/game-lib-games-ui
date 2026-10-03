@@ -507,6 +507,11 @@ public class BaseGameHUD : GameUIPanelBase {
     // units (ortho size 1 over the 640 reference height = 320 units per world unit), i.e. the
     // offset in layout units / 32. The player applies its own deadzone; nothing else clamps.
     //
+    // Unless the action map binds the stick (GameInputActions.SetTouchStick): then the move/aim
+    // action applies its dead zone and clamps to 1, like a pad stick. Deliberate -- the aim
+    // axis's y also scales run speed by (1 - y/10), so an unclamped drag changed speed by how
+    // far the thumb went, past the ±10% a pad stick can reach.
+    //
     // While the view drives them, GameTouchInputAxis.touchDrivenExternally stops the legacy
     // component resetting the axis to zero every idle frame (it keeps the keyboard fallback).
     private const float stickUnitsPerAxis = 32f;
@@ -577,7 +582,12 @@ public class BaseGameHUD : GameUIPanelBase {
             GameTouchInputAxis.externalMoveAxis = axis;
         }
 
-        GameController.SendInputAxisMessage(axisName, axis);
+        // Through the action map when it binds this stick (touch.stick.move/.aim): the pad's
+        // GameTouchInputAxis then sends the move/aim action, so touch, keys and pads share one
+        // path, one dead zone and one clamp to 1. Otherwise, as before, send it straight.
+        if(!GameInputActions.SetTouchStick(axisName, axis, released)) {
+            GameController.SendInputAxisMessage(axisName, axis);
+        }
     }
 
     // Chrome hidden mid-drag (pause, round end): no pointer-up reaches a display:none view.
