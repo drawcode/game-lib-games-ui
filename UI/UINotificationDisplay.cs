@@ -604,6 +604,12 @@ public void Update() {
                         currentScore = score;
                         currentItem.score = currentScore.ToString("N0", Engine.Game.App.BaseApp.L10n.NumberFormat);
                         GameProfileRPGs.Current.AddCurrency(currentScore);
+
+                        // The reward is paid when the toast SHOWS, which is after the end-of-round
+                        // save -- the achievement itself was already on disk, so an app kill on
+                        // Results kept the achievement and lost its coins for good. save() skips
+                        // unchanged blobs, so this writes the rpg file.
+                        GameState.SaveProfile();
                     }
 
                     UIUtil.SetLabelValue(achievementScore, "+" + currentItem.score);
