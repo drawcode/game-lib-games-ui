@@ -105,6 +105,8 @@ public class BaseGameUIPanelHeader : GameUIPanelBase {
     // every 1s and eases lastValue toward it every frame; the toolkit label mirrors that.
     private UIGameRPGCurrency coinCurrencyDriver;
     private string coinLabelLastFormatted;
+    private double coinLabelLastValue = double.NaN;
+    private string coinLabelLastLocale;
     private GameObject coinFlatLabel;
     private GameObject coinFlatButtonLabel;
     private GameObject coinFlatButtonBackground;
@@ -628,21 +630,43 @@ public class BaseGameUIPanelHeader : GameUIPanelBase {
     // Mirrors the legacy driver's EASED value into the toolkit label. Writes only when the
     // FORMATTED string changes, so an idle header still does no text work — which is what the
     // 2026-07-15 decision was actually protecting.
+    //
+    // The format itself used to run every frame BEFORE that check (~40 B/frame measured), so the
+    // check is now on the inputs: skip only when the value, the locale AND the label's current text
+    // all still match what was written — the UIGameRPGObject.SetLabelValue design. A value-only
+    // cache would never refill a recycled toolkit element (they come back blank after a view
+    // teardown; a rebound labelCoin is a fresh element), and a language change must reformat.
     protected virtual void UpdateCoinLabel() {
 
         if(!isToolkitPanel || coinCurrencyDriver == null) {
             return;
         }
 
-        string formatted = coinCurrencyDriver.lastValue.ToString("N0", Engine.Game.App.BaseApp.L10n.NumberFormat);
+        double value = coinCurrencyDriver.lastValue;
+        string locale = Engine.Game.App.BaseApp.L10n.CurrentCode;
 
-        if(formatted == coinLabelLastFormatted) {
+        if(coinLabelLastFormatted != null
+            && value == coinLabelLastValue
+            && locale == coinLabelLastLocale
+            && LabelCoinShows(coinLabelLastFormatted)) {
             return;
         }
 
+        string formatted = value.ToString("N0", Engine.Game.App.BaseApp.L10n.NumberFormat);
+
+        coinLabelLastValue = value;
+        coinLabelLastLocale = locale;
         coinLabelLastFormatted = formatted;
 
         UIUtil.SetLabelValue(labelCoin, formatted);
+    }
+
+    // null = labelCoin is unbound or its element is dead (UIToolkitBackend.El): a write would no-op
+    // too, and BindElements hands a rebuilt view a NEW ref, whose fresh text then mismatches and
+    // refills. So null counts as a match rather than re-formatting every frame for nothing.
+    private bool LabelCoinShows(string text) {
+        string current = UIUtil.GetLabelValue(labelCoin);
+        return current == null || string.Equals(current, text);
     }
 
     // The 3D character preview containers (Characters) live INSIDE this panel's Container, so the
@@ -686,6 +710,8 @@ public class BaseGameUIPanelHeader : GameUIPanelBase {
 
         coinCurrencyDriver = coinObject.GetComponentInChildren<UIGameRPGCurrency>(true);
         coinLabelLastFormatted = null;
+        coinLabelLastValue = double.NaN;
+        coinLabelLastLocale = null;
 
         coinFlatLabel = t.Find("LabelCoin") != null
             ? t.Find("LabelCoin").gameObject : null;

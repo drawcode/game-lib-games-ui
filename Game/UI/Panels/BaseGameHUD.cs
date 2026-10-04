@@ -674,6 +674,12 @@ public class BaseGameHUD : GameUIPanelBase {
     private string lastFpsText;
     private bool fpsLegacyHidden;
 
+    // FPSDisplay refreshes lastFPS once per updateInterval (0.1 s), so between refreshes the value
+    // read here is bit-identical frame after frame. Keying on it skips the string.Format (a boxed
+    // float + a string, every frame) until the reading actually moves.
+    private float lastFpsValue = float.NaN;
+    private readonly UIViewLabel viewLabelFps = new UIViewLabel("LabelFPS");
+
     // The legacy FPS label lives in the SCENE (GameSceneDynamic), not in HUDTemplate — verified:
     // the prefab has zero FPSDisplay components. So the cluster-by-cluster suppression above cannot
     // reach it and it would double-draw under the toolkit one. Hide it through the singleton
@@ -711,22 +717,31 @@ public class BaseGameHUD : GameUIPanelBase {
         if(!FPSDisplay.showReadout) {
             if(lastFpsText != "") {
                 lastFpsText = "";
-                UIUtil.UpdateLabelObject(viewRoot, "LabelFPS", "");
+                viewLabelFps.Set(viewRoot, "");
             }
             return;
         }
 
         float fps = FPSDisplay.GetCurrentFPS();
+
+        // Same reading as last frame and the element still shows what was written: nothing to do.
+        // The Shows() half reads the element's CURRENT text, so a recycled/rebuilt element refills.
+        if(lastFpsText != null && fps == lastFpsValue && viewLabelFps.Shows(viewRoot, lastFpsText)) {
+            return;
+        }
+
+        lastFpsValue = fps;
+
         string text = string.Format("{0:F2} FPS", fps);
 
         // Only touch the element when the string actually changes — this runs every frame.
-        if(text == lastFpsText) {
+        if(text == lastFpsText && viewLabelFps.Shows(viewRoot, text)) {
             return;
         }
 
         lastFpsText = text;
 
-        UIUtil.UpdateLabelObject(viewRoot, "LabelFPS", text);
+        viewLabelFps.Set(viewRoot, text);
 
         Color color = Color.green;
 
@@ -737,7 +752,7 @@ public class BaseGameHUD : GameUIPanelBase {
             color = Color.yellow;
         }
 
-        UIUtil.SetLabelColor(UIUtil.ResolveDeep(viewRoot, "LabelFPS"), color);
+        UIUtil.SetLabelColor(viewLabelFps.Resolve(viewRoot), color);
     }
 
     // THE STAT BARS. Health / energy / hit-health are driven in legacy by a UIGameRPG* component
@@ -935,6 +950,15 @@ public class BaseGameHUD : GameUIPanelBase {
         // Let the legacy FPS label be re-hidden if the view is loaded again.
         fpsLegacyHidden = false;
         lastFpsText = null;
+        lastFpsValue = float.NaN;
+
+        // The per-view label caches: the next view is a new UIRef so they would rebind anyway, but
+        // drop the dead element refs now rather than hold them until the next write.
+        viewLabelFps.Clear();
+        viewLabelScore.Clear();
+        viewLabelScores.Clear();
+        viewLabelCoins.Clear();
+        viewLabelTime.Clear();
 
         // Same reason legacyClusters is dropped above: a level teardown can rebuild these children,
         // and the mirrored fills belong to a view that no longer exists.
@@ -979,13 +1003,85 @@ public class BaseGameHUD : GameUIPanelBase {
     // to the toolkit view (same situation as the worlds panel's title/description). The toolkit
     // branch therefore writes BY ELEMENT NAME instead. The legacy write still runs underneath: the
     // widget is suppressed, so it costs nothing and keeps the kill-switch path correct.
+    //
+    // PER-FRAME COST. Update calls SetScore/SetScores/SetCoins/SetSpecials/SetTime every frame of a
+    // round, almost always with the SAME value, and each call formatted a string and resolved its
+    // toolkit element by name (a Q() walk + a new UIRef): ~475 B/frame measured. Now:
+    //   * the toolkit element is resolved once per view (UIViewLabel: rebinds on a new view ref and
+    //     when the cached element goes dead, so a recycled element is never written);
+    //   * the format is skipped when the value, the locale AND both labels' CURRENT text still
+    //     match what was written — the UIGameRPGObject.SetLabelValue design. A value-only cache
+    //     would never refill an element that came back blank after a view teardown, and a language
+    //     change must reformat the digits. When the skip does not apply, the writes are exactly
+    //     the old ones.
+
+    private readonly UIViewLabel viewLabelScore = new UIViewLabel("LabelScore");
+    private readonly UIViewLabel viewLabelScores = new UIViewLabel("LabelScoresValue");
+    private readonly UIViewLabel viewLabelCoins = new UIViewLabel("LabelCoins");
+    private readonly UIViewLabel viewLabelTime = new UIViewLabel("LabelTime");
+
+    // What a counter last formatted, and under which value/locale.
+    private sealed class ShownText {
+        public double value = double.NaN;
+        public string locale;
+        public string text;
+    }
+
+    private readonly ShownText shownScore = new ShownText();
+    private readonly ShownText shownScores = new ShownText();
+    private readonly ShownText shownCoins = new ShownText();
+    private readonly ShownText shownSpecials = new ShownText();
+
+    // The clock keys on the parts it DISPLAYS (minutes, seconds, milliseconds), not the double.
+    private int shownTimeMinutes;
+    private int shownTimeSeconds;
+    private int shownTimeMilliseconds;
+    private string shownTimeText;
+
+#if USE_UI_NGUI_2_7 || USE_UI_NGUI_3
+    // A missing legacy label shows nothing to refill (the write would no-op), so it counts as a match.
+    private static bool LegacyLabelShows(UILabel label, string text) {
+        return label == null || label.text == text;
+    }
+#else
+    // null = unbound or dead ref: the write would no-op, so it counts as a match.
+    private static bool LegacyLabelShows(UIRef label, string text) {
+        string current = UIUtil.GetLabelValue(label);
+        return current == null || current == text;
+    }
+#endif
+
+    // True when the counter can skip: same value, same locale, and every label still shows it.
+    private bool CounterShows(ShownText shown, double value, string locale,
+        UIViewLabel viewLabel, bool legacyShows) {
+
+        if(shown.text == null || value != shown.value || locale != shown.locale || !legacyShows) {
+            return false;
+        }
+
+        return viewLabel == null || !isToolkitPanel || viewLabel.Shows(viewRoot, shown.text);
+    }
+
+    private string FormatCounter(ShownText shown, double value, string locale) {
+        shown.text = value.ToString("N0", Engine.Game.App.BaseApp.L10n.NumberFormat);
+        shown.value = value;
+        shown.locale = locale;
+        return shown.text;
+    }
 
     public virtual void SetScore(double score) {
 
-        string value = score.ToString("N0", Engine.Game.App.BaseApp.L10n.NumberFormat);
+        string locale = Engine.Game.App.BaseApp.L10n.CurrentCode;
+
+        if(CounterShows(shownScore, score, locale, viewLabelScore,
+                LegacyLabelShows(labelScore, shownScore.text))) {
+            return;
+        }
+
+        string value = FormatCounter(shownScore, score, locale);
 
         if(isToolkitPanel) {
-            UIUtil.UpdateLabelObject(viewRoot, "LabelScore", value);
+            viewLabelScore.Set(viewRoot, value);
         }
 
         UIUtil.SetLabelValue(labelScore, value);
@@ -993,10 +1089,17 @@ public class BaseGameHUD : GameUIPanelBase {
 
     public virtual void SetScores(double scores) {
 
-        string value = scores.ToString("N0", Engine.Game.App.BaseApp.L10n.NumberFormat);
+        string locale = Engine.Game.App.BaseApp.L10n.CurrentCode;
+
+        if(CounterShows(shownScores, scores, locale, viewLabelScores,
+                LegacyLabelShows(labelScores, shownScores.text))) {
+            return;
+        }
+
+        string value = FormatCounter(shownScores, scores, locale);
 
         if(isToolkitPanel) {
-            UIUtil.UpdateLabelObject(viewRoot, "LabelScoresValue", value);
+            viewLabelScores.Set(viewRoot, value);
         }
 
         UIUtil.SetLabelValue(labelScores, value);
@@ -1004,10 +1107,17 @@ public class BaseGameHUD : GameUIPanelBase {
 
     public virtual void SetCoins(double coins) {
 
-        string value = coins.ToString("N0", Engine.Game.App.BaseApp.L10n.NumberFormat);
+        string locale = Engine.Game.App.BaseApp.L10n.CurrentCode;
+
+        if(CounterShows(shownCoins, coins, locale, viewLabelCoins,
+                LegacyLabelShows(labelCoins, shownCoins.text))) {
+            return;
+        }
+
+        string value = FormatCounter(shownCoins, coins, locale);
 
         if(isToolkitPanel) {
-            UIUtil.UpdateLabelObject(viewRoot, "LabelCoins", value);
+            viewLabelCoins.Set(viewRoot, value);
         }
 
         UIUtil.SetLabelValue(labelCoins, value);
@@ -1016,7 +1126,14 @@ public class BaseGameHUD : GameUIPanelBase {
     public virtual void SetSpecials(double specials) {
         // No toolkit element: the specials counter is not part of the 3H chrome (it does not render
         // in the legacy HUD capture either).
-        UIUtil.SetLabelValue(labelSpecials, specials.ToString("N0", Engine.Game.App.BaseApp.L10n.NumberFormat));
+        string locale = Engine.Game.App.BaseApp.L10n.CurrentCode;
+
+        if(CounterShows(shownSpecials, specials, locale, null,
+                LegacyLabelShows(labelSpecials, shownSpecials.text))) {
+            return;
+        }
+
+        UIUtil.SetLabelValue(labelSpecials, FormatCounter(shownSpecials, specials, locale));
     }
 
     public virtual void SetLevel(string levelName) {
@@ -1030,10 +1147,31 @@ public class BaseGameHUD : GameUIPanelBase {
 
     public virtual void SetTime(double time) {
 
-        string value = FormatUtil.GetFormattedTimeMinutesSecondsMsSmall(time);
+        // The same TimeSpan GetFormattedTimeMinutesSecondsMsSmall(double) builds, so the parts
+        // compared here are exactly the ones it prints ("{1:D2}:{2:D2}.{3:D1}" = m, s, ms). A clock
+        // that is not moving (paused, untimed mode, round over) now formats nothing; a running one
+        // still changes every frame, but formats through the boxing-free overload (one string
+        // instead of 4 boxed ints + a params array + the string).
+        TimeSpan t = TimeSpan.FromSeconds(time);
+
+        if(shownTimeText != null
+            && t.Minutes == shownTimeMinutes
+            && t.Seconds == shownTimeSeconds
+            && t.Milliseconds == shownTimeMilliseconds
+            && LegacyLabelShows(labelTime, shownTimeText)
+            && (!isToolkitPanel || viewLabelTime.Shows(viewRoot, shownTimeText))) {
+            return;
+        }
+
+        string value = FormatUtil.GetFormattedTimeMinutesSecondsMsSmall(t);
+
+        shownTimeMinutes = t.Minutes;
+        shownTimeSeconds = t.Seconds;
+        shownTimeMilliseconds = t.Milliseconds;
+        shownTimeText = value;
 
         if(isToolkitPanel) {
-            UIUtil.UpdateLabelObject(viewRoot, "LabelTime", value);
+            viewLabelTime.Set(viewRoot, value);
         }
 
         UIUtil.SetLabelValue(labelTime, value);

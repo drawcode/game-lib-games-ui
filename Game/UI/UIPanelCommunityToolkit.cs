@@ -331,9 +331,14 @@ public class UIPanelCommunityToolkit {
             return;
         }
 
-        foreach(Transform t in owner.transform) {
+        // Index loop, not foreach: Transform's IEnumerator is a class, so the foreach allocated
+        // 32 B per call — every LateUpdate, on each of the three community panels (measured).
+        // Hide() only deactivates, it never reparents, so the indices stay stable.
+        Transform root = owner.transform;
 
-            GameObject go = t.gameObject;
+        for(int i = 0; i < root.childCount; i++) {
+
+            GameObject go = root.GetChild(i).gameObject;
 
             if(!go.activeSelf) {
                 continue;

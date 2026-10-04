@@ -148,13 +148,59 @@ public class UIPanelOverviewMode : UIPanelBase {
         suppressedLegacy.Clear();
         legacyOverviewContent = null;
         lastTipStatus = null;
+        viewLabelTipStatus.Clear();
+        tipsCacheValid = false;
 
         base.FreeToolkitView();
     }
 
     // "Tip n of m" is written by the active UIPanelTips into its own NGUI label; mirror it from
     // the component's state, localized.
+    //
+    // This runs every frame the view exists, and used to cost ~190 B/frame (measured): a
+    // GetComponentsInChildren array, plus TrOrDefault's params array, two boxed ints and the
+    // formatted string — all to produce the same text as last frame. Now the tips components are
+    // cached (see RefreshTipsCache) and the text is formatted only when what it is made of
+    // changes: (index, total, locale). The view label's CURRENT text is part of the skip test, so
+    // an element that came back blank after a view teardown, or that someone else wrote, refills.
     private string lastTipStatus;
+    private int lastTipStatusIndex;
+    private int lastTipStatusTotal;
+    private string lastTipStatusLocale;
+    private readonly UIViewLabel viewLabelTipStatus = new UIViewLabel("LabelCurrentTipStatus");
+
+    // The UIPanelTips under containerTips, in GetComponentsInChildren order (so "first activeSelf"
+    // picks the same one it always did). Rebuilt when the container or its child count changes,
+    // when a cached entry has been destroyed, and on every show (AnimateIn) — the cases where the
+    // set of tips components can actually differ.
+    private readonly List<UIPanelTips> tipsCache = new List<UIPanelTips>();
+    private GameObject tipsCacheContainer;
+    private int tipsCacheChildCount = -1;
+    private bool tipsCacheValid;
+
+    private void RefreshTipsCache() {
+
+        bool valid = tipsCacheValid
+            && tipsCacheContainer == containerTips
+            && tipsCacheChildCount == containerTips.transform.childCount;
+
+        for(int i = 0; valid && i < tipsCache.Count; i++) {
+            if(tipsCache[i] == null) {
+                valid = false;
+            }
+        }
+
+        if(valid) {
+            return;
+        }
+
+        // Include inactive: suppression deactivates the legacy Container above the tips, so
+        // activeInHierarchy is false for all of them. The shown one is the activeSelf one.
+        containerTips.GetComponentsInChildren<UIPanelTips>(true, tipsCache);
+        tipsCacheContainer = containerTips;
+        tipsCacheChildCount = containerTips.transform.childCount;
+        tipsCacheValid = true;
+    }
 
     private void UpdateToolkitTipStatus() {
 
@@ -162,28 +208,41 @@ public class UIPanelOverviewMode : UIPanelBase {
             return;
         }
 
+        RefreshTipsCache();
+
         UIPanelTips active = null;
 
-        // Include inactive: suppression deactivates the legacy Container above the tips, so
-        // activeInHierarchy is false for all of them. The shown one is the activeSelf one.
-        foreach(UIPanelTips tips in containerTips.GetComponentsInChildren<UIPanelTips>(true)) {
-            if(tips.gameObject.activeSelf) {
-                active = tips;
+        for(int i = 0; i < tipsCache.Count; i++) {
+            if(tipsCache[i].gameObject.activeSelf) {
+                active = tipsCache[i];
                 break;
             }
         }
 
         // No tips set matches most content states (ShowTipsObject shows none), and then the legacy
         // screen shows ContainerTips/LabelCurrentTipStatus as AUTHORED: "Tip 1 of 3" (measured).
+        int index = active != null ? active.currentTipIndex + 1 : 1;
+        int total = active != null ? active.tipsTotal : 3;
+        string locale = Engine.Game.App.BaseApp.L10n.CurrentCode;
+
+        if(lastTipStatus != null
+            && index == lastTipStatusIndex
+            && total == lastTipStatusTotal
+            && locale == lastTipStatusLocale
+            && viewLabelTipStatus.Shows(viewRoot, lastTipStatus)) {
+            return;
+        }
+
         // TrOrDefault, not Tr: this lib ships to games that don't have the key, and Tr would put
         // the raw key on screen there -- the English format is the fallback.
-        string status = active != null
-            ? Engine.Game.App.BaseApp.L10n.TrOrDefault("game_ui_overview_mode_tip_status",
-                "Tip {0} of {1}", active.currentTipIndex + 1, active.tipsTotal)
-            : Engine.Game.App.BaseApp.L10n.TrOrDefault("game_ui_overview_mode_tip_status",
-                "Tip {0} of {1}", 1, 3);
+        string status = Engine.Game.App.BaseApp.L10n.TrOrDefault("game_ui_overview_mode_tip_status",
+            "Tip {0} of {1}", index, total);
 
-        if(status == lastTipStatus) {
+        lastTipStatusIndex = index;
+        lastTipStatusTotal = total;
+        lastTipStatusLocale = locale;
+
+        if(status == lastTipStatus && viewLabelTipStatus.Shows(viewRoot, status)) {
             return;
         }
 
@@ -588,6 +647,9 @@ public class UIPanelOverviewMode : UIPanelBase {
 
     public override void AnimateIn() {
         base.AnimateIn();
+
+        // A show is when the tips set may have been rebuilt; re-collect it on the next Update.
+        tipsCacheValid = false;
 
         UIPanelDialogBackground.ShowDefault();
 
