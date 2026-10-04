@@ -91,9 +91,16 @@ public class UIPanelOverlayPrepare : UIPanelBase {
     // Above the chrome band (10000). The header and the menu screen are only dismissed at the
     // late onGameStarted, ~1.5s after this overlay appears, so anything below chrome is buried
     // for that whole window.
+    // overlay + 10, not plain overlay: UIPanelOverviewMode (READY) shares the overlay band and its view
+    // loads ~2 s into the level load WHILE this panel is still up, so at equal sort order the later
+    // view drew on top. A tap on this panel's play arrow then hit ButtonGameReady instead of
+    // ButtonGameInitFinish, InitLevelFinish never ran, and the round started behind a white screen
+    // (final P gate, reproduced 2/2). Legacy draws prepare above the overview until InitFinish hides
+    // it; this restores that order. Notifications (30000) stay above; nothing else in the overlay band
+    // is up during the level load.
     public override int toolkitSortOrder {
         get {
-            return UILayers.overlay;
+            return UILayers.overlay + 10;
         }
     }
 
