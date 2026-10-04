@@ -1,4 +1,4 @@
-#if ENABLE_FEATURE_AR
+#if ENABLE_FEATURE_VR
 using System;
 using System.Collections;
 using System.Collections.Generic;
