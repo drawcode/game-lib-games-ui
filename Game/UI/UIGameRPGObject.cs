@@ -127,8 +127,31 @@ public class UIGameRPGObject : GameObjectBehavior {
             return;
         }
 
-        UIUtil.SetLabelValue(labelValue, val.ToString("N0", Engine.Game.App.BaseApp.L10n.NumberFormat));
+        // Also runs every frame with the SAME value once the count-up settles, and the format
+        // allocated a string each time (~40 B/frame on the header coin). Skip it only when the value,
+        // the locale AND the label's current text all still match what was written: a value-only
+        // cache would never refill a recycled toolkit element (they come back blank after a view
+        // teardown), and a language change must reformat the digits.
+        string locale = Engine.Game.App.BaseApp.L10n.CurrentCode;
+
+        if (val == labelValueShown
+            && locale == labelValueLocale
+            && string.Equals(UIUtil.GetLabelValue(labelValue), labelValueText)) {
+            return;
+        }
+
+        labelValueText = val.ToString("N0", Engine.Game.App.BaseApp.L10n.NumberFormat);
+        labelValueShown = val;
+        labelValueLocale = locale;
+
+        UIUtil.SetLabelValue(labelValue, labelValueText);
     }
+
+    double labelValueShown = double.NaN;
+    string labelValueText;
+    string labelValueLocale;
+    double labelProgressShown = double.NaN;
+    string labelProgressText;
 
     public virtual void SetProgress(double val) {
         SetProgressValue(val);
@@ -141,7 +164,16 @@ public class UIGameRPGObject : GameObjectBehavior {
             return;
         }
 
-        UIUtil.SetLabelValue(labelProgress, val.ToString("P0"));
+        // Same per-frame skip as SetLabelValue ("P0" is culture-neutral here, so no locale key).
+        if (val == labelProgressShown
+            && string.Equals(UIUtil.GetLabelValue(labelProgress), labelProgressText)) {
+            return;
+        }
+
+        labelProgressText = val.ToString("P0");
+        labelProgressShown = val;
+
+        UIUtil.SetLabelValue(labelProgress, labelProgressText);
     }
 
     public virtual void SetProgressValue(double val) {

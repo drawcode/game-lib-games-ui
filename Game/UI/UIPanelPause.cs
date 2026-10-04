@@ -30,8 +30,12 @@ public class UIPanelPause : UIPanelBase {
     //   * (2) re-checked statically: the view root carries .ngui-root, which UIToolkitBackend
     //     .ConfigurePicking has made PickingMode.Ignore since fc816b8 (well before the regression), so
     //     the root was never the pick target; and overlay (20000) already outranks chrome (10000), so
-    //     no other toolkit view can cover it. Modal blocking stays legacy — showUIPanelPause shows the
-    //     NGUI gameBackgroundAlertObject behind the dialog.
+    //     no other toolkit view can cover it. Modal blocking is the view's own (B9 S3): the legacy
+    //     blocker showUIPanelPause shows (gameBackgroundAlertObject) is null in GameSceneDynamic,
+    //     so a tap between the buttons fell through to the toolkit HUD. panel-pause.json now
+    //     opens with a full-screen pickable PauseBlocker (first child, so below the buttons);
+    //     its click broadcasts "PauseBlocker", which no handler matches. Nothing here drives it:
+    //     it shows and hides with the view (display none on hide, toolkitHideSeconds 0).
     //
     // FLIPPED 2026-08-17. The last thing holding this at "" was "cannot be verified in-editor —
     // scripted PlayGame never reaches IsGameRunning=True". That is no longer true: a scripted run

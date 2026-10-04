@@ -153,7 +153,8 @@ public class BaseGameUIPanelHeader : GameUIPanelBase {
     private bool characterLargeStaged;
 
     // The SMALL card's CUSTOMIZE/CHANGE BOT button (results, products, customize colors/RPG). Its
-    // bot and backer stay NGUI; only the button converts, because an NGUI label is Latin-1 and
+    // bot is NOT staged (3D on the NGUI UICamera, under every toolkit view) and its backer is the
+    // Background-a-40 UIQuadSprite twin; only the button converts, because an NGUI label is Latin-1 and
     // could never show the localized text. Same seam and band as the large card's front view:
     // staged per migrated screen, name-bridged ButtonGameCustomize, foreground over the panel.
     public const string characterSmallFrontViewKey = "panel-character-small-front";

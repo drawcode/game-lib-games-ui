@@ -221,6 +221,9 @@ public class UIPanelDialogRPGObject : UIPanelBase {
         if(isVisible) {
             RefreshToolkitStats(true);
         }
+
+        // B9 S2: last, so the view's elements exist and are renamed (see STAGED 3D below).
+        SetupToolkitLegacy3D();
     }
 
     // The per-stat copy. @loc keys go through SetLabelLocalized so a later language change
@@ -357,6 +360,388 @@ public class UIPanelDialogRPGObject : UIPanelBase {
     }
 
     // ----------------------------------------------------------------------------------------
+    // STAGED 3D (B9 S2, 2026-10-03) — the bot and the price coin inside the toolkit view
+    //
+    // The default SuppressLegacyView hid the whole panelContainer, which took the two pieces of REAL
+    // geometry with it: the bot (Character/RotatorContainer/Rotator/Container/playerDisplay, a
+    // warbots-infernos rig under a RotateObject spinner) and the coin beside the price
+    // (Buttons/ButtonRPG<Stat>BuyRecharge/Price/DialogCoin, DialogCoin.prefab). Both are now
+    // rendered into RenderTextures shown in the view's CharacterStage / PriceCoin elements through
+    // UIPanelBase.StageLegacy3D (S1's UIRenderStageBinding), which needs the content ACTIVE — so the
+    // suppression here is selective: every flat NGUI widget goes, the two 3D subtrees stay.
+    //
+    // Scene paths (GameSceneDynamic.unity, GamePanelDialogRPGEnergy; Health is the same layout):
+    //   panelContainer = <panel>/Container
+    //   .../AnchorCenter/Center/PanelContents/Container/Content/PanelContent/Container/
+    //       Backgrounds                                  hidden
+    //       Container/Dialog                             hidden
+    //       Container/Character/Progress                 hidden
+    //       Container/Character/RotatorContainer         KEPT, staged -> CharacterStage
+    //       Container/SmartScore (Health: ActionScore)   hidden
+    //       ContentMain                                  hidden
+    //       Buttons/ButtonRPG<Stat>BuyRecharge           kept as an ANCESTOR: BoxCollider disabled,
+    //           Background, Label, Price/Label           hidden
+    //           Price/DialogCoin                         KEPT, staged -> PriceCoin
+    //       Buttons/ButtonRPG<Stat>Resume, -Missions/-Training   hidden
+    // The walk below is generic (hide every subtree that holds neither kept root, disable colliders
+    // on the kept roots' ancestors), so a layout difference between the dialogs cannot leak a widget.
+    //
+    // COLLIDERS: the bot carries none outside the inactive HelmetContainerEnemy, and DialogCoin none
+    // at all; staging moves both subtrees to UIWidget3D (keepColliderLayers false), off every NGUI
+    // event mask. The only live collider on the kept chain is the BUY RECHARGE button's BoxCollider,
+    // the coin's ancestor — disabled while suppressed, because a live NGUI collider and toolkit
+    // picking fire independently (c805b2d). The legacy bot is NOT draggable: Rotator is a
+    // RotateObject auto-spinner (its drag hand-off is commented out) with no collider, so there is
+    // no drag-rotate to preserve.
+    //
+    // LIGHT: both stages pass lightIntensity 0 and borrow the layer's light. These dialogs bind at
+    // PRELOAD (level load) and a stage light is never toggled by visibility, so a light of their own
+    // would be live the WHOLE round — four of them across Energy + Health — and, being directional
+    // over the whole UIWidget3D layer, would stack onto the HUD coin (iter 13). The dialogs only open
+    // from the in-round HUD, whose coin stage always carries a light (0.97), so borrowing is never
+    // unlit; the header's coin light adds to it if the header view is still loaded.
+    //
+    // CPU: legacy deactivated the bot with panelContainer whenever the dialog was down. The kept
+    // roots are toggled the same way here — active while the dialog is up or sliding out, inactive
+    // after HidePanel — so the hidden dialog runs no spinner, no animation and no stage camera.
+    // Only ONE dialog's bot is ever active, which also keeps the two dialogs' identically laid-out
+    // bots out of each other's stage cameras (same layer, possibly the same parked position).
+    //
+    // Restored in FreeToolkitView (rule 116); re-asserted on every show and per frame while up.
+
+    public const string elementCharacterStage = "CharacterStage";
+    public const string elementPriceCoin = "PriceCoin";
+
+    public const string legacyBotRootName = "RotatorContainer";
+    public const string legacyCoinRootName = "DialogCoin";
+
+    protected GameObject toolkitBotRoot;
+    protected GameObject toolkitCoinRoot;
+
+    protected UIRenderStageBinding toolkitBotStage;
+    protected UIRenderStageBinding toolkitCoinStage;
+
+    // Records of what the selective suppression changed, so FreeToolkitView puts back exactly that.
+    private bool toolkitLegacySuppressed = false;
+    private bool toolkitContainerWasActive = false;
+    private bool toolkitBotWasActive = false;
+    private bool toolkitCoinWasActive = false;
+    private readonly List<GameObject> toolkitHiddenLegacy = new List<GameObject>();
+    private readonly List<Collider> toolkitDisabledColliders = new List<Collider>();
+
+    // Frames to wait after a show before re-fitting the bot camera: a just-activated Animation has
+    // not sampled its pose yet, and the stage frames the BAKED pose.
+    private int toolkitReframeFrames = 0;
+
+    protected static Transform FindDeep(Transform parent, string childName) {
+
+        if(parent == null) {
+            return null;
+        }
+
+        for(int i = 0; i < parent.childCount; i++) {
+
+            Transform child = parent.GetChild(i);
+
+            if(child.name == childName) {
+                return child;
+            }
+
+            Transform found = FindDeep(child, childName);
+
+            if(found != null) {
+                return found;
+            }
+        }
+
+        return null;
+    }
+
+    protected virtual void ResolveToolkitLegacy3D() {
+
+        if(panelContainer == null) {
+            return;
+        }
+
+        if(toolkitBotRoot == null) {
+            Transform t = FindDeep(panelContainer.transform, legacyBotRootName);
+            toolkitBotRoot = t != null ? t.gameObject : null;
+        }
+
+        if(toolkitCoinRoot == null) {
+            Transform t = FindDeep(panelContainer.transform, legacyCoinRootName);
+            toolkitCoinRoot = t != null ? t.gameObject : null;
+        }
+    }
+
+    private bool IsToolkitKeptRoot(Transform t) {
+        return (toolkitBotRoot != null && t == toolkitBotRoot.transform)
+            || (toolkitCoinRoot != null && t == toolkitCoinRoot.transform);
+    }
+
+    private bool HoldsToolkitKeptRoot(Transform t) {
+        return (toolkitBotRoot != null && toolkitBotRoot.transform.IsChildOf(t))
+            || (toolkitCoinRoot != null && toolkitCoinRoot.transform.IsChildOf(t));
+    }
+
+    // One-time walk (first suppression): hide every subtree that holds no kept root; on the kept
+    // roots' ancestors, only disable colliders. Raw SetActive, NOT GameObject.Hide(): Hide also
+    // disables every renderer below, and the restore must put back only what was changed.
+    private void SuppressToolkitLegacyWalk(Transform node) {
+
+        for(int i = 0; i < node.childCount; i++) {
+
+            Transform child = node.GetChild(i);
+
+            if(IsToolkitKeptRoot(child)) {
+                continue;
+            }
+
+            if(HoldsToolkitKeptRoot(child)) {
+
+                Collider[] colliders = child.GetComponents<Collider>();
+
+                for(int c = 0; c < colliders.Length; c++) {
+
+                    if(colliders[c].enabled) {
+                        colliders[c].enabled = false;
+                        toolkitDisabledColliders.Add(colliders[c]);
+                    }
+                }
+
+                SuppressToolkitLegacyWalk(child);
+                continue;
+            }
+
+            if(child.gameObject.activeSelf) {
+                child.gameObject.SetActive(false);
+                toolkitHiddenLegacy.Add(child.gameObject);
+            }
+        }
+    }
+
+    // Selective suppression, idempotent: the first call records, later calls re-assert the record
+    // (legacy can re-show the container, e.g. a show that ran the NGUI path before the view landed).
+    // Does NOT touch the kept roots' own active state — SetToolkitLegacy3DActive owns that.
+    // Returns false when there is nothing 3D to keep (the caller falls back to hiding everything).
+    protected virtual bool ApplyToolkitLegacySuppression() {
+
+        if(panelContainer == null) {
+            return false;
+        }
+
+        ResolveToolkitLegacy3D();
+
+        if(toolkitBotRoot == null && toolkitCoinRoot == null) {
+            return false;
+        }
+
+        if(!toolkitLegacySuppressed) {
+
+            toolkitLegacySuppressed = true;
+            toolkitContainerWasActive = panelContainer.activeSelf;
+            toolkitBotWasActive = toolkitBotRoot != null && toolkitBotRoot.activeSelf;
+            toolkitCoinWasActive = toolkitCoinRoot != null && toolkitCoinRoot.activeSelf;
+
+            toolkitHiddenLegacy.Clear();
+            toolkitDisabledColliders.Clear();
+
+            SuppressToolkitLegacyWalk(panelContainer.transform);
+        }
+        else {
+
+            for(int i = 0; i < toolkitHiddenLegacy.Count; i++) {
+
+                GameObject go = toolkitHiddenLegacy[i];
+
+                if(go != null && go.activeSelf) {
+                    go.SetActive(false);
+                }
+            }
+
+            for(int i = 0; i < toolkitDisabledColliders.Count; i++) {
+
+                Collider c = toolkitDisabledColliders[i];
+
+                if(c != null && c.enabled) {
+                    c.enabled = false;
+                }
+            }
+        }
+
+        // Health's container is authored inactive, and the toolkit ShowPanel never shows it. Show()
+        // (not SetActive) on purpose: a legacy panelContainer.Hide() disabled every renderer below,
+        // and Show() is its inverse — the bot's meshes need them back.
+        if(!panelContainer.activeSelf) {
+            panelContainer.Show();
+        }
+
+        return true;
+    }
+
+    protected virtual void SetToolkitLegacy3DActive(bool active) {
+
+        if(toolkitBotRoot != null && toolkitBotRoot.activeSelf != active) {
+            toolkitBotRoot.SetActive(active);
+        }
+
+        if(toolkitCoinRoot != null && toolkitCoinRoot.activeSelf != active) {
+            toolkitCoinRoot.SetActive(active);
+        }
+    }
+
+    // Undo the record. SetActive is skipped while this panel is being deactivated or destroyed
+    // (scene teardown; Unity refuses to (de)activate inside a hierarchy that is changing state) —
+    // the record is kept, and OnEnable finishes the restore if the panel comes back legacy.
+    protected virtual void RestoreToolkitLegacySuppression() {
+
+        if(!toolkitLegacySuppressed) {
+            return;
+        }
+
+        for(int i = 0; i < toolkitDisabledColliders.Count; i++) {
+
+            if(toolkitDisabledColliders[i] != null) {
+                toolkitDisabledColliders[i].enabled = true;
+            }
+        }
+
+        toolkitDisabledColliders.Clear();
+
+        if(this == null || !gameObject.activeInHierarchy) {
+            return;
+        }
+
+        for(int i = 0; i < toolkitHiddenLegacy.Count; i++) {
+
+            if(toolkitHiddenLegacy[i] != null) {
+                toolkitHiddenLegacy[i].SetActive(true);
+            }
+        }
+
+        toolkitHiddenLegacy.Clear();
+
+        if(toolkitBotRoot != null) {
+            toolkitBotRoot.SetActive(toolkitBotWasActive);
+        }
+
+        if(toolkitCoinRoot != null) {
+            toolkitCoinRoot.SetActive(toolkitCoinWasActive);
+        }
+
+        if(panelContainer != null && panelContainer.activeSelf != toolkitContainerWasActive) {
+            panelContainer.SetActive(toolkitContainerWasActive);
+        }
+
+        toolkitLegacySuppressed = false;
+
+        // Re-resolve next time: a teardown may have rebuilt the tree.
+        toolkitBotRoot = null;
+        toolkitCoinRoot = null;
+    }
+
+    // From BindElements, once per built view (S1: never from a show/hide callback).
+    protected virtual void SetupToolkitLegacy3D() {
+
+        if(!ApplyToolkitLegacySuppression()) {
+            return;
+        }
+
+        // Active for the Attach: the stage frames the content's posed mesh bounds at bind time.
+        SetToolkitLegacy3DActive(true);
+
+        if(toolkitBotRoot != null) {
+
+            UIRenderStageBinding.Options o = new UIRenderStageBinding.Options();
+            o.size = 512;               // fallback before layout; the element's pixel size decides
+            o.framePadding = 1.15f;     // the header rig's tight crop: a bot has no particle spill
+            o.followContent = true;     // Center may sit parked or be tweened; the camera follows
+            o.keepColliderLayers = false;
+            o.lightIntensity = 0f;      // borrow the layer light — see LIGHT above
+
+            toolkitBotStage = StageLegacy3D(toolkitBotRoot, elementCharacterStage, o);
+        }
+
+        if(toolkitCoinRoot != null) {
+
+            UIRenderStageBinding.Options o = new UIRenderStageBinding.Options();
+            o.size = 128;
+            o.maxSize = 128;            // a ~55-unit slot; 128 is the floor anyway
+            o.framePadding = 1.3f;      // every staged coin's framing (header, HUD, products)
+            o.followContent = true;
+            o.keepColliderLayers = false;
+            o.lightIntensity = 0f;
+
+            toolkitCoinStage = StageLegacy3D(toolkitCoinRoot, elementPriceCoin, o);
+        }
+
+        SetToolkitLegacy3DActive(isVisible);
+
+        if(isVisible) {
+            toolkitReframeFrames = 2;
+        }
+    }
+
+    protected override void SuppressLegacyView() {
+
+        if(!ApplyToolkitLegacySuppression()) {
+            base.SuppressLegacyView();
+        }
+    }
+
+    protected override void FreeToolkitView() {
+
+        // base first: UnstageAllLegacy3D detaches both stages (layers restored, RTs released)
+        // before the widgets come back.
+        base.FreeToolkitView();
+
+        toolkitBotStage = null;
+        toolkitCoinStage = null;
+        toolkitReframeFrames = 0;
+
+        RestoreToolkitLegacySuppression();
+    }
+
+    // The toolkit hide lands here when the slide ends (HideToolkitViewWhenSlideEnds), so the bot
+    // stays in its RT for the whole slide and goes inactive with the view.
+    public override void HidePanel() {
+
+        base.HidePanel();
+
+        if(isToolkitPanel && !isVisible && toolkitLegacySuppressed) {
+            SetToolkitLegacy3DActive(false);
+        }
+    }
+
+    // Per frame while up: allocation-free bool checks, re-assert only on a change.
+    protected void UpdateToolkitLegacy3D() {
+
+        if(!toolkitLegacySuppressed || !isToolkitPanel || !isVisible) {
+            return;
+        }
+
+        if(panelContainer != null && !panelContainer.activeSelf) {
+            ApplyToolkitLegacySuppression();
+        }
+
+        if((toolkitBotRoot != null && !toolkitBotRoot.activeSelf)
+            || (toolkitCoinRoot != null && !toolkitCoinRoot.activeSelf)) {
+            SetToolkitLegacy3DActive(true);
+        }
+
+        if(toolkitReframeFrames > 0 && --toolkitReframeFrames == 0) {
+
+            if(toolkitBotStage != null && toolkitBotStage.isBound) {
+                toolkitBotStage.stage.Reframe();
+            }
+
+            if(toolkitCoinStage != null && toolkitCoinStage.isBound) {
+                toolkitCoinStage.stage.Reframe();
+            }
+        }
+    }
+
+    // ----------------------------------------------------------------------------------------
 
     public override void Awake() {
         base.Awake();
@@ -375,6 +760,12 @@ public class UIPanelDialogRPGObject : UIPanelBase {
     // EVENTS
 
     public override void OnEnable() {
+
+        // A restore FreeToolkitView could not finish (it ran while this panel was being disabled):
+        // finish it now if the panel came back on the legacy path; the toolkit path re-suppresses.
+        if(toolkitLegacySuppressed && !isToolkitPanel) {
+            RestoreToolkitLegacySuppression();
+        }
 
         base.OnEnable();
     }
@@ -430,6 +821,12 @@ public class UIPanelDialogRPGObject : UIPanelBase {
 
         if(isToolkitPanel) {
 
+            // B9 S2: re-assert the selective suppression and bring the staged 3D up for this show.
+            if(ApplyToolkitLegacySuppression()) {
+                SetToolkitLegacy3DActive(true);
+                toolkitReframeFrames = 2;
+            }
+
             SyncToolkitColors();
 
             toolkitStatsElapsed = 0f;
@@ -446,5 +843,6 @@ public class UIPanelDialogRPGObject : UIPanelBase {
 
     public virtual void Update() {
         UpdateToolkitStats();
+        UpdateToolkitLegacy3D();
     }
 }

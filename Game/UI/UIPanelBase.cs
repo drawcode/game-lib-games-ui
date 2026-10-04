@@ -228,6 +228,11 @@ public class UIPanelBase : UIAppPanel {
     // (UIRef.none) view is a no-op, so calling from both is safe.
     protected virtual void FreeToolkitView() {
 
+        // Before the early return: a binding must come off even when the view is already gone
+        // (freed elsewhere, host destroyed first on scene teardown) — its layers still need
+        // restoring and its RT releasing.
+        UnstageAllLegacy3D();
+
         if(!isToolkitPanel) {
             return;
         }
@@ -246,6 +251,106 @@ public class UIPanelBase : UIAppPanel {
 
         viewRoot = UIRef.none;
         toolkitLoadRequested = false;
+    }
+
+    // STAGED LEGACY 3D (B9 S1, 2026-10-03)
+    //
+    // Live 3D content that sits around/inside a converted view (a bot, a coin) cannot draw over a
+    // toolkit view from the world — overlay panels draw above every camera. StageLegacy3D renders
+    // it into a RenderTexture shown in the named element via an Engine.UI.UIRenderStageBinding,
+    // which also owns when it renders (element + view visible, content active, element alive) and
+    // the RT size (from the element's pixel size). Every binding made here is freed by
+    // FreeToolkitView, so a pooled-away panel gives its layers and RTs back.
+    //
+    // CALL IT FROM BindElements (or later, while the view is alive) — NEVER from OnEnable /
+    // OnDisable / AnimateIn / AnimateOut or any other (de)activation callback. Those run every
+    // pool cycle; a second Attach on already-staged content records the stage layer as the
+    // "original" one and the content never comes back to the legacy cameras. Kill switch: it
+    // returns null (nothing staged) unless the view is alive, i.e. only on the toolkit path.
+    //
+    // The content must stay ACTIVE: SuppressLegacyView's default hides the whole panelContainer,
+    // and content under it is inactive, so its camera never turns on. Panels staging content from
+    // inside their container override SuppressLegacyView to hide only the flat widgets.
+    //
+    // The existing hand-wired stages (header, HUD, Products, ProductCurrency, notification coin)
+    // do not use this and are unchanged.
+
+    private List<UIRenderStageBinding> stagedLegacy3D;
+
+    // Stage into an element of this panel's own view.
+    protected UIRenderStageBinding StageLegacy3D(
+        GameObject content, string elementName, UIRenderStageBinding.Options options = null) {
+
+        return StageLegacy3D(content, viewRoot, elementName, options);
+    }
+
+    // Stage into an element of another view this panel owns (a split front/back cluster).
+    protected UIRenderStageBinding StageLegacy3D(
+        GameObject content, UIRef view, string elementName,
+        UIRenderStageBinding.Options options = null) {
+
+        if(content == null || view == null || !view.alive) {
+            return null;
+        }
+
+        if(stagedLegacy3D == null) {
+            stagedLegacy3D = new List<UIRenderStageBinding>();
+        }
+
+        // Already staged by this panel: hand back the live binding (see the double-Attach note).
+        for(int i = stagedLegacy3D.Count - 1; i >= 0; i--) {
+
+            UIRenderStageBinding existing = stagedLegacy3D[i];
+
+            if(existing == null || !existing.isBound) {
+                stagedLegacy3D.RemoveAt(i);
+                continue;
+            }
+
+            if(existing.content == content) {
+                return existing;
+            }
+        }
+
+        UIRenderStageBinding binding =
+            UIRenderStageBinding.Bind(content, view, elementName, options);
+
+        if(binding != null) {
+            stagedLegacy3D.Add(binding);
+        }
+
+        return binding;
+    }
+
+    // Free one binding early (content leaves the screen before the view does).
+    protected void UnstageLegacy3D(UIRenderStageBinding binding) {
+
+        if(binding == null) {
+            return;
+        }
+
+        if(stagedLegacy3D != null) {
+            stagedLegacy3D.Remove(binding);
+        }
+
+        binding.Unbind();
+    }
+
+    protected void UnstageAllLegacy3D() {
+
+        if(stagedLegacy3D == null || stagedLegacy3D.Count == 0) {
+            return;
+        }
+
+        for(int i = 0; i < stagedLegacy3D.Count; i++) {
+
+            // Unity-null when scene teardown destroyed the stage object first: nothing to free.
+            if(stagedLegacy3D[i] != null) {
+                stagedLegacy3D[i].Unbind();
+            }
+        }
+
+        stagedLegacy3D.Clear();
     }
 
     // SAFE-POINT VIEW RECLAIM

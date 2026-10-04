@@ -882,7 +882,13 @@ public class BaseGameHUD : GameUIPanelBase {
             layer = LayerMask.NameToLayer("UI3D");
         }
 
-        hudCoinStage = Engine.UI.UIRenderStage.Attach(coin.gameObject, layer, 128, 1.3f);
+        // lightIntensity 0 = BORROW the layer's light (the 7th argument is the stage light's intensity).
+        // Stage lights are directional with cullingMask = the whole UIWidget3D layer, so they ADD, and
+        // the header's coin stage (0.97) stays attached through a round: measured live, an own 0.97
+        // here put 1.94 on this coin and rendered it flat lemon (252,248,26) against the header's gold
+        // (235,209,25). Borrowing the header's 0.97 gives the header's exposure. B9 S2, iter 34.
+        hudCoinStage = Engine.UI.UIRenderStage.Attach(
+            coin.gameObject, layer, 128, 1.3f, false, false, 0f);
 
         if(hudCoinStage != null) {
             UIUtil.SetImageTexture(UIUtil.ResolveDeep(viewRoot, "IconCoin"), hudCoinStage.texture);
