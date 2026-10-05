@@ -105,8 +105,15 @@ public class UIPanelCommunityToolkit {
         }
     }
 
+    // A game that rolls the community layer out piece by piece (CommunityFeatures.managed) draws
+    // the view whenever any piece is on, whatever the legacy camera does; otherwise the old
+    // camera-parity rule, unchanged for every other game.
     public bool draws {
         get {
+            if(CommunityFeatures.managed) {
+                return CommunityFeatures.anyOn;
+            }
+
             return !followsLegacyCamera || legacyCameraDraws;
         }
     }
@@ -130,6 +137,11 @@ public class UIPanelCommunityToolkit {
     }
 
     public void SetCard(string path, bool visible, CardEdge edge) {
+
+        // A piece the game has not switched on never shows (CommunityFeatures).
+        if(visible && !CommunityFeatures.AllowsCard(path)) {
+            visible = false;
+        }
 
         cardPending[path] = visible;
         cardEdges[path] = edge;

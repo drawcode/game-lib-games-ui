@@ -50,6 +50,13 @@ public class UIPanelCommunityShare : UIPanelCommunityBase {
         // at Init and only pulses it while recording, and that component is suppressed with the
         // rest of the legacy subtree.
         toolkit.SetVisible(elementBroadcastRecordLight, BroadcastNetworks.IsRecording());
+
+        // Action-bar buttons the game has not switched on (CommunityFeatures; all allowed when
+        // the rollout is unmanaged). Paths are relative to the bar.
+        toolkit.SetVisible(elementActionTools + "/" + CommunityFeatures.buttonPhoto,
+            CommunityFeatures.AllowsButton(CommunityFeatures.buttonPhoto));
+        toolkit.SetVisible(elementActionTools + "/" + CommunityFeatures.buttonBroadcast,
+            CommunityFeatures.AllowsButton(CommunityFeatures.buttonBroadcast));
     }
 
     // ----------------------------------------------------------------------------------------
