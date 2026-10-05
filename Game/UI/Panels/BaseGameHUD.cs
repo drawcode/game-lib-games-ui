@@ -705,6 +705,62 @@ public class BaseGameHUD : GameUIPanelBase {
         }
     }
 
+    // B11.2 THE EDIT BUTTON. The legacy ButtonGameEdit sits in TopRight/Toolbar/DevObject, a cluster
+    // this view suppresses, so the view carries its own (panel-hud.json ButtonGameEdit, the same name:
+    // the click reaches GameDraggableEditor.EditEnable through the bridge exactly as the NGUI tap did).
+    //
+    // State is PULLED from GameDraggableEditor every frame the chrome is up (two bools and isEditing:
+    // no allocation, and a write only on a change), so a late or rebuilt view needs no replay.
+    // Visible while the game has asked for it (ShowUIPanelEditButton, allowedEditing) and the asset
+    // sheet is not open -- the legacy wiring hides EDIT while the sheet is up. Owner B11 O1: shown to
+    // everyone. The label swaps EDIT <-> PLAY with the edit state, which the legacy label was meant to
+    // do (GameDraggableEditor.labelButtonGameEdit) but never did: that field is unwired in the scene.
+    public const string elementButtonGameEdit = "ButtonGameEdit";
+    public const string elementLabelButtonGameEdit = "LabelButtonGameEdit";
+    public const string locKeyButtonGameEdit = "game_ui_level_editor_edit";
+    public const string locKeyButtonGamePlay = "game_ui_level_editor_play";
+
+    // -1 = unknown (nothing written to this view yet).
+    private int lastEditButtonVisible = -1;
+    private int lastEditButtonPlaying = -1;
+
+    private void UpdateToolkitEditButton() {
+
+        if(!isToolkitPanel || !toolkitChromeShown) {
+            return;
+        }
+
+        bool visible = GameDraggableEditor.isInst
+            && GameDraggableEditor.editButtonRequested
+            && !GameDraggableEditor.editAssetSheetShown;
+
+        int visibleState = visible ? 1 : 0;
+
+        if(visibleState != lastEditButtonVisible) {
+
+            lastEditButtonVisible = visibleState;
+
+            UIRef button = UIUtil.ResolveDeep(viewRoot, elementButtonGameEdit);
+
+            if(visible) {
+                UIUtil.ShowObject(button);
+            }
+            else {
+                UIUtil.HideObject(button);
+            }
+        }
+
+        int playingState = GameDraggableEditor.isEditing ? 1 : 0;
+
+        if(playingState != lastEditButtonPlaying) {
+
+            lastEditButtonPlaying = playingState;
+
+            UIUtil.SetLabelLocalized(UIUtil.ResolveDeep(viewRoot, elementLabelButtonGameEdit),
+                playingState == 1 ? locKeyButtonGamePlay : locKeyButtonGameEdit);
+        }
+    }
+
     private void UpdateToolkitFps() {
 
         if(!isToolkitPanel || !toolkitChromeShown) {
@@ -951,6 +1007,10 @@ public class BaseGameHUD : GameUIPanelBase {
         fpsLegacyHidden = false;
         lastFpsText = null;
         lastFpsValue = float.NaN;
+
+        // B11.2: the EDIT button state belongs to the view being freed.
+        lastEditButtonVisible = -1;
+        lastEditButtonPlaying = -1;
 
         // The per-view label caches: the next view is a new UIRef so they would rebind anyway, but
         // drop the dead element refs now rather than hold them until the next write.
@@ -1467,6 +1527,7 @@ public class BaseGameHUD : GameUIPanelBase {
 
         UpdateToolkitFps();
         UpdateToolkitStatBars();
+        UpdateToolkitEditButton();
         /*
         var ry = 0f;
         //var rx = 0f;
