@@ -25,6 +25,18 @@ public class UIPanelDialogRPGEnergy : UIPanelDialogRPGObject {
         panelTypes.Add(UIPanelBaseTypes.typeDialogHUD);
     }
 
+    // TOOLKIT (B3): the shared panel-dialog-rpg view, filled with this stat. Same read as the
+    // UIGameRPGEnergy meter in the scene tree (rounded to 2 places, default 1).
+    public override string toolkitStatCode {
+        get {
+            return "energy";
+        }
+    }
+
+    public override double GetToolkitStatValue() {
+        return Math.Round(GameProfileCharacters.currentProgress.GetGamePlayerProgressEnergy(1), 2);
+    }
+
     public static bool isInst {
         get {
             if(Instance != null) {
@@ -49,15 +61,11 @@ public class UIPanelDialogRPGEnergy : UIPanelDialogRPGObject {
     public override void OnEnable() {
 
         base.OnEnable();
-
-        Messenger<string>.AddListener(ButtonEvents.EVENT_BUTTON_CLICK, OnButtonClickEventHandler);
     }
     
     public override void OnDisable() {
 
         base.OnDisable();
-
-        Messenger<string>.RemoveListener(ButtonEvents.EVENT_BUTTON_CLICK, OnButtonClickEventHandler);
     }
 
     public override void OnButtonClickEventHandler(string buttonName) {

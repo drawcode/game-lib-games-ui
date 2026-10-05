@@ -16,6 +16,28 @@ public class UIPanelCommunityCamera : UIPanelCommunityBase {
     public GameObject photoObject;
     public Material photoMaterial;
 
+    // ----------------------------------------------------------------------------------------
+    // TOOLKIT (B6)
+
+    // Unreachable in this title: its open button (ButtonGameCommunityCameraTakePhoto) sits in the
+    // share panel's action tools bar, and the share-result buttons route here too
+    // (TakePhotoGameState) -- both inside the UICommunity layer whose camera the scene disables.
+    // Verified by a direct ShowCameraPhoto().
+    public override string toolkitViewKey {
+        get {
+            return BaseUIPanel.panelCommunityCamera;
+        }
+    }
+
+    // Elements in panel-community-camera.uxml (legacy GameObject names). The photo itself
+    // (PhotoPlaceholder, a UITexture fed by GameCommunitySocialController) is a B9 placeholder:
+    // the view keeps an empty box of the same size.
+    public const string elementPhotoCard = "PanelContentPhoto";
+    public const string elementPhotoFrame = "PanelContentPhoto/Backgrounds/BackgroundColor";
+    public const string elementPhotoClose = "ButtonGameCommunityClose/Background";
+
+    // ----------------------------------------------------------------------------------------
+
     public override void Awake() {
 
         if (Instance != null && this != Instance) {
@@ -53,15 +75,11 @@ public class UIPanelCommunityCamera : UIPanelCommunityBase {
     public override void OnEnable() {
 
         base.OnEnable();
-
-        Messenger<string>.AddListener(ButtonEvents.EVENT_BUTTON_CLICK, OnButtonClickEventHandler);
     }
     
     public override void OnDisable() {
 
         base.OnDisable();
-
-        Messenger<string>.RemoveListener(ButtonEvents.EVENT_BUTTON_CLICK, OnButtonClickEventHandler);
     }
 
     public override void OnButtonClickEventHandler(string buttonName) {
@@ -241,6 +259,9 @@ public class UIPanelCommunityCamera : UIPanelCommunityBase {
     public void showCameraPhoto() {
         HidePanels();
         AnimateInBottom(panelCameraPhoto);
+
+        toolkit.SetCard(elementPhotoCard, true, UIPanelCommunityToolkit.CardEdge.Bottom);
+        toolkit.ApplyModeColors(elementPhotoFrame, elementPhotoClose);
                 
         UIPanelCommunityBackground.ShowBackground();
     }
@@ -253,6 +274,8 @@ public class UIPanelCommunityCamera : UIPanelCommunityBase {
     
     public void hideCameraPhoto() {
         AnimateOutBottom(panelCameraPhoto);
+
+        toolkit.SetCard(elementPhotoCard, false, UIPanelCommunityToolkit.CardEdge.Bottom);
     }
 
     public static void ShowDefault() {

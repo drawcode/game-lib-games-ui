@@ -48,7 +48,32 @@ public class UIGameRPGPlayerHitHealth : UIGameRPGPlayerObject {
         base.HandleUpdate(false);
     }
 
+    // Dead actors keep their body for a moment before the pool reclaims them; their (empty) bar
+    // should not linger with it. Renderers only, so this component keeps updating and shows the
+    // bar again when the actor respawns. Touched only on a change: no per-frame cost or garbage.
+    readonly List<Renderer> barRenderers = new List<Renderer>();
+    bool barHiddenForDeath = false;
+
+    void SyncDeathVisibility() {
+
+        bool dead = gamePlayerController != null && gamePlayerController.isDead;
+
+        if (dead == barHiddenForDeath) {
+            return;
+        }
+
+        barHiddenForDeath = dead;
+
+        GetComponentsInChildren<Renderer>(true, barRenderers);
+
+        for (int i = 0; i < barRenderers.Count; i++) {
+            barRenderers[i].enabled = !dead;
+        }
+    }
+
     public override void Update() {
+
+        SyncDeathVisibility();
 
         HandleUpdate(true);
 

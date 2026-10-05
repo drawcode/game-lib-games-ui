@@ -21,13 +21,14 @@ public class BaseGameUIPanelResultsBase : MonoBehaviour {
     public UILabel totalTime;
     public UILabel totalKills;
 #else
-    public Text totalScoreComputed;
-    public Text totalScore;
-    public Text totalScores;
-    public Text totalSpecials;
-    public Text totalCoins;
-    public Text totalTime;
-    public Text totalKills;
+    // 2.11: agnostic UIRef handles, bound at runtime by name.
+    public Engine.UI.UIRef totalScoreComputed;
+    public Engine.UI.UIRef totalScore;
+    public Engine.UI.UIRef totalScores;
+    public Engine.UI.UIRef totalSpecials;
+    public Engine.UI.UIRef totalCoins;
+    public Engine.UI.UIRef totalTime;
+    public Engine.UI.UIRef totalKills;
 #endif
 
     public virtual void OnEnable() {
@@ -57,14 +58,14 @@ public class BaseGameUIPanelResultsBase : MonoBehaviour {
         
         UIUtil.SetLabelValue(totalTime, FormatUtil.GetFormattedTimeHoursMinutesSecondsMs((double)timeTotal));
 
-        UIUtil.SetLabelValue(totalCoins, runtimeData.coins.ToString("N0"));
-		UIUtil.SetLabelValue(totalScores, runtimeData.scores.ToString("N0"));
-		UIUtil.SetLabelValue(totalScore, runtimeData.score.ToString("N0"));
-        UIUtil.SetLabelValue(totalSpecials, runtimeData.specials.ToString("N0"));
-        UIUtil.SetLabelValue(totalKills, runtimeData.kills.ToString("N0"));
+        UIUtil.SetLabelValue(totalCoins, runtimeData.coins.ToString("N0", Engine.Game.App.BaseApp.L10n.NumberFormat));
+		UIUtil.SetLabelValue(totalScores, runtimeData.scores.ToString("N0", Engine.Game.App.BaseApp.L10n.NumberFormat));
+		UIUtil.SetLabelValue(totalScore, runtimeData.score.ToString("N0", Engine.Game.App.BaseApp.L10n.NumberFormat));
+        UIUtil.SetLabelValue(totalSpecials, runtimeData.specials.ToString("N0", Engine.Game.App.BaseApp.L10n.NumberFormat));
+        UIUtil.SetLabelValue(totalKills, runtimeData.kills.ToString("N0", Engine.Game.App.BaseApp.L10n.NumberFormat));
 
         double totalScoreValue = runtimeData.totalScoreValue;
-        UIUtil.SetLabelValue(totalScoreComputed, totalScoreValue.ToString("N0"));
+        UIUtil.SetLabelValue(totalScoreComputed, totalScoreValue.ToString("N0", Engine.Game.App.BaseApp.L10n.NumberFormat));
     }
 	
 	public virtual void loadData() {

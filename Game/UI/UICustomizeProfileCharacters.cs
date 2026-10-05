@@ -3,10 +3,6 @@ using System.Collections;
 using System.Collections.Generic;
 
 using UnityEngine;
-#if USE_UI_NGUI_2_7 || USE_UI_NGUI_3
-#else
-using UnityEngine.UI;
-#endif
 
 // using Engine.Data.Json;
 using Engine.Events;
@@ -18,8 +14,10 @@ public class UICustomizeProfileCharacters : UICustomizeSelectObject {
     public UIInput inputCurrentDisplayCode;
     public UIImageButton buttonSave;
 #else
-    public InputField inputCurrentDisplayCode;
-    public Button buttonSave;
+    // B10: agnostic UIRef handles (was UGUI), the BaseGameHUD pattern. Unbound (null) until
+    // something binds them by name; every UIUtil call no-ops on a null ref.
+    public Engine.UI.UIRef inputCurrentDisplayCode;
+    public Engine.UI.UIRef buttonSave;
 #endif
 
     public string type = "character";
@@ -133,7 +131,11 @@ public class UICustomizeProfileCharacters : UICustomizeSelectObject {
             return;
         }
 
+#if USE_UI_NGUI_2_7 || USE_UI_NGUI_3
         ChangeCharacterDisplayName(inputCurrentDisplayName.text);
+#else
+        ChangeCharacterDisplayName(UIUtil.GetInputValue(inputCurrentDisplayName));
+#endif
     }
 
     public virtual void SaveCharacterDisplayCodeInput() {
@@ -142,7 +144,11 @@ public class UICustomizeProfileCharacters : UICustomizeSelectObject {
             return;
         }
 
+#if USE_UI_NGUI_2_7 || USE_UI_NGUI_3
         ChangeCharacterDisplayCode(inputCurrentDisplayCode.text);
+#else
+        ChangeCharacterDisplayCode(UIUtil.GetInputValue(inputCurrentDisplayCode));
+#endif
     }
 
     public virtual void ChangeCharacterDisplayName(string val) {
@@ -250,8 +256,12 @@ public class UICustomizeProfileCharacters : UICustomizeSelectObject {
                 string characterType = "";
                 GameCharacter gameCharacter = GameCharacters.Instance.GetById(profileCharacterItem.characterCode);
                 if(gameCharacter != null) {
-                    characterType = gameCharacter.display_name;
-                    characterType = "- TYPE: " + characterType + " -";
+                    // The bot's own name is a proper noun and stays as authored; only the
+                    // "- TYPE: X -" chrome around it is keyed. TrOrDefault, because games on
+                    // this shared lib that don't ship the key must keep the English form.
+                    characterType = Engine.Game.App.BaseApp.L10n.TrOrDefault(
+                        "game_ui_customize_character_type_plate", "- TYPE: {0} -",
+                        gameCharacter.display_name);
                 }
 
                 UIUtil.SetInputValue(inputCurrentDisplayName, profileCharacterItem.characterDisplayName);
@@ -261,8 +271,114 @@ public class UICustomizeProfileCharacters : UICustomizeSelectObject {
                 UIUtil.SetInputValue(inputCurrentDisplayCode, profileCharacterItem.characterDisplayCode);
 
                 UIUtil.SetLabelValue(labelCurrentStatus, string.Format("{0}/{1}", index + 1, countPresets));
+
+                // ...and again for the toolkit, by ELEMENT NAME. labelCurrentDisplayName /
+                // labelCurrentType / labelCurrentStatus are declared inside
+                // UICustomizeSelectObject's `#if USE_UI_NGUI_2_7 || USE_UI_NGUI_3` branch — the
+                // branch actually compiled here — so they are legacy UILabels that BindElements
+                // can never rebind. Every write above lands on the NGUI widget SuppressLegacyView
+                // has already hidden, which is why cycling bots moved the 3D model but left the
+                // plate's name/type/status frozen at their authored placeholders (user, 2026-08-28).
+                // Third instance of this trap after the worlds labels and the header band title.
+                UpdateToolkitDisplay(
+                    profileCharacterItem, characterType,
+                    string.Format("{0}/{1}", index + 1, countPresets));
             }
         }
+    }
+
+    // The panel that hosts this control. Resolved by walking up rather than by asking a
+    // specific panel type for its Instance: this control is generic game-lib code and must not
+    // learn the name of the one screen that happens to use it today.
+    private UIPanelBase hostPanel;
+
+    public UIPanelBase HostPanel() {
+
+        if(hostPanel == null) {
+            hostPanel = GetComponentInParent<UIPanelBase>();
+        }
+
+        return hostPanel;
+    }
+
+    // Mirror of the legacy writes above, addressed by element name. No-ops entirely on the NGUI
+    // path (and before the async view lands), because ResolveDeep on a dead ref returns UIRef.none
+    // and every backend op no-ops on a ref that is not alive.
+    public virtual void UpdateToolkitDisplay(
+        GameProfileCharacterItem item, string characterType, string status) {
+
+        UIPanelBase panel = HostPanel();
+
+        if(panel == null || !panel.isToolkitPanel || item == null) {
+            return;
+        }
+
+        Engine.UI.UIRef root = panel.viewRoot;
+
+        UIUtil.SetLabelValue(UIUtil.ResolveDeep(root, "LabelCharacterNameValue"),
+            item.characterDisplayName);
+        UIUtil.SetLabelValue(UIUtil.ResolveDeep(root, "LabelType"), characterType);
+        UIUtil.SetLabelValue(UIUtil.ResolveDeep(root, "LabelStatus"), status);
+
+        UpdateToolkitInfoCard(item, characterType);
+    }
+
+    // The info callout under the plate (user request, 2026-08-28): identity plus the four RPG
+    // attributes, so switching bots shows what actually differs between them.
+    //
+    // The stat scale matches UICustomizeCharacterRPGItem exactly — values are stored 0..1 and
+    // displayed against a modifier of 10 — so the same bot reads the same number here and on the
+    // skills screen. Deliberately reusing that constant rather than inventing a display range.
+    protected virtual void UpdateToolkitInfoCard(
+        GameProfileCharacterItem item, string characterType) {
+
+        Engine.UI.UIRef root = HostPanel().viewRoot;
+
+        UIUtil.SetLabelValue(UIUtil.ResolveDeep(root, "LabelCardName"),
+            item.characterDisplayName);
+        UIUtil.SetLabelValue(UIUtil.ResolveDeep(root, "LabelCardCode"),
+            string.IsNullOrEmpty(item.characterDisplayCode) ? "" : "#" + item.characterDisplayCode);
+
+        // The plate already brackets the type as "- TYPE: X -"; the card wants it plain.
+        UIUtil.SetLabelValue(UIUtil.ResolveDeep(root, "LabelCardType"),
+            characterType.Replace("- ", "").Replace(" -", ""));
+
+        // Read through GetCurrentCharacterRPG, NOT item.profileRPGItem. ChangePreset has already
+        // called SetCurrentCharacterProfileCode for this item, so the two ought to agree — but the
+        // item pulled out of GetCharacters().items carries no RPG data (measured: its getters all
+        // return 0 while the current-character lookup returns the real 0.1), and the authored
+        // placeholder "0/10" made that look like a working card with a zeroed bot. Going through
+        // the same accessor the skills screen uses also guarantees the two screens can never
+        // disagree about the same bot.
+        GameProfileRPGItem rpg = GameProfileCharacters.Current.GetCurrentCharacterRPG();
+
+        if(rpg == null) {
+            rpg = item.profileRPGItem;
+        }
+
+        if(rpg == null) {
+            return;
+        }
+
+        SetToolkitStat(root, "Speed", rpg.GetSpeed());
+        SetToolkitStat(root, "Health", rpg.GetHealth());
+        SetToolkitStat(root, "Energy", rpg.GetEnergy());
+        SetToolkitStat(root, "Attack", rpg.GetAttack());
+    }
+
+    protected virtual void SetToolkitStat(Engine.UI.UIRef root, string code, double val) {
+
+        double modifier = 10;
+
+        UIUtil.SetLabelValue(
+            UIUtil.ResolveDeep(root, "Stat" + code + "Value"),
+            string.Format("{0}/{1}",
+                (val * modifier).ToString("N0", Engine.Game.App.BaseApp.L10n.NumberFormat), modifier.ToString("N0", Engine.Game.App.BaseApp.L10n.NumberFormat)));
+
+        // Falls through the backend to the image-fill path, which sets the element's width as a
+        // percentage of its track.
+        UIUtil.SetSliderValue(
+            UIUtil.ResolveDeep(root, "Stat" + code + "Fill"), (float)val);
     }
 
     public override void Update() {

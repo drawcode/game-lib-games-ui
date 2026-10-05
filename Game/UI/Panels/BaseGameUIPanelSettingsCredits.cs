@@ -68,6 +68,12 @@ public class BaseGameUIPanelSettingsCredits : GameUIPanelBase {
         Messenger<string, string>.RemoveListener(
             UIControllerMessages.uiPanelAnimateType,
             OnUIControllerPanelAnimateType);
+
+        // Chain to base so UIPanelBase.OnDisable runs — it frees the toolkit view when the panel
+        // is pooled away (destroy-on-hide, the memory unload). Many Base* panels skip base in
+        // their OnDisable overrides; each migrated panel must chain it. Systemic fix is a Phase 3
+        // item (companion hook, so this doesn't depend on per-panel override discipline).
+        base.OnDisable();
     }
 
     public override void OnUIControllerPanelAnimateIn(string classNameTo) {

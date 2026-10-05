@@ -3,10 +3,6 @@ using System.Collections;
 using System.Collections.Generic;
 
 using UnityEngine;
-#if USE_UI_NGUI_2_7 || USE_UI_NGUI_3
-#else
-using UnityEngine.UI;
-#endif
 
 using Engine.Events;
 using Engine.Utility;
@@ -40,13 +36,14 @@ public class BaseGameUIPanelWorlds : GameUIPanelBase {
     public UILabel labelWorldDescription;
 #else
     //
-    public Button buttonGamePlay;
-    public Button buttonClose;
-    public Button buttonWorldNext;
-    public Button buttonWorldPrevious;
+    // 2.11: agnostic UIRef handles, bound at runtime by name.
+    public Engine.UI.UIRef buttonGamePlay;
+    public Engine.UI.UIRef buttonClose;
+    public Engine.UI.UIRef buttonWorldNext;
+    public Engine.UI.UIRef buttonWorldPrevious;
     //
-    public Text labelWorldTitle;
-    public Text labelWorldDescription;
+    public Engine.UI.UIRef labelWorldTitle;
+    public Engine.UI.UIRef labelWorldDescription;
 #endif
     //
     public GameObject listItemPrefab;
@@ -136,6 +133,10 @@ public class BaseGameUIPanelWorlds : GameUIPanelBase {
         Messenger.RemoveListener(GameWorldsMessages.gameWorldNext, OnGameWorldNext);
         Messenger.RemoveListener(GameWorldsMessages.gameWorldPrevious, OnGameWorldPrevious);
         Messenger.RemoveListener(GameWorldsMessages.gameWorldSelect, OnGameWorldSelect);
+        // Chain to base so UIPanelBase.OnDisable -> FreeToolkitView runs when this panel is
+        // pooled away, else the toolkit view leaks once the panel has one. Phase-3 migration
+        // prerequisite (same fix the settings/header/footer bases got in 3A/3B).
+        base.OnDisable();
     }
 
     public void OnUIControllerShowHandler() {
@@ -188,6 +189,17 @@ public class BaseGameUIPanelWorlds : GameUIPanelBase {
     }
 
     public virtual void UpdateMetaLabels() {
+
+        // Toolkit: the meta labels are toolkit elements written by NAME — the serialized
+        // labelWorldTitle/labelWorldDescription fields are legacy UILabel refs (not UIRef),
+        // so BindElements can't rebind them and SetLabelValue would write the suppressed
+        // NGUI labels instead of the view.
+        if(isToolkitPanel) {
+            UIUtil.UpdateLabelObject(viewRoot, "LabelTitle", GameWorlds.Current.display_name);
+            UIUtil.UpdateLabelObject(viewRoot, "LabelDescription", GameWorlds.Current.description);
+            return;
+        }
+
         UIUtil.SetLabelValue(labelWorldTitle, GameWorlds.Current.display_name);
         UIUtil.SetLabelValue(labelWorldDescription, GameWorlds.Current.description);
     }
@@ -247,18 +259,44 @@ public class BaseGameUIPanelWorlds : GameUIPanelBase {
     }
 
     public virtual void ShowSelect() {
+
+        // Toolkit: the view's WorldMissionList mirrors the legacy containerMissions.
+        if(isToolkitPanel) {
+            UIUtil.ShowObject(UIUtil.ResolveDeep(viewRoot, "WorldMissionList"));
+            return;
+        }
+
         TweenUtil.ShowObjectBottom(containerMissions);
     }
 
     public virtual void HideSelect() {
+
+        if(isToolkitPanel) {
+            UIUtil.HideObject(UIUtil.ResolveDeep(viewRoot, "WorldMissionList"));
+            return;
+        }
+
         TweenUtil.HideObjectBottom(containerMissions);
     }
 
     public virtual void ShowButtons() {
+
+        // Toolkit: the view's ContainerButtons group mirrors the legacy select container.
+        if(isToolkitPanel) {
+            UIUtil.ShowObject(UIUtil.ResolveDeep(viewRoot, "ContainerButtons"));
+            return;
+        }
+
         TweenUtil.ShowObjectBottom(containerButtons);
     }
 
     public virtual void HideButtons() {
+
+        if(isToolkitPanel) {
+            UIUtil.HideObject(UIUtil.ResolveDeep(viewRoot, "ContainerButtons"));
+            return;
+        }
+
         TweenUtil.HideObjectBottom(containerButtons);
     }
 
@@ -282,6 +320,22 @@ public class BaseGameUIPanelWorlds : GameUIPanelBase {
 
         LogUtil.Log("LoadDataCo");
 
+        // Toolkit (3D): meta labels bind to the view async (BindElements after load) — wait for
+        // the view, then push the current world's title/description through the bound refs. The
+        // legacy grid below keeps running for the kill switch.
+        if(!string.IsNullOrEmpty(toolkitViewKey)) {
+
+            for(int waitFrames = 0; waitFrames < 60 && !isToolkitPanel; waitFrames++) {
+                yield return null;
+            }
+
+            if(isToolkitPanel) {
+                loadDataMissionsToolkit();
+                HandleStateChange();
+                yield break;
+            }
+        }
+
         if(listGridRoot != null) {
             listGridRoot.DestroyChildren();
 
@@ -299,6 +353,100 @@ public class BaseGameUIPanelWorlds : GameUIPanelBase {
 
         // Find worlds
 
+    }
+
+    // Toolkit missions rows: rebuild WorldMissionItemTemplate per mission of the current
+    // world, mirroring loadDataMissions below — name/action rows/star states/score, and the
+    // row's ButtonAction renamed to the $-encoded play payload (elements have no
+    // GameObjectData, so the name carries it; BaseUIController's play handler parses it).
+    public virtual void loadDataMissionsToolkit() {
+
+        UpdateMetaLabels();
+
+        UIUtil.ClearListItems(viewRoot, "WorldMissionList");
+
+        int i = 0;
+
+        string worldCode = GameWorlds.Current.code;
+        string appContentState = AppContentStates.Current.code;
+        string appState = AppStates.Current.code;
+
+        foreach(AppContentCollect mission in
+                 AppContentCollects.GetMissionsByWorld(worldCode)) {
+
+            double scoreMission = 0;
+
+            Engine.UI.UIRef item = UIUtil.AddListItem(
+                viewRoot, "WorldMissionList", "WorldMissionItemTemplate", "MissionItem" + i);
+
+            UIUtil.UpdateLabelObject(item, "LabelName", mission.display_name);
+
+            for(int a = 1; a <= 3; a++) {
+
+                UIUtil.HideObject(UIUtil.ResolveDeep(item, "action-" + a));
+
+                SetStarsToolkit(UIUtil.ResolveDeep(item, "summary-star-" + a), false);
+            }
+
+            int j = 0;
+
+            foreach(AppContentCollectItem action in mission.GetItemsData()) {
+
+                if(j >= 3) {
+                    break;
+                }
+
+                string index = (j + 1).ToString();
+
+                Engine.UI.UIRef actionRow = UIUtil.ResolveDeep(item, "action-" + index);
+
+                UIUtil.ShowObject(actionRow);
+                UIUtil.UpdateLabelObject(actionRow, "LabelDescription", action.data.display_name);
+
+                string collectKey =
+                    GameProfileModes.GetAppContentCollectItemKey(
+                        appState,
+                        appContentState,
+                        worldCode,
+                        BaseDataObjectKeys.all,
+                        mission.code, action.uid);
+
+                bool complete = GameProfileModes.Current.GetContentCollectValue<bool>(
+                    BaseDataObjectKeys.mission, collectKey, BaseDataObjectKeys.complete);
+
+                double points = GameProfileModes.Current.GetContentCollectValue<double>(
+                    BaseDataObjectKeys.mission, collectKey, BaseDataObjectKeys.points);
+
+                if(points == 0) {
+                    points = GameProfileModes.Current.GetContentCollectValue<int>(
+                        BaseDataObjectKeys.mission, collectKey, BaseDataObjectKeys.points);
+                }
+
+                if(complete) {
+                    scoreMission += points;
+                }
+
+                SetStarsToolkit(actionRow, complete);
+                SetStarsToolkit(UIUtil.ResolveDeep(item, "summary-star-" + index), complete);
+
+                j++;
+            }
+
+            UIUtil.UpdateLabelObject(item, "LabelScore", scoreMission.ToString("N0", Engine.Game.App.BaseApp.L10n.NumberFormat));
+
+            UIUtil.SetElementName(
+                UIUtil.ResolveDeep(item, "ButtonAction"),
+                BaseUIButtonNames.buttonGamePlay + "$" + appContentState + "$" + mission.code);
+
+            i++;
+        }
+    }
+
+    // The toolkit twin of SetStars: each star slot holds a StarComplete/StarIncomplete pair.
+    public virtual void SetStarsToolkit(Engine.UI.UIRef starWrap, bool isCompleted) {
+
+        UIUtil.ShowObject(UIUtil.ResolveDeep(starWrap, isCompleted ? "StarComplete" : "StarIncomplete"));
+        UIUtil.HideObject(UIUtil.ResolveDeep(starWrap, isCompleted ? "StarIncomplete" : "StarComplete"));
     }
 
     public virtual void loadDataMissions() {
@@ -350,8 +498,9 @@ public class BaseGameUIPanelWorlds : GameUIPanelBase {
 
                 GameObject button = null;
 
-                if(buttonObject.gameObject.Has<Button>()) {
-                    button = buttonObject.gameObject.Get<Button>().gameObject;
+                // B10: was Has<Button>(); the backend's button test.
+                if(UIUtil.IsButton(Engine.UI.UIRef.Of(buttonObject.gameObject))) {
+                    button = buttonObject.gameObject;
                 }
 #endif
 
@@ -471,7 +620,7 @@ public class BaseGameUIPanelWorlds : GameUIPanelBase {
             Transform scoreObject = item.transform.Find("Container/Stars");
             if(scoreObject != null) {
                 UIUtil.UpdateLabelObject(
-                    scoreObject.gameObject, "LabelScore", scoreMission.ToString("N0"));
+                    scoreObject.gameObject, "LabelScore", scoreMission.ToString("N0", Engine.Game.App.BaseApp.L10n.NumberFormat));
             }
 
             i++;

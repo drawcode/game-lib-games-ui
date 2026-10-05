@@ -3,10 +3,6 @@ using System.Collections;
 using System.Collections.Generic;
 
 using UnityEngine;
-#if USE_UI_NGUI_2_7 || USE_UI_NGUI_3
-#else
-using UnityEngine.UI;
-#endif
 
 using Engine.Events;
 using Engine.Utility;
@@ -27,10 +23,12 @@ public class UIPanelTips : UIAppPanelBaseList {
     public UIButton buttonClose;
     public UILabel labelCurrentTipStatus;
 #else
-    public Button buttonBack;
-    public Button buttonNext;
-    public Button buttonClose;
-    public Text labelCurrentTipStatus;
+    // B10: agnostic UIRef handles (was UGUI), the BaseGameHUD pattern. Unbound (null) until
+    // something binds them by name; every UIUtil call no-ops on a null ref.
+    public Engine.UI.UIRef buttonBack;
+    public Engine.UI.UIRef buttonNext;
+    public Engine.UI.UIRef buttonClose;
+    public Engine.UI.UIRef labelCurrentTipStatus;
 #endif
 
     public GameObject containerObject;
@@ -71,7 +69,6 @@ public class UIPanelTips : UIAppPanelBaseList {
 
         //Messenger<DeviceOrientation>.AddListener(DeviceOrientationMessages.deviceOrientationChange, OnDeviceOrientationChangeHandler);
         Messenger<float>.AddListener(DeviceOrientationMessages.deviceScreenRatioChange, OnDeviceScreenRatioChangeHandler);
-        Messenger<string>.AddListener(ButtonEvents.EVENT_BUTTON_CLICK, OnButtonClickEventHandler);
 
         Messenger<SwipeGesture>.AddListener(FingerGesturesMessages.OnSwipe,
                                             OnInputSwipe);
@@ -85,7 +82,6 @@ public class UIPanelTips : UIAppPanelBaseList {
 
         //Messenger<DeviceOrientation>.RemoveListener(DeviceOrientationMessages.deviceOrientationChange, OnDeviceOrientationChangeHandler);
         Messenger<float>.RemoveListener(DeviceOrientationMessages.deviceScreenRatioChange, OnDeviceScreenRatioChangeHandler);
-        Messenger<string>.RemoveListener(ButtonEvents.EVENT_BUTTON_CLICK, OnButtonClickEventHandler);
 
         Messenger<SwipeGesture>.RemoveListener(FingerGesturesMessages.OnSwipe,
                                             OnInputSwipe);
@@ -228,7 +224,7 @@ public class UIPanelTips : UIAppPanelBaseList {
         GameObject itemObject = LoadObject(prefabPointsTotal, AppViewerSectionNames.points);
         SetItemLabel(itemObject, "LabelPoints", 
             GameProfileStatistics.Current.GetStatisticValue(
-            GameProfileStatisticAttributes.ATT_TOTAL_POINTS).ToString("N0")
+            GameProfileStatisticAttributes.ATT_TOTAL_POINTS).ToString("N0", Engine.Game.App.BaseApp.L10n.NumberFormat)
             );
         
         LoadObject(prefabPointsAbout, AppViewerSectionNames.points);        

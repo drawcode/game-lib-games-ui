@@ -72,6 +72,15 @@ public class BaseGameUIPanelCustomizeCharacterColors : GameUIPanelBase {
         Messenger<string, string>.RemoveListener(
             UIControllerMessages.uiPanelAnimateType,
             OnUIControllerPanelAnimateType);
+
+        // Chain to base so UIPanelBase.OnDisable -> FreeToolkitView runs when this pooled panel is
+        // put away; without it the toolkit view leaks on every navigation away. Same Phase-3
+        // prerequisite BaseGameUIPanelCustomizeCharacter already carries.
+        //
+        // OnDisable ONLY — UIPanelBase.OnEnable re-adds EVENT_BUTTON_CLICK, which this panel
+        // already subscribes itself, so chaining OnEnable would fire every click TWICE.
+        // RemoveListener is idempotent, so the OnDisable-only chain is safe.
+        base.OnDisable();
     }
 
     public override void OnButtonClickEventHandler(string buttonName) {

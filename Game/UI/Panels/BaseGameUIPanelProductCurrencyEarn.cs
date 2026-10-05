@@ -30,16 +30,22 @@ public class BaseGameUIPanelProductCurrencyEarn : GameUIPanelBase {
     public UIImageButton buttonEarnMoreGames;
     public UIImageButton buttonEarnViewFullscreenAds;
 #else
-    public Button buttonHelp;
-    public Button buttonEarnLogin;
-    public Button buttonEarnWebsite;
-    public Button buttonEarnTwitter;
-    public Button buttonEarnFacebook;
-    public Button buttonEarnVideoAds;
-    public Button buttonEarnOffers;
-    public Button buttonEarnMoreGames;
-    public Button buttonEarnViewFullscreenAds;
+    // 2.11: agnostic UIRef handles, bound at runtime by name.
+    public Engine.UI.UIRef buttonHelp;
+    public Engine.UI.UIRef buttonEarnLogin;
+    public Engine.UI.UIRef buttonEarnWebsite;
+    public Engine.UI.UIRef buttonEarnTwitter;
+    public Engine.UI.UIRef buttonEarnFacebook;
+    public Engine.UI.UIRef buttonEarnVideoAds;
+    public Engine.UI.UIRef buttonEarnOffers;
+    public Engine.UI.UIRef buttonEarnMoreGames;
+    public Engine.UI.UIRef buttonEarnViewFullscreenAds;
 #endif
+
+    // The HELP tile's element name. Unguarded on purpose (both define branches need it): the
+    // serialized buttonHelp ref is UNASSIGNED on this prefab, so the name IS the contract.
+    // See OnButtonClickEventHandler.
+    public static string buttonNameSettingsHelp = "ButtonSettingsHelp";
 
 
     public static bool isInst {
@@ -103,6 +109,17 @@ public class BaseGameUIPanelProductCurrencyEarn : GameUIPanelBase {
         // 
 
         Messenger<double>.RemoveListener(AdNetworksMessages.videoAd, OnVideoAdWatched);
+
+        // Chain to base so UIPanelBase.OnDisable -> FreeToolkitView runs when this panel is pooled
+        // away, else the toolkit view leaks once this panel gets a toolkitViewKey. Standing
+        // Phase-3 migration prerequisite; latent until then.
+        //
+        // OnDisable ONLY: UIPanelBase.OnEnable re-adds EVENT_BUTTON_CLICK ->
+        // OnButtonClickEventHandler, which this panel already subscribes itself, so chaining
+        // OnEnable would fire every button click twice. RemoveListener is idempotent, so the
+        // one-sided chain is safe.
+        base.OnDisable();
+
     }
 
     public override void OnUIControllerPanelAnimateIn(string classNameTo) {
@@ -220,6 +237,25 @@ public class BaseGameUIPanelProductCurrencyEarn : GameUIPanelBase {
 
             AdNetworks.ShowFullscreenAd();
         }
+
+        // HELP. The ONLY listener for this name in the codebase is
+        // BaseGameUIPanelSettings.buttonSettingsHelp, and panel-settings is loaded LAZILY by
+        // syncPanelLoaded -- until the player has opened Settings once, that panel does not
+        // exist and this tile's broadcast reaches nobody. Same shape as the STORE tile
+        // (iter 18): never leave a toolkit element depending on a listener that lives on a
+        // panel which may not be up. The serialized buttonHelp ref was already wired to this
+        // tile and simply never checked.
+        //
+        // Safe when panel-settings IS loaded: showUIPanel early-returns on the current panel
+        // code, so the second dispatch is a no-op rather than a double navigation.
+#if ENABLE_FEATURE_SETTINGS_HELP
+        // By NAME, not through buttonHelp: that serialized ref is UNASSIGNED on this prefab
+        // (verified in play 2026-09-04 — panel-product-currency's is wired, this one's is null),
+        // so IsButtonClicked could never match. The element name is the contract.
+        else if(buttonName == buttonNameSettingsHelp) {
+            GameUIController.ShowSettingsHelp();
+        }
+#endif
     }
 
     public static void LoadData() {

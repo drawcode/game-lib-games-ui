@@ -3,10 +3,6 @@ using System.Collections;
 using System.Collections.Generic;
 
 using UnityEngine;
-#if USE_UI_NGUI_2_7 || USE_UI_NGUI_3
-#else
-using UnityEngine.UI;
-#endif
 
 using Engine.Events;
 
@@ -18,11 +14,13 @@ public class UIPanelSettingsProfile : UIPanelBase {
     public UIImageButton buttonProfileGameNetwork;
     public UIInput inputProfileName;
 #else
-    public Button buttonClose;
-    public Button buttonProfileFacebook;
-    public Button buttonProfileTwitter;
-    public Button buttonProfileGameNetwork;
-    public InputField inputProfileName;
+    // B10: agnostic UIRef handles (was UGUI), the BaseGameHUD pattern. Unbound (null) until
+    // something binds them by name; every UIUtil call no-ops on a null ref.
+    public Engine.UI.UIRef buttonClose;
+    public Engine.UI.UIRef buttonProfileFacebook;
+    public Engine.UI.UIRef buttonProfileTwitter;
+    public Engine.UI.UIRef buttonProfileGameNetwork;
+    public Engine.UI.UIRef inputProfileName;
 #endif
 
     public GameObject listItemPrefab;

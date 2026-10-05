@@ -4,6 +4,7 @@ using System.Collections.Generic;
 
 using UnityEngine;
 
+using Engine.UI;
 using Engine.Utility;
 using Engine.Events;
 
@@ -20,6 +21,96 @@ public class BaseGameUIPanelMain : GameUIPanelBase {
     public GameObject containerStartObject;
 
     public GameObject buttonPlayerDefaultObject;
+
+    // Toolkit parallel (3B part 3): the pulsing tap-to-play CTA in panel-main.uxml, bound by
+    // BindElements from the manifest. The logo/sponsor need no refs — no runtime ops touch them.
+    public UIRef startObjectRef;
+
+    // The view keeps the DEFAULT top slide: in the NGUI flow the logo/CTA (center) and the
+    // sponsor (top-left) entered from the top/side — only the CHARACTER rose from the bottom,
+    // and it still does, via the legacy edge slides below. (A bottom view slide was tried and
+    // read wrong — user: "the logo and tap character to play came in from the top".)
+
+    // HYBRID panel: the 3D character (panelBottomObject), particles (panelCenterObject), and
+    // their plates stay live on the legacy side — the nine-edge slides must keep running so
+    // they animate in/out with the toolkit view instead of parking on screen forever.
+    protected override bool toolkitKeepsLegacyMotion {
+        get {
+            return true;
+        }
+    }
+
+    // Only the FLAT widgets this view replaces hide: the logo sprite, the CTA label container,
+    // and the sponsor watermark (not a serialized field — found by its anchor path). The 3D
+    // character button, its backer plate, and the particle glows stay live on the legacy side;
+    // they render beneath the toolkit overlay and take taps through it (every element in
+    // panel-main.uxml is picking-Ignore).
+    protected override void SuppressLegacyView() {
+
+        ReassertLegacySuppression();
+
+        // The view arrives ASYNC: the first AnimateIn's AnimateStartCharacter ran while the
+        // panel was still NGUI-only, so replay the CTA pulse onto the freshly bound label.
+        TweenUtil.FadeToObject(startObjectRef, .5f, "label-pulse");
+    }
+
+    // Suppression must be CONTINUOUS, not one-shot — the same defect that made the HUD double on
+    // restart (games-ui a92de60). Hiding these once is only safe if nothing re-activates them, but
+    // the main panel is re-shown on every return to the menu and the show choreography turns
+    // containerStartObject back on, so the legacy "TAP CHARACTER TO PLAY" came back and rendered
+    // alongside the toolkit CTA (user, 2026-08-02: "doubles on the main page").
+    //
+    // Cheap: three null-checked Hide() calls that no-op once already hidden.
+    private void ReassertLegacySuppression() {
+
+        if(containerLogoObject != null && containerLogoObject.activeSelf) {
+            containerLogoObject.Hide();
+        }
+
+        if(containerStartObject != null && containerStartObject.activeSelf) {
+            containerStartObject.Hide();
+        }
+
+        Transform sponsor = transform.Find("Container/AnchorTopLeft/TopLeft");
+
+        if(sponsor != null && sponsor.gameObject.activeSelf) {
+            sponsor.gameObject.Hide();
+        }
+    }
+
+    public virtual void Update() {
+
+        // While the toolkit view owns this panel, the legacy widgets it replaces stay hidden.
+        if(isToolkitPanel) {
+            ReassertLegacySuppression();
+        }
+    }
+
+    // Kill switch / pooled-away: restore the suppressed NGUI widgets so the legacy path
+    // renders whole again (same contract as the header's coin cluster restore).
+    protected override void FreeToolkitView() {
+
+        startObjectRef = UIRef.none;
+
+        if(isToolkitPanel) {
+
+            if(containerLogoObject != null) {
+                containerLogoObject.Show();
+            }
+
+            if(containerStartObject != null) {
+                containerStartObject.Show();
+            }
+
+            Transform sponsor = transform.Find("Container/AnchorTopLeft/TopLeft");
+
+            if(sponsor != null) {
+                sponsor.gameObject.Show();
+            }
+        }
+
+        base.FreeToolkitView();
+    }
 
     public static bool isInst {
         get {
@@ -70,6 +161,10 @@ public class BaseGameUIPanelMain : GameUIPanelBase {
         Messenger<string, string>.RemoveListener(
             UIControllerMessages.uiPanelAnimateType,
             OnUIControllerPanelAnimateType);
+
+        // Chain to base so UIPanelBase.OnDisable -> FreeToolkitView runs when the panel is
+        // pooled away — same 3B prerequisite fix as header/footer.
+        base.OnDisable();
     }
 
     public override void OnUIControllerPanelAnimateIn(string classNameTo) {
@@ -166,6 +261,11 @@ public class BaseGameUIPanelMain : GameUIPanelBase {
     }
 
     public virtual void AnimateStartCharacter() {
+
+        // Toolkit parallel: same pingPong alpha pulse via the label-pulse motion token
+        // (tokens.json). No-ops until the view is bound; the NGUI fade below is harmless once
+        // the legacy container is suppressed.
+        TweenUtil.FadeToObject(startObjectRef, .5f, "label-pulse");
 
         if(containerStartObject != null) {
 

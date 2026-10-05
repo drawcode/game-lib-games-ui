@@ -3,7 +3,6 @@ using System.Collections;
 using System.Collections.Generic;
 
 using UnityEngine;
-using UnityEngine.UI;
 
 public class UIPanelTrophyAchievements : UIAppPanelBaseList {
 
@@ -95,11 +94,9 @@ public class UIPanelTrophyAchievements : UIAppPanelBaseList {
 
                 UISprite iconSprite = iconObject.GetComponent<UISprite>();
 #else
-                GameObject iconSprite = null;
-
-                if(iconObject.Has<Image>()) {
-                    iconSprite = iconObject.GetComponent<Image>().gameObject;
-                }
+                // B10: was an Image probe; nothing reads it in this branch (the alpha writes
+                // below are NGUI-only), so it is the icon object itself.
+                GameObject iconSprite = iconObject;
 #endif
 
                 bool completed = GameProfiles.Current.CheckIfAttributeExists(achievement.code);
@@ -143,7 +140,7 @@ public class UIPanelTrophyAchievements : UIAppPanelBaseList {
             }
 
             if(labelPoints != null) {
-                UIUtil.SetLabelValue(labelPoints.gameObject, totalPoints.ToString("N0"));
+                UIUtil.SetLabelValue(labelPoints.gameObject, totalPoints.ToString("N0", Engine.Game.App.BaseApp.L10n.NumberFormat));
             }
 
             yield return new WaitForEndOfFrame();

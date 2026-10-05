@@ -3,7 +3,6 @@ using System.Collections;
 using System.Collections.Generic;
 
 using UnityEngine;
-using UnityEngine.UI;
 
 public class UIPanelLevels : UIAppPanelBaseList {
 
@@ -96,7 +95,8 @@ public class UIPanelLevels : UIAppPanelBaseList {
                      = "ButtonPlayLevel$" + (k + 1).ToString() + "-" + (y + 1).ToString(); ///levels[y].name;
 #else
 
-                    item.transform.Find("ButtonPlayLevel").GetComponent<Button>().name
+                    // B10: was GetComponent<Button>().name -- the same GameObject name.
+                    item.transform.Find("ButtonPlayLevel").gameObject.name
                      = "ButtonPlayLevel$" + (k + 1).ToString() + "-" + (y + 1).ToString(); ///levels[y].name;
 #endif
 

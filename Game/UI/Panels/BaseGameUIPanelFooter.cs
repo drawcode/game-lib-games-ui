@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using UnityEngine;
 
 using Engine.Events;
+using Engine.UI;
 using Engine.Utility;
 
 public class GameUIPanelFooterButtons {
@@ -50,11 +51,93 @@ public class BaseGameUIPanelFooter : GameUIPanelBase {
 
     public bool optionsVisible = false;
 
+    // Toolkit parallels (3B): bound by BindElements from the panel-footer manifest. The corner
+    // containers slide in/out through the bottom edge, like their NGUI AnimateIn*Bottom moves.
+    //
+    // Center groups and subgroups are NOT fields: their ShowButtons / GameObjectInactive code
+    // strings double as element names in panel-footer.uxml, so the wiring resolves them straight
+    // from the code it is already handed — same dispatch the NGUI path does with
+    // GameObjectShowItem.code, one lookup instead of a dozen binds.
+    public UIRef settingsObjectRef;
+    public UIRef customizeObjectRef;
+
+    // Replayed onto the view when it arrives (the load is async — the first showMain/ShowButtons
+    // of a session runs while the panel is still NGUI-only).
+    protected bool toolkitCornersVisible = false;
+    protected string currentNetworkSub = "";
+    protected string currentProductSub = "";
+
+    static readonly string[] toolkitGroupCodes = {
+        GameUIPanelFooterButtons.customize,
+        GameUIPanelFooterButtons.products,
+        GameUIPanelFooterButtons.progression,
+        GameUIPanelFooterButtons.gameNetworks,
+        GameUIPanelFooterButtons.character,
+        GameUIPanelFooterButtons.statistics,
+        GameUIPanelFooterButtons.achievements
+    };
+
+    static readonly string[] toolkitProductSubs = {
+        "product-earn",
+        "product-store",
+        GameUIPanelFooterButtonsSections.productSections
+    };
+
+    static readonly string[] toolkitNetworkSubs = {
+        GameNetworkType.gameNetworkAppleGameCenter,
+        GameNetworkType.gameNetworkGooglePlayServices
+    };
+
+    // Chrome motion (same variance as the header band).
+    public override string toolkitShowPreset {
+        get {
+            return "chrome-show";
+        }
+    }
+
+    public override string toolkitHidePreset {
+        get {
+            return "chrome-hide";
+        }
+    }
+
+    // Bottom chrome: the whole view slides through the BOTTOM edge, its own screen edge — not the
+    // top like flow panels and the header.
+    protected override void ShowToolkitViewSlide() {
+        TweenUtil.ShowObjectBottom(viewRoot, toolkitShowPreset);
+    }
+
+    protected override void HideToolkitViewSlide() {
+        TweenUtil.HideObjectBottom(viewRoot, toolkitHidePreset);
+    }
+
+    protected virtual UIRef ResolveToolkitElement(string elementName) {
+
+        if(!isToolkitPanel) {
+            return UIRef.none;
+        }
+
+        IUIBackend backend = UIPlatform.For(viewRoot);
+
+        if(backend == null) {
+            return UIRef.none;
+        }
+
+        return backend.Resolve(viewRoot, elementName);
+    }
+
     public static bool isInst {
         get {
             if(Instance != null) {
                 return true;
             }
+            return false;
+        }
+    }
+
+    // Shared chrome: never drives the character rig (see UIPanelBase.drivesCharacterDisplay).
+    public override bool drivesCharacterDisplay {
+        get {
             return false;
         }
     }
@@ -134,6 +217,10 @@ public class BaseGameUIPanelFooter : GameUIPanelBase {
         Messenger<string, string>.RemoveListener(
             UIControllerMessages.uiPanelAnimateType,
             OnUIControllerPanelAnimateType);
+
+        // Chain to base so UIPanelBase.OnDisable -> FreeToolkitView runs when the footer is
+        // pooled away / disabled — same 3B prerequisite fix the header got.
+        base.OnDisable();
     }
 
     public override void OnUIControllerPanelAnimateIn(string classNameTo) {
@@ -154,9 +241,21 @@ public class BaseGameUIPanelFooter : GameUIPanelBase {
         }
     }
 
+    // The footer EARN tile. Dead in legacy too — it carries a ButtonEvents component in the
+    // prefab, so the name has always been broadcast and nothing in the codebase compared it
+    // (iter 19 audit, OPEN 1). Handled here, on the panel that DRAWS it (rule 90), by NAME:
+    // there is no serialized ref for the tile, and an unused ref would not be evidence of an
+    // assigned one anyway (rule 93).
+    public static string buttonNameGameProductCurrencyEarn = "ButtonGameProductCurrencyEarn";
+
     public override void OnButtonClickEventHandler(string buttonName) {
         //LogUtil.Log("OnButtonClickEventHandler: " + buttonName);
 
+#if ENABLE_FEATURE_PRODUCT_CURRENCY
+        if(UIUtil.IsButtonClicked(buttonNameGameProductCurrencyEarn, buttonName)) {
+            GameUIController.ShowProductCurrencyEarn();
+        }
+#endif
     }
 
     public virtual void HideContainerDelayed() {
@@ -199,11 +298,15 @@ public class BaseGameUIPanelFooter : GameUIPanelBase {
 
     //
 
-    string currentButtonCode = "";
+    protected string currentButtonCode = "";
 
     public virtual void ShowButtons(string code, bool hideCurrent = true) {
 
         AnimateIn();
+
+        currentButtonCode = code;
+
+        ShowButtonsToolkit(code, hideCurrent);
 
         if(containerButtons == null) {
             return;
@@ -214,11 +317,10 @@ public class BaseGameUIPanelFooter : GameUIPanelBase {
 
             if(item.code == code) {
                 if(hideCurrent) {
-                    HideAllButtons();
+                    HideAllButtonsLegacy();
                 }
                 TweenUtil.ShowObjectBottom(item.gameObject);
                 item.gameObject.ShowObjectDelayed(.7f);
-                currentButtonCode = code;
             }
         }
     }
@@ -229,6 +331,15 @@ public class BaseGameUIPanelFooter : GameUIPanelBase {
 
     public virtual void HideAllButtons() {
 
+        HideAllButtonsToolkit();
+
+        HideAllButtonsLegacy();
+    }
+
+    // The original NGUI hide-all, unchanged. Kept separate so ShowButtons' hideCurrent pass can't
+    // hide the toolkit group it is about to show.
+    protected virtual void HideAllButtonsLegacy() {
+
         if(containerButtons == null) {
             return;
         }
@@ -238,6 +349,117 @@ public class BaseGameUIPanelFooter : GameUIPanelBase {
             TweenUtil.HideObjectBottom(item.gameObject);
             item.gameObject.HideObjectDelayed(.5f);
         }
+    }
+
+    // ------------------------------------------------------
+    // TOOLKIT GROUPS (3B)
+
+    protected virtual void ShowButtonsToolkit(string code, bool hideCurrent) {
+
+        if(!isToolkitPanel) {
+            return;
+        }
+
+        if(hideCurrent) {
+            HideAllButtonsToolkit();
+        }
+
+        UIRef group = ResolveToolkitElement(code);
+
+        if(group == null || !group.alive) {
+            return;
+        }
+
+        TweenUtil.ShowObjectBottom(group);
+    }
+
+    protected virtual void HideAllButtonsToolkit() {
+
+        if(!isToolkitPanel) {
+            return;
+        }
+
+        for(int i = 0; i < toolkitGroupCodes.Length; i++) {
+
+            UIRef group = ResolveToolkitElement(toolkitGroupCodes[i]);
+
+            if(group != null && group.alive) {
+                TweenUtil.HideObjectBottom(group);
+            }
+        }
+    }
+
+    // Subgroup display toggle — the toolkit twin of the GameObjectInactive walks below. An empty
+    // selection hides every subgroup.
+    protected virtual void ApplyToolkitSubgroup(string[] subNames, string selected) {
+
+        if(!isToolkitPanel) {
+            return;
+        }
+
+        IUIBackend backend = UIPlatform.For(viewRoot);
+
+        if(backend == null) {
+            return;
+        }
+
+        for(int i = 0; i < subNames.Length; i++) {
+
+            UIRef sub = backend.Resolve(viewRoot, subNames[i]);
+
+            if(sub == null || !sub.alive) {
+                continue;
+            }
+
+            if(subNames[i] == selected) {
+                backend.Show(sub);
+            }
+            else {
+                backend.Hide(sub);
+            }
+        }
+    }
+
+    // Footer is entirely flat UGUI, so the default whole-container suppression is right; the
+    // override exists to REPLAY the footer's current state onto the freshly arrived view (the
+    // load is async — whatever showMain/ShowButtons ran first happened while still NGUI-only).
+    protected override void SuppressLegacyView() {
+
+        base.SuppressLegacyView();
+
+        ApplyToolkitState();
+    }
+
+    protected virtual void ApplyToolkitState() {
+
+        if(toolkitCornersVisible) {
+            TweenUtil.ShowObjectBottom(settingsObjectRef, toolkitShowPreset);
+            TweenUtil.ShowObjectBottom(customizeObjectRef, toolkitShowPreset);
+        }
+
+        if(string.IsNullOrEmpty(currentButtonCode)) {
+            return;
+        }
+
+        ShowButtonsToolkit(currentButtonCode, false);
+
+        if(currentButtonCode == GameUIPanelFooterButtons.gameNetworks
+            && !string.IsNullOrEmpty(currentNetworkSub)) {
+            ApplyToolkitSubgroup(toolkitNetworkSubs, currentNetworkSub);
+        }
+
+        if(currentButtonCode == GameUIPanelFooterButtons.products
+            && !string.IsNullOrEmpty(currentProductSub)) {
+            ApplyToolkitSubgroup(toolkitProductSubs, currentProductSub);
+        }
+    }
+
+    protected override void FreeToolkitView() {
+
+        settingsObjectRef = UIRef.none;
+        customizeObjectRef = UIRef.none;
+
+        base.FreeToolkitView();
     }
 
     public virtual void HideAndShowButtonsWithDelay(float delay) {
@@ -261,10 +483,26 @@ public class BaseGameUIPanelFooter : GameUIPanelBase {
 
     public virtual void showButtonSettings() {
 
+        toolkitCornersVisible = true;
+
+        TweenUtil.ShowObjectBottom(settingsObjectRef, toolkitShowPreset);
+
+        if(isToolkitPanel) {
+            return;
+        }
+
         AnimateInLeftBottom(containerButtonsSettings);
     }
 
     public virtual void hideButtonSettings() {
+
+        toolkitCornersVisible = false;
+
+        TweenUtil.HideObjectBottom(settingsObjectRef, toolkitHidePreset);
+
+        if(isToolkitPanel) {
+            return;
+        }
 
         AnimateOutLeftBottom(containerButtonsSettings);
     }
@@ -274,10 +512,26 @@ public class BaseGameUIPanelFooter : GameUIPanelBase {
 
     public virtual void showButtonCustomize() {
 
+        toolkitCornersVisible = true;
+
+        TweenUtil.ShowObjectBottom(customizeObjectRef, toolkitShowPreset);
+
+        if(isToolkitPanel) {
+            return;
+        }
+
         AnimateInRightBottom(containerButtonsCustomize);
     }
 
     public virtual void hideButtonCustomize() {
+
+        toolkitCornersVisible = false;
+
+        TweenUtil.HideObjectBottom(customizeObjectRef, toolkitHidePreset);
+
+        if(isToolkitPanel) {
+            return;
+        }
 
         AnimateOutRightBottom(containerButtonsCustomize);
     }
@@ -333,9 +587,14 @@ public class BaseGameUIPanelFooter : GameUIPanelBase {
     }
 
     public virtual void ShowButtonsGameNetwork(string networkTypeTo) {
-        if(containerButtonsGameNetworks != null) {
 
-            ShowButtonsGameNetwork();
+        currentNetworkSub = networkTypeTo;
+
+        ShowButtonsGameNetwork();
+
+        ApplyToolkitSubgroup(toolkitNetworkSubs, networkTypeTo);
+
+        if(containerButtonsGameNetworks != null) {
 
             foreach(GameObjectInactive item in
                     containerButtonsGameNetworks.GetComponentsInChildren<GameObjectInactive>(true)) {
@@ -350,6 +609,11 @@ public class BaseGameUIPanelFooter : GameUIPanelBase {
     }
 
     public virtual void HideButtonsGameNetworks() {
+
+        currentNetworkSub = "";
+
+        ApplyToolkitSubgroup(toolkitNetworkSubs, "");
+
         if(containerButtonsGameNetworks != null) {
             foreach(GameObjectInactive item in
                     containerButtonsGameNetworks.GetComponentsInChildren<GameObjectInactive>(true)) {
@@ -491,9 +755,14 @@ public class BaseGameUIPanelFooter : GameUIPanelBase {
     }
 
     public virtual void ShowButtonsProducts(string productTypeTo) {
-        if(containerButtonsProducts != null) {
 
-            ShowButtonsProducts();
+        currentProductSub = productTypeTo;
+
+        ShowButtonsProducts();
+
+        ApplyToolkitSubgroup(toolkitProductSubs, productTypeTo);
+
+        if(containerButtonsProducts != null) {
 
             foreach(GameObjectInactive item in
                     containerButtonsProducts.GetComponentsInChildren<GameObjectInactive>(true)) {
@@ -508,6 +777,11 @@ public class BaseGameUIPanelFooter : GameUIPanelBase {
     }
 
     public virtual void HideButtonsProducts() {
+
+        currentProductSub = "";
+
+        ApplyToolkitSubgroup(toolkitProductSubs, "");
+
         if(containerButtonsProducts != null) {
             foreach(GameObjectInactive item in
                     containerButtonsProducts.GetComponentsInChildren<GameObjectInactive>(true)) {

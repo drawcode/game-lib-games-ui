@@ -3,10 +3,6 @@ using System.Collections;
 using System.Collections.Generic;
 
 using UnityEngine;
-#if USE_UI_NGUI_2_7 || USE_UI_NGUI_3
-#else
-using UnityEngine.UI;
-#endif
 
 // using Engine.Data.Json;
 using Engine.Events;
@@ -24,7 +20,8 @@ public class UICustomizeColorPresets : UICustomizeSelectObject {
 #if USE_UI_NGUI_2_7 || USE_UI_NGUI_3
     public Dictionary<string, UICheckbox> checkboxes;
 #else
-    public Dictionary<string, Toggle> checkboxes;
+    // B10: agnostic UIRef handles (was UGUI Toggle), the BaseGameHUD pattern.
+    public Dictionary<string, Engine.UI.UIRef> checkboxes;
 #endif
 
     public override void OnEnable() {
@@ -71,7 +68,7 @@ public class UICustomizeColorPresets : UICustomizeSelectObject {
 #if USE_UI_NGUI_2_7 || USE_UI_NGUI_3
         checkboxes = new Dictionary<string, UICheckbox>();
 #else
-        checkboxes = new Dictionary<string, Toggle>();
+        checkboxes = new Dictionary<string, Engine.UI.UIRef>();
 #endif
 
         foreach(AppContentAssetCustomItem customItem
@@ -82,7 +79,11 @@ public class UICustomizeColorPresets : UICustomizeSelectObject {
 #if USE_UI_NGUI_2_7 || USE_UI_NGUI_3
                 checkboxes.Add(prop.code, gameObject.Get<UICheckbox>(prop.code));
 #else
-                checkboxes.Add(prop.code, gameObject.Get<Toggle>(prop.code));
+                // B10: was Get<Toggle>(name); the same deep, inactive-inclusive name search, minus
+                // the component filter. Null when nothing carries the name, as before, so the
+                // "Checkbox not found" log below still fires.
+                Transform checkbox = gameObject.Get<Transform>(prop.code);
+                checkboxes.Add(prop.code, checkbox != null ? Engine.UI.UIRef.Of(checkbox.gameObject) : null);
 #endif
             }
         }
@@ -106,7 +107,7 @@ public class UICustomizeColorPresets : UICustomizeSelectObject {
 #if USE_UI_NGUI_2_7 || USE_UI_NGUI_3
                 foreach(KeyValuePair<string, UICheckbox> pair in checkboxes) {
 #else
-                foreach (KeyValuePair<string, Toggle> pair in checkboxes) {
+                foreach (KeyValuePair<string, Engine.UI.UIRef> pair in checkboxes) {
 #endif
                     if(pair.Value == null) {
                         LogUtil.Log("Checkbox not found:" + pair.Key);
@@ -159,13 +160,19 @@ public class UICustomizeColorPresets : UICustomizeSelectObject {
 
 #if USE_UI_NGUI_2_7 || USE_UI_NGUI_3
             foreach(KeyValuePair<string, UICheckbox> pair in checkboxes) {
-#else
-            foreach (KeyValuePair<string, Toggle> pair in checkboxes) {
-#endif
                 if(UIUtil.IsCheckboxChecked(pair.Value, checkboxName)) {
                     UIUtil.SetCheckboxValue(checkboxes[pair.Key], selected);
                 }
             }
+#else
+            // B10: UIRef has no IsCheckboxChecked(name)/SetCheckboxValue overloads; IsToggleOn
+            // (name matches AND on) is what IsCheckboxChecked(Toggle, name) did.
+            foreach (KeyValuePair<string, Engine.UI.UIRef> pair in checkboxes) {
+                if(UIUtil.IsToggleOn(pair.Value, checkboxName)) {
+                    UIUtil.SetToggleValue(pair.Value, selected);
+                }
+            }
+#endif
         }
     }
 

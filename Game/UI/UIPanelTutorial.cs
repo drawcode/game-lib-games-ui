@@ -8,11 +8,6 @@ using UnityEngine;
 using Engine.Utility;
 using Engine.Game.App;
 
-#if USE_UI_NGUI_2_7 || USE_UI_NGUI_3
-#else
-using UnityEngine.UI;
-#endif
-
 using Engine.Events;
 
 public enum TutorialFlowState {
@@ -34,17 +29,19 @@ public class UIPanelTutorial : UIPanelBase {
     public UIImageButton buttonOverviewTips;
     public UIImageButton buttonOverviewMode;
 #else
+    // B10: agnostic UIRef handles (was UGUI), the BaseGameHUD pattern. Unbound (null) until
+    // something binds them by name; every UIUtil call no-ops on a null ref.
 
     // OVERVIEW
 
-    public Text labelOverviewTip;
-    public Text labelOverviewType;
-    public Text labelOverviewStatus;
+    public Engine.UI.UIRef labelOverviewTip;
+    public Engine.UI.UIRef labelOverviewType;
+    public Engine.UI.UIRef labelOverviewStatus;
 
-    public Button buttonOverviewReady;
-    public Button buttonOverviewTutorial;
-    public Button buttonOverviewTips;
-    public Button buttonOverviewMode;
+    public Engine.UI.UIRef buttonOverviewReady;
+    public Engine.UI.UIRef buttonOverviewTutorial;
+    public Engine.UI.UIRef buttonOverviewTips;
+    public Engine.UI.UIRef buttonOverviewMode;
 #endif
 
     public static UIPanelTutorial Instance;
@@ -102,8 +99,6 @@ public class UIPanelTutorial : UIPanelBase {
 
         base.OnEnable();
 
-        Messenger<string>.AddListener(ButtonEvents.EVENT_BUTTON_CLICK, OnButtonClickEventHandler);
-
         Messenger.AddListener(GameDraggableEditorMessages.GameLevelItemsLoaded, OnGameLevelItemsLoadedHandler);
 
         Messenger<string>.AddListener(UIPanelTipsMessages.tipsCycle, OnTipsCycleHandler);
@@ -112,8 +107,6 @@ public class UIPanelTutorial : UIPanelBase {
     public override void OnDisable() {
 
         base.OnDisable();
-
-        Messenger<string>.RemoveListener(ButtonEvents.EVENT_BUTTON_CLICK, OnButtonClickEventHandler);
 
         Messenger.RemoveListener(GameDraggableEditorMessages.GameLevelItemsLoaded, OnGameLevelItemsLoadedHandler);
 
@@ -179,14 +172,24 @@ public class UIPanelTutorial : UIPanelBase {
     }
 
     public void ShowTipsObjectGameplay() {
+#if USE_UI_NGUI_2_7 || USE_UI_NGUI_3
         UIUtil.HideButton(buttonOverviewTips);
         UIUtil.ShowButton(buttonOverviewMode);
+#else
+        UIUtil.HideObject(buttonOverviewTips);
+        UIUtil.ShowObject(buttonOverviewMode);
+#endif
         ShowTipsObject("gameplay");
     }
 
     public void ShowTipsObjectMode() {
+#if USE_UI_NGUI_2_7 || USE_UI_NGUI_3
         UIUtil.HideButton(buttonOverviewMode);
         UIUtil.ShowButton(buttonOverviewTips);
+#else
+        UIUtil.HideObject(buttonOverviewMode);
+        UIUtil.ShowObject(buttonOverviewTips);
+#endif
         string currentAppContentState = AppContentStates.Current.code;
         ShowTipsObject(currentAppContentState);
     }

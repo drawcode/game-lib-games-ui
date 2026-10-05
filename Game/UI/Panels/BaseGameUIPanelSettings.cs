@@ -23,12 +23,18 @@ public class BaseGameUIPanelSettings : GameUIPanelBase {
     public UIImageButton buttonSettingsHelp;
     public UIImageButton buttonSettingsCredits;
 #else
-    public Button buttonSettingsAudio;
-    public Button buttonSettingsControls;
-    public Button buttonSettingsProfile;
-    public Button buttonSettingsHelp;
-    public Button buttonSettingsCredits;
+    // 2.11: agnostic UIRef handles (Unity ignores them; bound at runtime by name).
+    public Engine.UI.UIRef buttonSettingsAudio;
+    public Engine.UI.UIRef buttonSettingsControls;
+    public Engine.UI.UIRef buttonSettingsProfile;
+    public Engine.UI.UIRef buttonSettingsHelp;
+    public Engine.UI.UIRef buttonSettingsCredits;
 #endif
+
+    // LANGUAGE is new work with no NGUI counterpart (unlike the five buttons above, which are
+    // ported legacy widgets) -- a toolkit-only UIRef, same pattern as Controls'
+    // sliderControlsIndicatorScale.
+    public Engine.UI.UIRef buttonSettingsLanguage = Engine.UI.UIRef.none;
 
     public GameObject listItemPrefab;
 
@@ -87,6 +93,11 @@ public class BaseGameUIPanelSettings : GameUIPanelBase {
         Messenger<string, string>.RemoveListener(
             UIControllerMessages.uiPanelAnimateType,
             OnUIControllerPanelAnimateType);
+
+        // Chain to base so UIPanelBase.OnDisable -> FreeToolkitView runs when this panel is pooled
+        // away (destroy-on-hide). This override previously stopped the chain, leaking the toolkit
+        // view once the panel had one. 3A migration prerequisite.
+        base.OnDisable();
     }
 
     public override void OnUIControllerPanelAnimateIn(string classNameTo) {
@@ -139,6 +150,12 @@ public class BaseGameUIPanelSettings : GameUIPanelBase {
 #if ENABLE_FEATURE_SETTINGS_CREDITS
         else if(UIUtil.IsButtonClicked(buttonSettingsCredits, buttonName)) {
             GameUIController.ShowSettingsCredits();
+        }
+#endif
+
+#if ENABLE_FEATURE_SETTINGS_LANGUAGE
+        else if(UIUtil.IsButtonClicked(buttonSettingsLanguage, buttonName)) {
+            GameUIController.ShowSettingsLanguage();
         }
 #endif
     }

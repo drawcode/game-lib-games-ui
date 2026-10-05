@@ -39,25 +39,26 @@ public class BaseGameUIPanelProductCurrency : GameUIPanelBase {
     public UIImageButton buttonHelp;
     public UIImageButton buttonPlay;
 #else
-    public Button buttonGameBuyProducts;
+    // 2.11: agnostic UIRef handles, bound at runtime by name.
+    public Engine.UI.UIRef buttonGameBuyProducts;
 
-    public Button buttonGameBuyCurrency;
-    public Button buttonGameBuyCurrencyFeature1;
-    public Button buttonGameBuyCurrencyFeature2;
+    public Engine.UI.UIRef buttonGameBuyCurrency;
+    public Engine.UI.UIRef buttonGameBuyCurrencyFeature1;
+    public Engine.UI.UIRef buttonGameBuyCurrencyFeature2;
 
-    public Button buttonGameBuyCurrencyTier1;
-    public Button buttonGameBuyCurrencyTier2;
-    public Button buttonGameBuyCurrencyTier3;
-    public Button buttonGameBuyCurrencyTier5;
-    public Button buttonGameBuyCurrencyTier10;
-    public Button buttonGameBuyCurrencyTier20;
-    public Button buttonGameBuyCurrencyTier50;
+    public Engine.UI.UIRef buttonGameBuyCurrencyTier1;
+    public Engine.UI.UIRef buttonGameBuyCurrencyTier2;
+    public Engine.UI.UIRef buttonGameBuyCurrencyTier3;
+    public Engine.UI.UIRef buttonGameBuyCurrencyTier5;
+    public Engine.UI.UIRef buttonGameBuyCurrencyTier10;
+    public Engine.UI.UIRef buttonGameBuyCurrencyTier20;
+    public Engine.UI.UIRef buttonGameBuyCurrencyTier50;
 
-    public Button buttonGameEarnCurrency;
-    public Button buttonGameBuyModifier;
+    public Engine.UI.UIRef buttonGameEarnCurrency;
+    public Engine.UI.UIRef buttonGameBuyModifier;
 
-    public Button buttonHelp;
-    public Button buttonPlay;
+    public Engine.UI.UIRef buttonHelp;
+    public Engine.UI.UIRef buttonPlay;
 #endif
 
     public static bool isInst {
@@ -113,6 +114,17 @@ public class BaseGameUIPanelProductCurrency : GameUIPanelBase {
         Messenger<string, string>.RemoveListener(
             UIControllerMessages.uiPanelAnimateType,
             OnUIControllerPanelAnimateType);
+
+        // Chain to base so UIPanelBase.OnDisable -> FreeToolkitView runs when this panel is pooled
+        // away, else the toolkit view leaks once this panel gets a toolkitViewKey. Standing
+        // Phase-3 migration prerequisite; latent until then.
+        //
+        // OnDisable ONLY: UIPanelBase.OnEnable re-adds EVENT_BUTTON_CLICK ->
+        // OnButtonClickEventHandler, which this panel already subscribes itself, so chaining
+        // OnEnable would fire every button click twice. RemoveListener is idempotent, so the
+        // one-sided chain is safe.
+        base.OnDisable();
+
     }
 
     public override void OnUIControllerPanelAnimateIn(string classNameTo) {
@@ -132,6 +144,10 @@ public class BaseGameUIPanelProductCurrency : GameUIPanelBase {
             //
         }
     }
+
+    // Element names are the wire contract for the two tiles below — see the handler.
+    public static string buttonNameGameMain = "ButtonGameMain";
+    public static string buttonNameGameBuyModifier = "ButtonGameBuyModifier";
 
     public override void OnButtonClickEventHandler(string buttonName) {
 
@@ -171,6 +187,43 @@ public class BaseGameUIPanelProductCurrency : GameUIPanelBase {
         else if(UIUtil.IsButtonClicked(buttonGameEarnCurrency, buttonName)) {
             GameUIController.ShowProductCurrencyEarn();
         }
+
+        // PLAY and BUY COIN BOOST. Both drawn by this screen, both dead in LEGACY too — each
+        // carries a ButtonEvents component in the prefab, so the name was always broadcast and
+        // nothing in the codebase ever compared it (iter 19 audit, OPEN 1). Wired here rather
+        // than on the controller for the same reason as HELP: the panel that DRAWS a tile is the
+        // only listener guaranteed to be alive while the tile is on screen (rule 90).
+        //
+        // By NAME, not through the serialized refs: `buttonGameBuyModifier` exists on this class
+        // but an unused ref is not an assigned one (rule 93, learned on the earn screen's null
+        // buttonHelp), and there is no ref at all for the PLAY tile.
+        else if(UIUtil.IsButtonClicked(buttonNameGameMain, buttonName)) {
+            GameUIController.ShowMain();
+        }
+#if ENABLE_FEATURE_PRODUCTS
+        // "EARN COINS FASTER / BUY COIN BOOST" -> the store filtered to powerups, which is where
+        // the coin boosts live: powerup-double-coins and powerup-triple-coins in
+        // game-product-data. There is no "modifier" product type; powerup is the one they carry.
+        else if(UIUtil.IsButtonClicked(buttonNameGameBuyModifier, buttonName)) {
+            GameUIController.ShowProducts(GameProductType.powerup);
+        }
+#endif
+
+        // HELP. The ONLY listener for this name in the codebase is
+        // BaseGameUIPanelSettings.buttonSettingsHelp, and panel-settings is loaded LAZILY by
+        // syncPanelLoaded -- until the player has opened Settings once, that panel does not
+        // exist and this tile's broadcast reaches nobody. Same shape as the STORE tile
+        // (iter 18): never leave a toolkit element depending on a listener that lives on a
+        // panel which may not be up. The serialized buttonHelp ref was already wired to this
+        // tile and simply never checked.
+        //
+        // Safe when panel-settings IS loaded: showUIPanel early-returns on the current panel
+        // code, so the second dispatch is a no-op rather than a double navigation.
+#if ENABLE_FEATURE_SETTINGS_HELP
+        else if(UIUtil.IsButtonClicked(buttonHelp, buttonName)) {
+            GameUIController.ShowSettingsHelp();
+        }
+#endif
     }
 
 
@@ -197,6 +250,315 @@ public class BaseGameUIPanelProductCurrency : GameUIPanelBase {
         base.HandleShow();
 
         backgroundDisplayState = UIPanelBackgroundDisplayState.PanelBacker;
+    }
+
+    // ------------------------------------------------------------
+    // 3D COIN STAGES
+    //
+    // Each green pack button owns a real spinning 3D UICoin in the prefab. World content can
+    // never draw above a UI Toolkit panel, so — exactly as the header coin does — each one is
+    // rendered by a UIRenderStage into its own RenderTexture and shown as the background of the
+    // matching element in the view. The first pass stood in a flat gold disc instead; measured
+    // against the baseline it was 38.8 ref units wide where legacy draws 69.8, i.e. flat AND
+    // half-size, which is most of what read as "sizing off" on this screen.
+    //
+    // The default SuppressLegacyView hides the whole panelContainer, and the coins live inside it
+    // (Content/Position/Buy/Row/<button>/UICoin), so Hide()'s SetActive(false) would take them
+    // down with it.
+    //
+    // The first version lifted the coins OUT of the container with SetParent and put them back on
+    // free. That is WRONG and Unity rejects it outright: this panel is pooled, so FreeToolkitView
+    // runs from OnDisable inside SetActive(false), and "Cannot set the parent of the GameObject
+    // 'UICoin' while activating or deactivating the parent GameObject". Reparenting in a
+    // (de)activation callback is simply not allowed, and there is no safe later hook either —
+    // OnEnable is under the same restriction, and Update does not run on a disabled panel.
+    //
+    // So no reparenting at all. Instead, hide every branch under panelContainer EXCEPT the paths
+    // down to the coins — the header's pattern, generalised so it needs no hardcoded widget
+    // names: mark each coin's ancestor chain, walk the tree, and hide any child that is not on a
+    // chain. The hidden objects are recorded and re-shown on free, so the legacy path (kill
+    // switch, or this panel re-shown on NGUI) gets its screen back whole.
+
+    private static readonly string[] packCoinButtons = {
+        "ButtonGameBuyCurrency",
+        "ButtonActionItemBuyUse$action_coin_pack_1",
+        "ButtonActionItemBuyUse$action_coin_pack_3",
+    };
+
+    // View elements that receive each stage's RenderTexture, in the same order.
+    private static readonly string[] packCoinElements = {
+        "CoinShowAllPacks",
+        "CoinPack1",
+        "CoinPack3",
+    };
+
+    private Engine.UI.UIRenderStage[] packCoinStages;
+    private Transform[] packCoinRoots;
+    private ParticleSystem[][] packCoinEffects;
+    private float[][] packCoinEffectSizes;
+    private List<GameObject> packCoinHidden;
+
+    // NOT chaining to base: base hides panelContainer wholesale, which would take the coins with
+    // it. HideAroundPackCoins does the same job at a finer grain.
+    protected override void SuppressLegacyView() {
+
+        SetupPackCoinStages();
+    }
+
+    protected virtual void SetupPackCoinStages() {
+
+        if(packCoinStages != null || panelContainer == null) {
+            return;
+        }
+
+        // Dedicated widget layer; UI3D as fallback (older project configs) — same choice as the
+        // header coin and the character card.
+        int layer = LayerMask.NameToLayer("UIWidget3D");
+
+        if(layer < 0) {
+            layer = LayerMask.NameToLayer("UI3D");
+        }
+
+        if(layer < 0) {
+            return;
+        }
+
+        packCoinStages = new Engine.UI.UIRenderStage[packCoinButtons.Length];
+        packCoinRoots = new Transform[packCoinButtons.Length];
+        packCoinEffects = new ParticleSystem[packCoinButtons.Length][];
+        packCoinEffectSizes = new float[packCoinButtons.Length][];
+
+        for(int i = 0; i < packCoinButtons.Length; i++) {
+
+            Transform button = FindDeepChild(panelContainer.transform, packCoinButtons[i]);
+
+            if(button == null) {
+                continue;
+            }
+
+            Transform uiCoin = button.Find("UICoin");
+
+            if(uiCoin == null) {
+                continue;
+            }
+
+            packCoinRoots[i] = uiCoin;
+
+            // 1.3, the header coin's value. The engine's note suggests 1.6-1.8 for a widget whose
+            // glow should spill, and 1.7 was tried — it rendered the coin AND the glow away
+            // entirely (three empty RTs), so something in the wider framing breaks this rig.
+            // Not chased further: 1.3 demonstrably renders both, and the glow is carried by the
+            // start-size boost below instead. Revisit only with a capture to check against.
+            // followContent: TRUE, and it is load-bearing. UIRenderStage frames the camera ONCE
+            // from where the content sits at Attach time, and these coins live INSIDE
+            // panelContainer, which the panel animates into place — so the camera framed empty
+            // space and all three RTs came back fully transparent (measured: 0% non-transparent
+            // pixels against the header coin's 43%). The header coin gets away with false only
+            // because it is pinned chrome that never moves.
+            //
+            // This is also why the first, reparenting version of this code appeared to work:
+            // lifting the coins to the panel root took them OUT of the animating container. When
+            // the reparent had to go (Unity forbids it from OnDisable), the coins went back inside
+            // the container and the stale framing surfaced. Same bug UIRenderStage's own comment
+            // describes for the character card in 3I.
+            packCoinStages[i] = Engine.UI.UIRenderStage.Attach(
+                uiCoin.gameObject, layer, 128, 1.3f, false, true, 0.7f);
+
+            if(packCoinStages[i] != null) {
+                UIUtil.SetImageTexture(
+                    UIUtil.ResolveDeep(viewRoot, packCoinElements[i]),
+                    packCoinStages[i].texture);
+
+                BoostPackCoinEffect(i, uiCoin, 1.8f);
+            }
+        }
+
+        HideAroundPackCoins();
+    }
+
+    // Hide every branch under panelContainer except the ancestor chains down to the staged coins.
+    // Recorded so FreePackCoinStages can put the legacy screen back.
+    protected virtual void HideAroundPackCoins() {
+
+        if(panelContainer == null) {
+            return;
+        }
+
+        Transform root = panelContainer.transform;
+
+        // The nodes that must stay active: each coin and every ancestor up to the container.
+        HashSet<Transform> keep = new HashSet<Transform>();
+
+        for(int i = 0; i < packCoinRoots.Length; i++) {
+
+            Transform t = packCoinRoots[i];
+
+            while(t != null) {
+                keep.Add(t);
+
+                if(t == root) {
+                    break;
+                }
+
+                t = t.parent;
+            }
+        }
+
+        packCoinHidden = new List<GameObject>();
+
+        HideOffPath(root, keep);
+    }
+
+    private void HideOffPath(Transform node, HashSet<Transform> keep) {
+
+        for(int i = 0; i < node.childCount; i++) {
+
+            Transform child = node.GetChild(i);
+
+            if(!keep.Contains(child)) {
+
+                // An off-path branch: hide the whole thing, and remember it if it was showing.
+                if(child.gameObject.activeSelf) {
+                    packCoinHidden.Add(child.gameObject);
+                    child.gameObject.Hide();
+                }
+
+                continue;
+            }
+
+            // On the path to a coin. The coin itself is a leaf for this walk — everything inside
+            // it renders into the stage and must stay whole.
+            bool isCoin = false;
+
+            for(int j = 0; j < packCoinRoots.Length; j++) {
+                if(packCoinRoots[j] == child) {
+                    isCoin = true;
+                    break;
+                }
+            }
+
+            if(!isCoin) {
+                HideOffPath(child, keep);
+            }
+        }
+    }
+
+    // Each UICoin carries a shine under UICoin/Effect (CFXM2_Blob). Tuned for the coin at its
+    // full on-screen size in the legacy layout, it is close to invisible once the coin is framed
+    // down into a 128px RT — the first staged pass lost the sparkle entirely, which is what
+    // "what happened to the effect?" was. 1.8 — the header coin's value — is what visibly puts
+    // the shine back at framePadding 1.3; 1.3 was tried and reads as no effect at all. Restored
+    // on free: the multiplier lands on the SHARED prefab instance, so leaving it scaled would
+    // leak a fattened glow into the legacy path.
+    protected virtual void BoostPackCoinEffect(int index, Transform uiCoin, float factor) {
+
+        Transform effect = uiCoin.Find("Effect");
+
+        if(effect == null) {
+            return;
+        }
+
+        ParticleSystem[] systems = effect.GetComponentsInChildren<ParticleSystem>(true);
+        float[] sizes = new float[systems.Length];
+
+        for(int i = 0; i < systems.Length; i++) {
+            ParticleSystem.MainModule main = systems[i].main;
+            sizes[i] = main.startSizeMultiplier;
+            main.startSizeMultiplier = sizes[i] * factor;
+        }
+
+        packCoinEffects[index] = systems;
+        packCoinEffectSizes[index] = sizes;
+    }
+
+    protected virtual void RestorePackCoinEffects() {
+
+        if(packCoinEffects == null) {
+            return;
+        }
+
+        for(int i = 0; i < packCoinEffects.Length; i++) {
+
+            if(packCoinEffects[i] == null || packCoinEffectSizes[i] == null) {
+                continue;
+            }
+
+            for(int j = 0; j < packCoinEffects[i].Length; j++) {
+
+                if(packCoinEffects[i][j] == null) {
+                    continue;
+                }
+
+                ParticleSystem.MainModule main = packCoinEffects[i][j].main;
+                main.startSizeMultiplier = packCoinEffectSizes[i][j];
+            }
+        }
+
+        packCoinEffects = null;
+        packCoinEffectSizes = null;
+    }
+
+    protected override void FreeToolkitView() {
+
+        FreePackCoinStages();
+
+        base.FreeToolkitView();
+    }
+
+    protected virtual void FreePackCoinStages() {
+
+        RestorePackCoinEffects();
+
+        if(packCoinStages == null) {
+            return;
+        }
+
+        for(int i = 0; i < packCoinStages.Length; i++) {
+
+            if(packCoinStages[i] != null) {
+                packCoinStages[i].Detach();       // restores the content's original layers
+                packCoinStages[i] = null;
+            }
+
+            packCoinRoots[i] = null;
+        }
+
+        // Put the legacy screen back — Show() on a CHILD is fine inside the parent's OnDisable,
+        // which is exactly what SetParent was not (see the note above SetupPackCoinStages).
+        if(packCoinHidden != null) {
+
+            for(int i = 0; i < packCoinHidden.Count; i++) {
+
+                if(packCoinHidden[i] != null) {
+                    packCoinHidden[i].Show();
+                }
+            }
+
+            packCoinHidden = null;
+        }
+
+        packCoinStages = null;
+        packCoinRoots = null;
+    }
+
+    // Name search over the whole subtree. The coins sit at
+    // Center/Container/Content/Position/Buy/Row/<button>/UICoin, but hard-coding that path makes
+    // the wiring break silently the first time the prefab's grouping changes, and a silent break
+    // here is an invisible coin rather than an error.
+    private static Transform FindDeepChild(Transform root, string name) {
+
+        if(root == null) {
+            return null;
+        }
+
+        foreach(Transform t in root.GetComponentsInChildren<Transform>(true)) {
+
+            if(t.name == name) {
+                return t;
+            }
+        }
+
+        return null;
     }
 
     public override void AnimateIn() {

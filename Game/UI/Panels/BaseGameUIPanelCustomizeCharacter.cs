@@ -76,6 +76,15 @@ public class BaseGameUIPanelCustomizeCharacter : GameUIPanelBase {
             OnUIControllerPanelAnimateType);
 
         Messenger<string, int>.RemoveListener(InputEvents.EVENT_ITEM_CLICK, OnInputClicked);
+
+        // Chain to base so UIPanelBase.OnDisable -> FreeToolkitView runs when this pooled panel is
+        // put away; without it the toolkit view leaks on every navigation away. Phase-3 migration
+        // prerequisite, same fix the list/results bases got.
+        //
+        // OnDisable ONLY — UIPanelBase.OnEnable re-adds EVENT_BUTTON_CLICK, which this panel already
+        // subscribes itself, so chaining OnEnable would fire every click TWICE. RemoveListener is
+        // idempotent, so the OnDisable-only chain is safe.
+        base.OnDisable();
     }
 
     void OnInputClicked(string controlName, int data) {
@@ -122,6 +131,105 @@ public class BaseGameUIPanelCustomizeCharacter : GameUIPanelBase {
         }
     }
 
+    // 3G SUPPRESSION — selective, NOT the default whole-panelContainer hide.
+    //
+    // Two things under panelContainer must stay ALIVE, and the default hide killed both:
+    //
+    // 1. BEHAVIOUR. Controls/CharacterPreset carries UICustomizeProfileCharacters, whose
+    //    OnButtonClickEventHandler is what actually cycles the bot
+    //    (UIUtil.IsButtonClicked(buttonCycleLeft/Right, buttonName) -> ChangePresetPrevious/Next).
+    //    Deactivating its GameObject unregisters that listener, so the toolkit arrows broadcast the
+    //    right NAME and nobody is home — user 2026-08-25: "hitting left/right does not change bot
+    //    anymore". Hiding a container here is not just a visual change; it silences a handler.
+    //
+    // 2. LAYERING. The dark backer must keep rendering. Toolkit views composite ABOVE the whole
+    //    NGUI stack, so a toolkit-drawn card sits in front of the legacy 3D bot — user: "bot is
+    //    behind the panel". Keeping the LEGACY backer puts the bot in front of it again (both are
+    //    NGUI) with the toolkit chrome above both, which is the legacy stacking order.
+    //
+    // So we hide only the flat widgets the toolkit view actually replaces.
+    private const string controls = "Container/AnchorCenter/Center/Container/Controls/";
+
+    private static readonly string[] legacySuppressPaths = {
+        // The arrows, the 3/4 plate and the name/code inputs. Suppressed at PresetContainer, one
+        // level BELOW CharacterPreset, precisely so CharacterPreset itself stays active and
+        // UICustomizeProfileCharacters keeps listening (see above).
+        controls + "CharacterPreset/PresetContainer",
+        // Caption + the legacy name label.
+        controls + "CharacterMeta",
+        // CUSTOMIZE/CHANGE BOT (serialized inactive; activated at runtime).
+        controls + "Buttons",
+    };
+
+    private readonly System.Collections.Generic.List<GameObject> suppressedLegacy
+        = new System.Collections.Generic.List<GameObject>();
+
+    protected override void SuppressLegacyView() {
+        ReassertLegacySuppression();
+        ReplayCharacterDisplay();
+    }
+
+    // Re-run the preset control's initial load once the view EXISTS.
+    //
+    // UICustomizeProfileCharacters populates the plate and the info card from ChangePreset, and it
+    // does that first from Start() — which fires a frame or two BEFORE LoadToolkitView's
+    // continuation lands. Its toolkit writes therefore no-op on the very first show and the screen
+    // sits on the placeholders authored into the view ("Bot #1", "3/4", "0/10") until the player
+    // touches an arrow. Same replay problem, and same hook, as the header band title.
+    protected virtual void ReplayCharacterDisplay() {
+
+        if(!isToolkitPanel) {
+            return;
+        }
+
+        UICustomizeProfileCharacters presets =
+            GetComponentInChildren<UICustomizeProfileCharacters>(true);
+
+        if(presets != null) {
+            presets.ShowCurrentProfileCharacter();
+        }
+    }
+
+    // CONTINUOUS, never one-shot (iter-7 rule 1). Controls/Buttons/ButtonGameProductsCharacter is
+    // serialized INACTIVE and gets activated at RUNTIME, so a single sweep at view-load time misses
+    // it entirely and the legacy CUSTOMIZE/CHANGE BOT draws under the toolkit one (user 2026-08-25
+    // screenshot: the label rendered twice). Re-swept every frame from Update.
+    private void ReassertLegacySuppression() {
+
+        if(!isToolkitPanel) {
+            return;
+        }
+
+        foreach(string path in legacySuppressPaths) {
+
+            Transform t = transform.Find(path);
+
+            if(t == null || !t.gameObject.activeSelf) {
+                continue;
+            }
+
+            t.gameObject.Hide();
+
+            if(!suppressedLegacy.Contains(t.gameObject)) {
+                suppressedLegacy.Add(t.gameObject);
+            }
+        }
+    }
+
+    // Restore-on-free so the UIPlatform.toolkitViewsEnabled kill switch returns a working legacy panel.
+    protected override void FreeToolkitView() {
+
+        foreach(GameObject go in suppressedLegacy) {
+            if(go != null) {
+                go.Show();
+            }
+        }
+
+        suppressedLegacy.Clear();
+
+        base.FreeToolkitView();
+    }
+
     public override void OnButtonClickEventHandler(string buttonName) {
         //LogUtil.Log("OnButtonClickEventHandler: " + buttonName);
     }
@@ -156,7 +264,9 @@ public class BaseGameUIPanelCustomizeCharacter : GameUIPanelBase {
             //loadDataPowerups();
 
             yield return new WaitForEndOfFrame();
+#if USE_UI_NGUI_2_7 || USE_UI_NGUI_3
             listGridRoot.GetComponent<UIGrid>().Reposition();
+#endif
             yield return new WaitForEndOfFrame();
         }
     }
@@ -193,6 +303,11 @@ public class BaseGameUIPanelCustomizeCharacter : GameUIPanelBase {
     }
 
     public virtual void Update() {
+
+        // Before every early-return below: the legacy chrome must stay suppressed for as long as
+        // the toolkit view owns this panel, and the runtime-activated change-bot button will
+        // re-appear the moment this stops being re-asserted.
+        ReassertLegacySuppression();
 
         if(GameConfigs.isGameRunning) {
             return;

@@ -10,6 +10,7 @@ using UnityEngine.UI;
 #endif
 
 using Engine.Events;
+using Engine.Utility;
 
 public class BaseGameUIPanelARSettings : GameUIPanelBase {
 
@@ -17,7 +18,7 @@ public class BaseGameUIPanelARSettings : GameUIPanelBase {
 #if USE_UI_NGUI_2_7 || USE_UI_NGUI_3
     public UIButton buttonPlayerDefaultObject;
 #else
-    public Button buttonPlayerDefaultObject;
+    public Engine.UI.UIRef buttonPlayerDefaultObject; // 2.11: agnostic handle, bound by name
 #endif
 
     public GameObject listItemPrefab;
@@ -163,8 +164,7 @@ public class BaseGameUIPanelARSettings : GameUIPanelBase {
     public virtual void AnimateStartCharacter() {
 
         if (containerStartObject != null) {
-            UITweenerUtil.FadeTo(containerStartObject,
-                UITweener.Method.EaseInOut, UITweener.Style.PingPong, 2f, 0f, .5f);
+            TweenUtil.FadeToObject(containerStartObject, .5f, 2f, 0f, true, TweenCoord.world, TweenEaseType.quadEaseInOut, TweenLoopType.pingPong);
         }
     }
 

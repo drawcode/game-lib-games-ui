@@ -7,18 +7,15 @@ using System.Linq;
 using UnityEngine;
 using Engine.Game.App.BaseApp;
 
-#if USE_UI_NGUI_2_7 || USE_UI_NGUI_3
-#else
-using UnityEngine.UI;
-#endif
-
 using Engine.Events;
+using Engine.UI;
 
 public class UIPanelCommunityBroadcast : UIPanelCommunityBase {
 #if USE_UI_NGUI_2_7 || USE_UI_NGUI_3
     public UICheckbox toggleRecordReplaysLevel;
 #else
-    public Toggle toggleRecordReplaysLevel;
+    // B10: agnostic UIRef handle, bound at runtime by name (binds/panel-community-broadcast.json).
+    public Engine.UI.UIRef toggleRecordReplaysLevel;
 #endif
 
     public static UIPanelCommunityBroadcast Instance;
@@ -38,6 +35,89 @@ public class UIPanelCommunityBroadcast : UIPanelCommunityBase {
     bool isSupported = false;
     bool isRecordingSupported = false;
     bool isFacecamSupported = false;
+
+    // ----------------------------------------------------------------------------------------
+    // TOOLKIT (B6)
+
+    // Unreachable in this title: ShowDialog's only caller is the ButtonGameCommunityBroadcastOpen
+    // click, and that button sits in the share panel's action tools bar inside the UICommunity
+    // layer whose camera the scene disables. The record-play-share callout is reachable in code
+    // (OnGameLevelEnd -> BroadcastGameLevelFinishData) but gated off: isEnabled reads
+    // AppConfigs.broadcastNetworksEnabled. Verified by a direct ShowDialog().
+    public override string toolkitViewKey {
+        get {
+            return BaseUIPanel.panelCommunityBroadcast;
+        }
+    }
+
+    // Element paths in panel-community-broadcast.uxml (legacy GameObject names). Three button
+    // names repeat in the prefab (NetworkOpen in both the supported and not-supported containers,
+    // ReplayWatch/ReplayShare in both the dialog and the replay callout); the scene wires the
+    // dialog's ContainerSupported copies, so the paths say so.
+    public const string elementDialog = "PanelContentBroadcast";
+    public const string elementReplayCallout = "PanelBroadcastRecordPlayShare";
+    public const string elementContainerSupported = "ContainerSupported";
+    public const string elementContainerNotSupported = "ContainerNotSupported";
+    public const string elementButtonReplay = "ContainerSupported/ButtonGameCommunityBroadcastReplayWatch";
+    public const string elementButtonShare = "ContainerSupported/ButtonGameCommunityBroadcastReplayShare";
+    public const string elementButtonOpen = "ContainerSupported/ButtonGameCommunityBroadcastNetworkOpen";
+    public const string elementButtonRecordStart = "ButtonGameCommunityBroadcastRecordStart";
+    public const string elementButtonRecordStop = "ButtonGameCommunityBroadcastRecordStop";
+    public const string elementButtonFacecamToggle = "ButtonGameCommunityBroadcastFacecamToggle";
+    public const string elementToggleRecordLevels = "CheckboxRecordGameLevels";
+    public const string elementToggleRecordLevelsCheck = "CheckboxRecordGameLevels/Checkmark";
+    public const string elementStatusLabel = "ButtonGameCommunityBroadcastRecordToggle/Label";
+    public const string elementStatusAction = "ButtonGameCommunityBroadcastRecordToggle/LabelAction";
+    public const string elementStatusLight = "LightBig/RecordObjectSprite";
+    public const string elementDialogFrame = "PanelContentBroadcast/Backgrounds/BackgroundColor";
+    public const string elementDialogClose = "PanelContentBroadcast/ButtonGameCommunityClose/Background";
+
+    public override void BindElements(UIRef root) {
+
+        base.BindElements(root);
+
+        if(!isToolkitPanel) {
+            return;
+        }
+
+        // A toolkit toggle has no change event on the Messenger bus (CheckboxEvents is an NGUI
+        // MonoBehaviour, suppressed with the legacy subtree), so the view's toggle reports here.
+        UIRef toggle = toolkit.ResolvePath(elementToggleRecordLevels);
+
+        UIUtil.SetToggleValue(toggle, GameProfiles.Current.GetBroadcastRecordLevels());
+        UIUtil.SetToggleHandlerChange(toggle, OnToolkitToggleRecordLevelsChanged);
+
+        SyncToolkitToggleCheck();
+    }
+
+    void OnToolkitToggleRecordLevelsChanged(bool selected) {
+
+        SaveBroadcastRecordLevels(selected);
+
+        SyncToolkitToggleCheck();
+    }
+
+    // The star is a plain sprite child of the toggle, shown from the value (the legacy UICheckbox
+    // shows its checkSprite the same way).
+    void SyncToolkitToggleCheck() {
+        toolkit.SetVisible(elementToggleRecordLevelsCheck,
+            UIUtil.GetToggleValue(toolkit.ResolvePath(elementToggleRecordLevels)));
+    }
+
+    // UIBroadcastRecordStatus writes these two lines and pulses the light on the legacy button;
+    // it is suppressed with the legacy subtree, so the panel writes the view's copies.
+    void UpdateToolkitBroadcastStatus(string broadcastStatus) {
+
+        bool recording = broadcastStatus == BroadcastNetworksMessages.broadcastRecordingStart;
+
+        toolkit.SetLabelKey(elementStatusLabel,
+            recording ? "game_ui_community_recording_now" : "game_ui_community_not_recording");
+        toolkit.SetLabelKey(elementStatusAction,
+            recording ? "game_ui_community_tap_to_stop" : "game_ui_community_tap_to_start");
+        toolkit.SetVisible(elementStatusLight, recording);
+    }
+
+    // ----------------------------------------------------------------------------------------
 
     public override void Awake() {
 
@@ -87,7 +167,6 @@ public class UIPanelCommunityBroadcast : UIPanelCommunityBase {
 
         base.OnEnable();
 
-        Messenger<string>.AddListener(ButtonEvents.EVENT_BUTTON_CLICK, OnButtonClickEventHandler);
         Messenger<string, bool>.AddListener(CheckboxEvents.EVENT_ITEM_CHANGE, OnToggleChangedEventHandler);
 
         Messenger<string>.AddListener(
@@ -106,7 +185,6 @@ public class UIPanelCommunityBroadcast : UIPanelCommunityBase {
 
         base.OnDisable();
 
-        Messenger<string>.RemoveListener(ButtonEvents.EVENT_BUTTON_CLICK, OnButtonClickEventHandler);
         Messenger<string, bool>.RemoveListener(CheckboxEvents.EVENT_ITEM_CHANGE, OnToggleChangedEventHandler);
 
         Messenger<string>.RemoveListener(
@@ -127,10 +205,31 @@ public class UIPanelCommunityBroadcast : UIPanelCommunityBase {
 
     public void OnToggleChangedEventHandler(string checkboxName, bool selected) {
 
-        if(UIUtil.IsCheckboxChecked(toggleRecordReplaysLevel, checkboxName)) {
+#if USE_UI_NGUI_2_7 || USE_UI_NGUI_3
+        bool isRecordToggle = UIUtil.IsCheckboxChecked(toggleRecordReplaysLevel, checkboxName);
+#else
+        // Name match only, like the NGUI overload (IsToggleOn would also require the value on).
+        bool isRecordToggle = toggleRecordReplaysLevel != null && checkboxName == toggleRecordReplaysLevel.name;
+#endif
+
+        if(isRecordToggle) {
             Debug.Log("OnToggleChangedEventHandler" + " checkboxName:" + checkboxName + " selected:" + selected.ToString());
 
-            GameProfiles.Current.SetBroadcastRecordLevels(selected);
+            SaveBroadcastRecordLevels(selected);
+        }
+    }
+
+    // Shared by the legacy CheckboxEvents path and the toolkit toggle's change handler.
+    public void SaveBroadcastRecordLevels(bool selected) {
+
+        // Same guard as the audio volume setters: a full profile save is 50-66 ms across ten
+        // JSON blobs, and a toggle reports its INITIAL value as a change while it is being
+        // set up — one no-op save per boot, measured. Only save when the value really moved.
+        bool changed = GameProfiles.Current.GetBroadcastRecordLevels() != selected;
+
+        GameProfiles.Current.SetBroadcastRecordLevels(selected);
+
+        if(changed) {
             GameState.SaveProfile();
         }
     }
@@ -241,6 +340,8 @@ public class UIPanelCommunityBroadcast : UIPanelCommunityBase {
 
     public void UpdateBroadcastStatus(string broadcastStatus) {
 
+        UpdateToolkitBroadcastStatus(broadcastStatus);
+
         if(broadcastStatus == BroadcastNetworksMessages.broadcastRecordingStart) {
             HandleUIBroadcastStart();
         }
@@ -282,6 +383,7 @@ public class UIPanelCommunityBroadcast : UIPanelCommunityBase {
 
     public void showButtonBroadcastFacecamToggle() {
         buttonBroadcastFacecamToggle.Show();
+        toolkit.SetVisible(elementButtonFacecamToggle, true);
     }
 
     public static void HideButtonBroadcastFacecamToggle() {
@@ -292,6 +394,7 @@ public class UIPanelCommunityBroadcast : UIPanelCommunityBase {
 
     public void hideButtonBroadcastFacecamToggle() {
         buttonBroadcastFacecamToggle.Hide();
+        toolkit.SetVisible(elementButtonFacecamToggle, false);
     }
 
     //
@@ -304,6 +407,7 @@ public class UIPanelCommunityBroadcast : UIPanelCommunityBase {
 
     public void showButtonBroadcastRecordStart() {
         buttonBroadcastRecordStart.Show();
+        toolkit.SetVisible(elementButtonRecordStart, true);
     }
 
     public static void HideButtonBroadcastRecordStart() {
@@ -314,6 +418,7 @@ public class UIPanelCommunityBroadcast : UIPanelCommunityBase {
 
     public void hideButtonBroadcastRecordStart() {
         buttonBroadcastRecordStart.Hide();
+        toolkit.SetVisible(elementButtonRecordStart, false);
     }
 
     //
@@ -326,6 +431,7 @@ public class UIPanelCommunityBroadcast : UIPanelCommunityBase {
 
     public void showButtonBroadcastRecordStop() {
         buttonBroadcastRecordStop.Show();
+        toolkit.SetVisible(elementButtonRecordStop, true);
     }
 
     public static void HideButtonBroadcastRecordStop() {
@@ -336,6 +442,7 @@ public class UIPanelCommunityBroadcast : UIPanelCommunityBase {
 
     public void hideButtonBroadcastRecordStop() {
         buttonBroadcastRecordStop.Hide();
+        toolkit.SetVisible(elementButtonRecordStop, false);
     }
 
     //
@@ -348,6 +455,7 @@ public class UIPanelCommunityBroadcast : UIPanelCommunityBase {
 
     public void showButtonBroadcastOpen() {
         buttonBroadcastOpen.Show();
+        toolkit.SetVisible(elementButtonOpen, true);
     }
 
     public static void HideButtonBroadcastOpen() {
@@ -358,6 +466,7 @@ public class UIPanelCommunityBroadcast : UIPanelCommunityBase {
 
     public void hideButtonBroadcastOpen() {
         buttonBroadcastOpen.Hide();
+        toolkit.SetVisible(elementButtonOpen, false);
     }
 
     //
@@ -370,6 +479,7 @@ public class UIPanelCommunityBroadcast : UIPanelCommunityBase {
 
     public void showButtonBroadcastReplay() {
         buttonBroadcastReplay.Show();
+        toolkit.SetVisible(elementButtonReplay, true);
     }
 
     public static void HideButtonBroadcastReplay() {
@@ -380,6 +490,7 @@ public class UIPanelCommunityBroadcast : UIPanelCommunityBase {
 
     public void hideButtonBroadcastReplay() {
         buttonBroadcastReplay.Hide();
+        toolkit.SetVisible(elementButtonReplay, false);
     }
 
     //
@@ -392,6 +503,7 @@ public class UIPanelCommunityBroadcast : UIPanelCommunityBase {
 
     public void showButtonBroadcastShare() {
         buttonBroadcastShare.Show();
+        toolkit.SetVisible(elementButtonShare, true);
     }
 
     public static void HideButtonBroadcastShare() {
@@ -402,6 +514,7 @@ public class UIPanelCommunityBroadcast : UIPanelCommunityBase {
 
     public void hideButtonBroadcastShare() {
         buttonBroadcastShare.Hide();
+        toolkit.SetVisible(elementButtonShare, false);
     }
 
     // STATE
@@ -448,20 +561,38 @@ public class UIPanelCommunityBroadcast : UIPanelCommunityBase {
         }
 
         if(toggleRecordReplaysLevel != null) {
+#if USE_UI_NGUI_2_7 || USE_UI_NGUI_3
             UIUtil.SetCheckboxValue(
                 toggleRecordReplaysLevel, 
                 GameProfiles.Current.GetBroadcastRecordLevels());
+#else
+            UIUtil.SetToggleValue(
+                toggleRecordReplaysLevel, 
+                GameProfiles.Current.GetBroadcastRecordLevels());
+#endif
+        }
+
+        if(isToolkitPanel) {
+            UIUtil.SetToggleValue(toolkit.ResolvePath(elementToggleRecordLevels),
+                GameProfiles.Current.GetBroadcastRecordLevels());
+            SyncToolkitToggleCheck();
         }
     }
 
     public void ShowContainerSupported() {
         containerSupported.Show();
         containerNotSupported.Hide();
+
+        toolkit.SetVisible(elementContainerSupported, true);
+        toolkit.SetVisible(elementContainerNotSupported, false);
     }
 
     public void ShowContainerNotSupported() {
         containerSupported.Hide();
         containerNotSupported.Show();
+
+        toolkit.SetVisible(elementContainerSupported, false);
+        toolkit.SetVisible(elementContainerNotSupported, true);
     }
 
     // SHOW/LOAD
@@ -521,6 +652,8 @@ public class UIPanelCommunityBroadcast : UIPanelCommunityBase {
         }
 
         AnimateInTop(panelBroadcastRecordPlayShare);
+
+        toolkit.SetCard(elementReplayCallout, true, UIPanelCommunityToolkit.CardEdge.Top);
     }
 
     public static void HideBroadcastRecordPlayShare() {
@@ -531,6 +664,8 @@ public class UIPanelCommunityBroadcast : UIPanelCommunityBase {
 
     public void hideBroadcastRecordPlayShare() {
         AnimateOutTop(panelBroadcastRecordPlayShare);
+
+        toolkit.SetCard(elementReplayCallout, false, UIPanelCommunityToolkit.CardEdge.Top);
     }
 
     //
@@ -546,6 +681,9 @@ public class UIPanelCommunityBroadcast : UIPanelCommunityBase {
         AnimateInBottom(panelBroadcastRecord);
         UpdateState();
 
+        toolkit.SetCard(elementDialog, true, UIPanelCommunityToolkit.CardEdge.Bottom);
+        toolkit.ApplyModeColors(elementDialogFrame, elementDialogClose);
+
         UIPanelCommunityBackground.ShowBackground();
     }
 
@@ -557,6 +695,8 @@ public class UIPanelCommunityBroadcast : UIPanelCommunityBase {
 
     public void hideBroadcastRecord() {
         AnimateOutBottom(panelBroadcastRecord);
+
+        toolkit.SetCard(elementDialog, false, UIPanelCommunityToolkit.CardEdge.Bottom);
     }
 
     public static void ShowDefault() {

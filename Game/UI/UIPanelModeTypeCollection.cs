@@ -7,9 +7,26 @@ using UnityEngine;
 
 using Engine.Events;
 
-public class UIPanelModeTypeCollection : UIPanelBase {
+public class UIPanelModeTypeCollection : UIPanelModeTypeBase {
 
     public static UIPanelModeTypeCollection Instance;
+
+    // B5: GamePanelModeTypeCollection carries the SAME four quiz cards as GamePanelModeTypeChoiceQuiz
+    // (names, text, colours, geometry), so it loads the same view. This panel drives none of them --
+    // no label fields, no card tweens -- and in the scene they stay parked off-screen, so a show
+    // draws an EMPTY overlay, exactly as the legacy one does. The view root and its cards are
+    // non-picking, so that empty overlay does not swallow taps. Nothing calls ShowDefault today.
+    public override string toolkitViewKey {
+        get {
+            return BaseUIPanel.panelModeTypeChoice;
+        }
+    }
+
+    protected override string[][] toolkitModeColorTargets {
+        get {
+            return UIPanelModeTypeViews.quizModeColorTargets;
+        }
+    }
 
     public override void Awake() {
         base.Awake();

@@ -17,6 +17,28 @@ using Engine.Game.App;
 
 public class BaseGameHUD : GameUIPanelBase {
 
+    // 3H: the in-game HUD chrome. HYBRID — the toolkit view draws only the FLAT chrome (M.A.N. box,
+    // the three stat bars, score/star/coin counts, timer, pause button, level label). These stay
+    // LEGACY and must keep rendering underneath it:
+    //   * the two input pads (AxisInput-move / AxisInput-attack) — input devices, not decoration;
+    //   * the centre indicators and the two radial overlays — world-tracking markers;
+    //   * the 3D coin mesh (Coins/HUDCoin) — real geometry, and there is no coin sprite to port to.
+    // Geometry/colours in common.uss are MEASURED off a live level, not derived from the prefab.
+    // See contexts/context-hud-3h-spec.md.
+    public override string toolkitViewKey {
+        get {
+            return BaseUIPanel.panelHUD;
+        }
+    }
+
+    // Always-on in-game chrome: above gameplay, but BELOW the overlay band so the pause dialog and
+    // the loader/prepare overlay still draw over it.
+    public override int toolkitSortOrder {
+        get {
+            return UILayers.chrome;
+        }
+    }
+
     public float currentTimeBlock = 0.0f;
     public float actionInterval = 1.0f;
     public AsyncOperation asyncLevelLoad = null;
@@ -39,20 +61,21 @@ public class BaseGameHUD : GameUIPanelBase {
     public UISlider sliderHealth;
     public UISlider sliderEnergy;
 #else
-    public Text labelScores;
-    public Text labelScore;
-    public Text labelCoins;
-    public Text labelSpecials;
-    public Text labelLevel;
-    public Text labelTime;
-    public Button buttonCamera;
-    public Button buttonGameSafety;
-    public Button buttonGameSmarts;
-    public Button buttonGameTutorial;
-    public Button buttonGameTips;
-    public Button buttonGameOverview;
-    public Slider sliderHealth;
-    public Slider sliderEnergy;
+    // 2.11: agnostic UIRef handles, bound at runtime by name.
+    public Engine.UI.UIRef labelScores;
+    public Engine.UI.UIRef labelScore;
+    public Engine.UI.UIRef labelCoins;
+    public Engine.UI.UIRef labelSpecials;
+    public Engine.UI.UIRef labelLevel;
+    public Engine.UI.UIRef labelTime;
+    public Engine.UI.UIRef buttonCamera;
+    public Engine.UI.UIRef buttonGameSafety;
+    public Engine.UI.UIRef buttonGameSmarts;
+    public Engine.UI.UIRef buttonGameTutorial;
+    public Engine.UI.UIRef buttonGameTips;
+    public Engine.UI.UIRef buttonGameOverview;
+    public Engine.UI.UIRef sliderHealth;
+    public Engine.UI.UIRef sliderEnergy;
 #endif
 
     public GameObject containerUseObject;
@@ -142,6 +165,20 @@ public class BaseGameHUD : GameUIPanelBase {
 
         Messenger<double>.RemoveListener(GameMessages.gameActionScore, OnGameShooterScore);
         Messenger<double>.RemoveListener(GameMessages.gameActionScores, OnGameShooterScores);
+
+        // Chain to base so UIPanelBase.OnDisable -> FreeToolkitView runs when the HUD is put away,
+        // NOTE (3H): also see SuppressLegacyView below — the chain is what restores the suppressed
+        // legacy widgets and the ButtonGameSmartsShow collider.
+        // else the toolkit view leaks once the HUD has one. 3H migration prerequisite (same fix the
+        // settings/header/footer bases got in 3A/3B and the ten list bases got in 3D). The HUD is
+        // put away often — HUDCamera deactivates at level end — so without this every level would
+        // leak a PanelRenderer.
+        //
+        // OnEnable is deliberately NOT chained, matching those same panels: UIPanelBase.OnEnable
+        // re-adds EVENT_BUTTON_CLICK -> OnButtonClickEventHandler, which this class already
+        // subscribes above, so chaining it would fire every HUD button click TWICE. The listener
+        // removals below/above are idempotent, so chaining only OnDisable is safe.
+        base.OnDisable();
     }
 
     public override void OnButtonClickEventHandler(string buttonName) {
@@ -205,7 +242,11 @@ public class BaseGameHUD : GameUIPanelBase {
 
     public virtual void ResetIndicators() {
         if(containerOffscreenIndicators != null) {
-            containerOffscreenIndicators.DestroyChildren();
+            // Pass the pooling flag. This called the plain DestroyChildren(), so every level load
+            // destroyed the indicators outright while GamePlayerIndicator.ResetIndicators (the
+            // other path to the same job) returned them to the pool -- the pool was being filled
+            // by one route and bypassed by the other.
+            containerOffscreenIndicators.DestroyChildren(GameConfigs.usePooledIndicators);
         }
 
         GameZoneGoalMarker marker = GameZoneGoalMarker.GetMarker();
@@ -224,6 +265,785 @@ public class BaseGameHUD : GameUIPanelBase {
 
     }
 
+    // 3H VISIBILITY GATE
+    //
+    // showHUD() -> GameHUD.AnimateIn() fires EARLY — before the prepare/tips and mode-overview
+    // screens are done. Under NGUI that was harmless: the legacy HUD painted UNDERNEATH those
+    // overlays in the camera stack. A toolkit view composites ABOVE the entire NGUI stack, so the
+    // same early show drew the HUD chrome on top of the READY screen (user, 2026-08-01).
+    //
+    // So the chrome is gated on the level actually RUNNING, not on AnimateIn. Update() reconciles
+    // every frame, which also covers the reverse case (level ends / quits -> chrome goes away)
+    // without needing a hook on every transition.
+    protected override void ShowToolkitViewSlide() {
+
+        // Not running yet (prepare, tips, mode overview): stay hidden. Update() reveals it the
+        // moment gameplay starts.
+        //
+        // INSTANT hide, not the animated one. LoadToolkitView's continuation already called
+        // backend.Show on the view before this runs, so animating OUT here made the chrome visibly
+        // slide in and straight back out (user, 2026-08-01). HideObject sets display:none in the
+        // same frame, so it never paints.
+        if(!GameController.IsGameRunning) {
+            UIUtil.HideObject(viewRoot);
+            return;
+        }
+
+        // Same reason as in SyncToolkitChromeVisibility: the slide cannot undo a display:none.
+        UIUtil.ShowObject(viewRoot);
+
+        base.ShowToolkitViewSlide();
+    }
+
+    private bool toolkitChromeShown;
+
+    // Gated PURELY on game state — do not reintroduce a "was Show requested" flag.
+    //
+    // The first attempt tracked intent in a toolkitChromeWanted flag set from ShowToolkitViewSlide.
+    // That left the HUD permanently blank (user, 2026-08-01: "blank other than model/bot"), because
+    // ShowToolkitViewSlide is never reached on the path that matters: the HUD's isVisible is
+    // already true by the time the view finishes loading, so UIPanelBase.AnimateIn(time, delay)
+    // early-returns at its `if(isVisible) return;` and the slide call never happens. The flag stayed
+    // false forever, the view stayed display:none, and the only things left on screen were the
+    // legacy 3D bits (bot + staged coin) that suppression deliberately keeps.
+    //
+    // IsGameRunning alone is the correct signal: while the HUD GameObject is active it is False
+    // through prepare/tips/overview and True in gameplay. At the menu the HUD is inactive, so this
+    // never runs there (and OnDisable has already freed the view).
+    private void SyncToolkitChromeVisibility() {
+
+        if(!isToolkitPanel) {
+            return;
+        }
+
+        bool shouldShow = GameController.IsGameRunning;
+
+        if(shouldShow == toolkitChromeShown) {
+            return;
+        }
+
+        toolkitChromeShown = shouldShow;
+
+        // The 3D bits travel WITH the chrome. Suppression deliberately keeps the bot rig and the
+        // coin mesh rendering (they have no sprite equivalent), but they are part of the HUD — so
+        // when the chrome hides for pause/prepare they must go too. Without this the bot stayed on
+        // screen over the pause menu after the rest of the HUD had gone (user, 2026-08-02).
+        SetLegacyHudVisualsVisible(shouldShow);
+
+        if(!shouldShow) {
+            ReleaseToolkitSticks();
+        }
+
+        if(shouldShow) {
+            // RESTORE DISPLAY FIRST. TweenUtil's slides deliberately "do NOT touch display/active
+            // state" (TweenUtil.cs: "gate learning #1: tweens never own visibility"), so after the
+            // hide below set display:none, ShowToolkitViewSlide would animate an element that is
+            // still display:none — invisible forever. That is what left the HUD showing nothing but
+            // the legacy 3D bot and staged coin across two rounds.
+            UIUtil.ShowObject(viewRoot);
+
+            // Animate IN once, when gameplay actually begins.
+            base.ShowToolkitViewSlide();
+        }
+        else {
+            // Instant, for the same reason as above: this path also runs on the frames before the
+            // level starts, and an animated hide there is exactly the in-then-out flicker.
+            UIUtil.HideObject(viewRoot);
+        }
+    }
+
+    // 3H SUPPRESSION
+    //
+    // The default UIPanelBase.SuppressLegacyView hides the whole panelContainer, which is WRONG
+    // here: it would take the input pads, the indicators and the 3D coin down with it. So this
+    // hides only the flat chrome the toolkit view replaces, cluster by cluster.
+
+    // What we hid, so FreeToolkitView can put it all back for the kill switch.
+    private readonly List<GameObject> suppressedLegacy = new List<GameObject>();
+
+    // ButtonGameSmartsShow wraps a 3D player rig, so it can only be suppressed by hiding its FLAT
+    // children — which leaves its own collider live. See below.
+    private Collider smartsButtonCollider;
+    private bool smartsButtonColliderWasEnabled;
+
+    private const string hudTopLeft = "HUDContainer/AnchorTopLeft/TopLeft/Toolbar/DisplayObjectLeft/";
+    private const string hudTopRight = "HUDContainer/AnchorTopRight/TopRight/Toolbar";
+
+    // Every flat cluster the toolkit view replaces. Resolved once, then RE-ASSERTED every frame —
+    // see ReassertLegacySuppression.
+    private static readonly string[] legacyClusterPaths = {
+        hudTopRight,                                            // pause/overview/level/camera/edit
+        hudTopLeft + "MAN",                                     // M.A.N. face box (flat)
+        hudTopLeft + "Character/Container",                     // the three stat bars
+        hudTopLeft + "Score",
+        hudTopLeft + "Scores",
+        hudTopLeft + "Time",
+        // COINS: flat children only — Coins/HUDCoin is a 3D mesh and must keep rendering.
+        hudTopLeft + "Coins/BackgroundWhite",
+        hudTopLeft + "Coins/LabelCoins",
+        hudTopLeft + "Coins/Labelx",
+        // ButtonGameSmartsShow wraps the 3D bot, so only its flat children can go.
+        hudTopLeft + "Character/ButtonGameSmartsShow/Label",
+        hudTopLeft + "Character/ButtonGameSmartsShow/Background"
+    };
+
+    private Transform[] legacyClusters;
+
+    private void ResolveLegacyClusters() {
+
+        if(legacyClusters != null) {
+            return;
+        }
+
+        legacyClusters = new Transform[legacyClusterPaths.Length];
+
+        for(int i = 0; i < legacyClusterPaths.Length; i++) {
+            legacyClusters[i] = transform.Find(legacyClusterPaths[i]);
+        }
+    }
+
+    // Suppression must be CONTINUOUS, not one-shot.
+    //
+    // The first version hid each cluster once, in SuppressLegacyView, and skipped anything that was
+    // not active at that instant. On a level RESTART the game re-activates these clusters AFTER the
+    // view has loaded (Reset/SetLevelInit/Show run again), so the skipped ones came back and stayed
+    // — the legacy HUD rendering permanently on top of the toolkit HUD. That is the reported
+    // "doubles on restart, persists" (user, 2026-08-02).
+    //
+    // Re-asserting each frame is cheap (11 cached transforms, no Find) and is robust to the game
+    // re-showing a cluster at any point in the level lifecycle.
+    // The two legacy 3D pieces the toolkit view cannot replace: the bot rig inside
+    // ButtonGameSmartsShow, and the staged coin mesh. They render OUTSIDE the toolkit view, so
+    // hiding the view does not hide them — they need to be toggled with it explicitly.
+    //
+    // The coin is drawn into a RenderTexture and shown through the view's IconCoin element, so the
+    // element itself goes with the view; SetVisible stops the stage camera rendering too rather
+    // than leaving it running for a texture nobody is showing.
+    private void SetLegacyHudVisualsVisible(bool visible) {
+
+        ResolveLegacyClusters();
+
+        Transform smarts = transform.Find(hudTopLeft + "Character/ButtonGameSmartsShow");
+
+        if(smarts != null && smarts.gameObject.activeSelf != visible) {
+
+            if(visible) {
+                smarts.gameObject.Show();
+            }
+            else {
+                smarts.gameObject.Hide();
+            }
+        }
+
+        if(hudCoinStage != null) {
+            hudCoinStage.SetVisible(visible);
+        }
+    }
+
+    private void ReassertLegacySuppression() {
+
+        ResolveLegacyClusters();
+
+        ReassertLegacyControlSuppression();
+
+        for(int i = 0; i < legacyClusters.Length; i++) {
+
+            Transform t = legacyClusters[i];
+
+            if(t == null || !t.gameObject.activeSelf) {
+                continue;
+            }
+
+            t.gameObject.Hide();
+
+            // Only track it once, so the restore list cannot grow across re-activations.
+            if(!suppressedLegacy.Contains(t.gameObject)) {
+                suppressedLegacy.Add(t.gameObject);
+            }
+        }
+
+        // Same story for the smarts collider: if the game re-enables it mid-level it would start
+        // stealing taps again. Re-disable without clobbering the ORIGINAL state kept for restore.
+        if(smartsButtonCollider != null && smartsButtonCollider.enabled) {
+            smartsButtonCollider.enabled = false;
+        }
+    }
+
+    protected override void SuppressLegacyView() {
+
+        // THE COLLIDER HAZARD, captured before the first sweep so the ORIGINAL enabled state is kept
+        // for restore. ButtonGameSmartsShow contains a whole 3D player rig, so only its flat
+        // children can be hidden — which leaves the BUTTON's own collider live and pickable while
+        // nothing renders there. That is precisely the bug that made a suppressed header coin button
+        // swallow every top-right tap (games-ui c805b2d). FreeToolkitView restores it.
+        Transform smarts = transform.Find(hudTopLeft + "Character/ButtonGameSmartsShow");
+
+        if(smarts != null) {
+
+            smartsButtonCollider = smarts.GetComponent<Collider>();
+
+            if(smartsButtonCollider != null) {
+                smartsButtonColliderWasEnabled = smartsButtonCollider.enabled;
+            }
+        }
+
+        // Everything else is the per-frame sweep — see ReassertLegacySuppression for why this is
+        // not a one-shot.
+        ReassertLegacySuppression();
+
+        SetupHudCoinStage();
+
+        SetupToolkitControls();
+    }
+
+    // 1b CONTROLS — the move/attack sticks and the four right-hand buttons.
+    //
+    // The buttons need no wiring: the toolkit click bridge broadcasts the ELEMENT NAME, and the
+    // elements carry the legacy GameObject names (ButtonInputJump / Use / Mount /
+    // InventoryWeaponNext) that BaseUIController.handleHUDButtons already routes.
+    //
+    // The sticks reproduce GameTouchInputAxis exactly: the knob jumps to the thumb and follows it
+    // unclamped, and the axis is the thumb's offset from the pad centre times 10 in HUDCamera world
+    // units (ortho size 1 over the 640 reference height = 320 units per world unit), i.e. the
+    // offset in layout units / 32. The player applies its own deadzone; nothing else clamps.
+    //
+    // Unless the action map binds the stick (GameInputActions.SetTouchStick): then the move/aim
+    // action applies its dead zone and clamps to 1, like a pad stick. Deliberate -- the aim
+    // axis's y also scales run speed by (1 - y/10), so an unclamped drag changed speed by how
+    // far the thumb went, past the ±10% a pad stick can reach.
+    //
+    // While the view drives them, GameTouchInputAxis.touchDrivenExternally stops the legacy
+    // component resetting the axis to zero every idle frame (it keeps the keyboard fallback).
+    private const float stickUnitsPerAxis = 32f;
+
+    private const string padMoveName = "PadMove";
+    private const string padAttackName = "PadAttack";
+
+    private UIRef padMoveKnob = UIRef.none;
+    private UIRef padAttackKnob = UIRef.none;
+    private UIRef buttonInputUseElement = UIRef.none;
+    private int lastUseVisible = -1;
+
+    private readonly List<GameObject> legacyControlVisuals = new List<GameObject>();
+
+    private void SetupToolkitControls() {
+
+        UIRef padMove = UIUtil.ResolveDeep(viewRoot, padMoveName);
+        UIRef padAttack = UIUtil.ResolveDeep(viewRoot, padAttackName);
+
+        padMoveKnob = UIUtil.ResolveDeep(viewRoot, padMoveName + "Knob");
+        padAttackKnob = UIUtil.ResolveDeep(viewRoot, padAttackName + "Knob");
+        buttonInputUseElement = UIUtil.ResolveDeep(viewRoot, BaseHUDButtonNames.buttonInputUse);
+        lastUseVisible = -1;
+
+        // FLOATING, as the legacy pads were: a press anywhere in a stick's zone (the legacy
+        // AxisInputPlacement-* rect) brings the stick to the thumb, so it suits any thumb size and
+        // grip. A view without the zones gets the anchored stick (UIUtil falls back).
+        UIRef padMoveZone = UIUtil.ResolveDeep(viewRoot, padMoveName + "Zone");
+        UIRef padAttackZone = UIUtil.ResolveDeep(viewRoot, padAttackName + "Zone");
+
+        UIUtil.SetElementFloatingStickHandler(padMoveZone, padMove, (offset, released) =>
+            OnToolkitStick(InputSystemKeys.moveKey, padMoveKnob, offset, released));
+
+        UIUtil.SetElementFloatingStickHandler(padAttackZone, padAttack, (offset, released) =>
+            OnToolkitStick(InputSystemKeys.attackKey, padAttackKnob, offset, released));
+
+        GameTouchInputAxis.touchDrivenExternally = true;
+
+        ResolveLegacyControlVisuals();
+    }
+
+    private void OnToolkitStick(string axisName, UIRef knob, Vector2 offset, bool released) {
+
+        OnToolkitStick(axisName, knob, offset, released, true);
+    }
+
+    // updateKnob = false on the teardown path: the view host is already destroyed there, and a
+    // UIRef cannot tell us so. UIRef.alive is a plain null check for a VisualElement native (it is
+    // not a UnityEngine.Object, so there is no destroyed-but-not-null overload to lean on), which
+    // means the ref still reports alive after FreeToolkitView and the inline style write NREs
+    // inside UIElements' ApplyStyleTranslate. Skipping the knob move costs nothing — the element
+    // is on its way out — while the axis zero below still has to reach the player.
+    private void OnToolkitStick(string axisName, UIRef knob, Vector2 offset, bool released, bool updateKnob) {
+
+        if(updateKnob) {
+            UIUtil.SetElementTranslate(knob, offset);
+        }
+
+        Vector3 axis = Vector3.zero;
+
+        if(!released) {
+            axis.x = offset.x / stickUnitsPerAxis;
+            axis.y = offset.y / stickUnitsPerAxis;
+        }
+
+        if(axisName == InputSystemKeys.moveKey) {
+            GameTouchInputAxis.externalMoveHeld = !released;
+            GameTouchInputAxis.externalMoveAxis = axis;
+        }
+
+        // Through the action map when it binds this stick (touch.stick.move/.aim): the pad's
+        // GameTouchInputAxis then sends the move/aim action, so touch, keys and pads share one
+        // path, one dead zone and one clamp to 1. Otherwise, as before, send it straight.
+        if(!GameInputActions.SetTouchStick(axisName, axis, released)) {
+            GameController.SendInputAxisMessage(axisName, axis);
+        }
+    }
+
+    // Chrome hidden mid-drag (pause, round end): no pointer-up reaches a display:none view.
+    private void ReleaseToolkitSticks() {
+        ReleaseToolkitSticks(true);
+    }
+
+    private void ReleaseToolkitSticks(bool updateKnobs) {
+        OnToolkitStick(InputSystemKeys.moveKey, padMoveKnob, Vector2.zero, true, updateKnobs);
+        OnToolkitStick(InputSystemKeys.attackKey, padAttackKnob, Vector2.zero, true, updateKnobs);
+    }
+
+    // The legacy pads' art + knob colliders (Highlight and Pad under each GameTouchInputAxis — the
+    // component itself stays active for the keyboard) and the whole Buttons cluster. Found from
+    // the components, not by path: the pad roots are prefab instances.
+    private void ResolveLegacyControlVisuals() {
+
+        legacyControlVisuals.Clear();
+
+        GameObject[] inputs = { containerInputLeft, containerInputRight };
+
+        for(int i = 0; i < inputs.Length; i++) {
+
+            if(inputs[i] == null) {
+                continue;
+            }
+
+            foreach(GameTouchInputAxis axis in inputs[i].GetComponentsInChildren<GameTouchInputAxis>(true)) {
+
+                foreach(Transform child in axis.transform) {
+                    legacyControlVisuals.Add(child.gameObject);
+                }
+            }
+
+            Transform buttons = inputs[i].transform.Find("Buttons");
+
+            if(buttons != null) {
+                legacyControlVisuals.Add(buttons.gameObject);
+            }
+        }
+    }
+
+    private void ReassertLegacyControlSuppression() {
+
+        for(int i = 0; i < legacyControlVisuals.Count; i++) {
+
+            GameObject go = legacyControlVisuals[i];
+
+            if(go == null || !go.activeSelf) {
+                continue;
+            }
+
+            go.Hide();
+
+            if(!suppressedLegacy.Contains(go)) {
+                suppressedLegacy.Add(go);
+            }
+        }
+
+        // Legacy shows ButtonInputUse only in training mode (AnimateIn); mirror it on the element.
+        int useVisible = AppModes.Instance != null && AppModes.Instance.isAppModeGameTraining ? 1 : 0;
+
+        if(useVisible != lastUseVisible) {
+
+            lastUseVisible = useVisible;
+
+            if(useVisible == 1) {
+                UIUtil.ShowObject(buttonInputUseElement);
+            }
+            else {
+                UIUtil.HideObject(buttonInputUseElement);
+            }
+        }
+    }
+
+    // The green FPS readout was a legacy UILabel owned by FPSDisplay, which the toolkit HUD now
+    // draws over. Rather than give FPSDisplay (game-lib-games) a dependency on the HUD view, the
+    // HUD PULLS the value here — FPSDisplay.GetCurrentFPS() is a public static and Update() already
+    // runs every frame. Colour thresholds mirror the legacy lerp: green, yellow under 27, red
+    // under 10.
+    //
+    // NOTE: this ties the readout to the HUD, so it only shows during gameplay. Legacy behaved the
+    // same in the captures, but if it is wanted on menu screens too it needs its own always-on view.
+    private string lastFpsText;
+    private bool fpsLegacyHidden;
+
+    // FPSDisplay refreshes lastFPS once per updateInterval (0.1 s), so between refreshes the value
+    // read here is bit-identical frame after frame. Keying on it skips the string.Format (a boxed
+    // float + a string, every frame) until the reading actually moves.
+    private float lastFpsValue = float.NaN;
+    private readonly UIViewLabel viewLabelFps = new UIViewLabel("LabelFPS");
+
+    // The legacy FPS label lives in the SCENE (GameSceneDynamic), not in HUDTemplate — verified:
+    // the prefab has zero FPSDisplay components. So the cluster-by-cluster suppression above cannot
+    // reach it and it would double-draw under the toolkit one. Hide it through the singleton
+    // instead, which works wherever the scene puts it. Done lazily because FPSDisplay.Instance may
+    // not exist yet when SuppressLegacyView runs.
+    private void SuppressLegacyFpsLabel() {
+
+        if(fpsLegacyHidden || !FPSDisplay.isInst) {
+            return;
+        }
+
+        if(FPSDisplay.Instance.labelFPS == null) {
+            return;
+        }
+
+        fpsLegacyHidden = true;
+
+        GameObject go = FPSDisplay.Instance.labelFPS.gameObject;
+
+        if(go.activeSelf) {
+            go.Hide();
+            suppressedLegacy.Add(go);
+        }
+    }
+
+    // B11.2 THE EDIT BUTTON. The legacy ButtonGameEdit sits in TopRight/Toolbar/DevObject, a cluster
+    // this view suppresses, so the view carries its own (panel-hud.json ButtonGameEdit, the same name:
+    // the click reaches GameDraggableEditor.EditEnable through the bridge exactly as the NGUI tap did).
+    //
+    // State is PULLED from GameDraggableEditor every frame the chrome is up (two bools and isEditing:
+    // no allocation, and a write only on a change), so a late or rebuilt view needs no replay.
+    // Visible while the game has asked for it (ShowUIPanelEditButton, allowedEditing) and the asset
+    // sheet is not open -- the legacy wiring hides EDIT while the sheet is up. Owner B11 O1: shown to
+    // everyone. The label swaps EDIT <-> PLAY with the edit state, which the legacy label was meant to
+    // do (GameDraggableEditor.labelButtonGameEdit) but never did: that field is unwired in the scene.
+    public const string elementButtonGameEdit = "ButtonGameEdit";
+    public const string elementLabelButtonGameEdit = "LabelButtonGameEdit";
+    public const string locKeyButtonGameEdit = "game_ui_level_editor_edit";
+    public const string locKeyButtonGamePlay = "game_ui_level_editor_play";
+
+    // -1 = unknown (nothing written to this view yet).
+    private int lastEditButtonVisible = -1;
+    private int lastEditButtonPlaying = -1;
+
+    private void UpdateToolkitEditButton() {
+
+        if(!isToolkitPanel || !toolkitChromeShown) {
+            return;
+        }
+
+        bool visible = GameDraggableEditor.isInst
+            && GameDraggableEditor.editButtonRequested
+            && !GameDraggableEditor.editAssetSheetShown;
+
+        int visibleState = visible ? 1 : 0;
+
+        if(visibleState != lastEditButtonVisible) {
+
+            lastEditButtonVisible = visibleState;
+
+            UIRef button = UIUtil.ResolveDeep(viewRoot, elementButtonGameEdit);
+
+            if(visible) {
+                UIUtil.ShowObject(button);
+            }
+            else {
+                UIUtil.HideObject(button);
+            }
+        }
+
+        int playingState = GameDraggableEditor.isEditing ? 1 : 0;
+
+        if(playingState != lastEditButtonPlaying) {
+
+            lastEditButtonPlaying = playingState;
+
+            UIUtil.SetLabelLocalized(UIUtil.ResolveDeep(viewRoot, elementLabelButtonGameEdit),
+                playingState == 1 ? locKeyButtonGamePlay : locKeyButtonGameEdit);
+        }
+    }
+
+    private void UpdateToolkitFps() {
+
+        if(!isToolkitPanel || !toolkitChromeShown) {
+            return;
+        }
+
+        SuppressLegacyFpsLabel();
+
+        // Release builds carry no readout (FPSDisplay.showReadout); hide the element once.
+        if(!FPSDisplay.showReadout) {
+            if(lastFpsText != "") {
+                lastFpsText = "";
+                viewLabelFps.Set(viewRoot, "");
+            }
+            return;
+        }
+
+        float fps = FPSDisplay.GetCurrentFPS();
+
+        // Same reading as last frame and the element still shows what was written: nothing to do.
+        // The Shows() half reads the element's CURRENT text, so a recycled/rebuilt element refills.
+        if(lastFpsText != null && fps == lastFpsValue && viewLabelFps.Shows(viewRoot, lastFpsText)) {
+            return;
+        }
+
+        lastFpsValue = fps;
+
+        string text = string.Format("{0:F2} FPS", fps);
+
+        // Only touch the element when the string actually changes — this runs every frame.
+        if(text == lastFpsText && viewLabelFps.Shows(viewRoot, text)) {
+            return;
+        }
+
+        lastFpsText = text;
+
+        viewLabelFps.Set(viewRoot, text);
+
+        Color color = Color.green;
+
+        if(fps < 10f) {
+            color = Color.red;
+        }
+        else if(fps < 27f) {
+            color = Color.yellow;
+        }
+
+        UIUtil.SetLabelColor(viewLabelFps.Resolve(viewRoot), color);
+    }
+
+    // THE STAT BARS. Health / energy / hit-health are driven in legacy by a UIGameRPG* component
+    // sitting ON each slider's own GameObject (Character/Container/ProgressRPG*) — the same family
+    // as the header's UIGameRPGCurrency, easing lastValue toward profileValue every frame.
+    //
+    // Suppression takes the whole "Character/Container" cluster down, so unlike the header coin
+    // (which suppresses at a fine grain and leaves its driver ticking) these drivers stop running
+    // ENTIRELY: a disabled GameObject gets no Update. Nothing else ever wrote the bars — the
+    // panel's sliderHealth/sliderEnergy fields have no writer anywhere in the codebase — so the
+    // toolkit fills sat at their authored width for the whole level.
+    //
+    // So this both PUMPS the suppressed driver (guarded on !activeInHierarchy, so it can never
+    // double-run alongside Unity's own Update if the cluster is ever visible) and mirrors its
+    // eased value into the view. The curve, the refresh interval and the debug keys stay in the
+    // driver — nothing is reimplemented here.
+    private UIGameRPGObject rpgHealthDriver;
+    private UIGameRPGObject rpgEnergyDriver;
+    private UIGameRPGObject rpgHitHealthDriver;
+    private bool rpgDriversResolved;
+
+    private float lastHealthFill = -1f;
+    private float lastEnergyFill = -1f;
+    private float lastHitHealthFill = -1f;
+
+    private UIGameRPGObject ResolveRpgDriver(string childName) {
+
+        Transform t = transform.Find(hudTopLeft + "Character/Container/" + childName);
+
+        if(t == null) {
+            return null;
+        }
+
+        UIGameRPGObject driver = t.GetComponent<UIGameRPGObject>();
+
+        // Start() is where each subclass sets incrementValue/profileValue/lastValue and where the
+        // player driver picks up its controller. It has normally already run (the cluster is active
+        // until the view lands), but if the view loaded first it never did, and the driver would
+        // ease from 0 toward 0 — a permanently EMPTY bar rather than a frozen full one.
+        if(driver != null && !driver.gameObject.activeInHierarchy) {
+            driver.Start();
+        }
+
+        return driver;
+    }
+
+    private void ResolveRpgDrivers() {
+
+        if(rpgDriversResolved) {
+            return;
+        }
+
+        rpgDriversResolved = true;
+
+        rpgHealthDriver = ResolveRpgDriver("ProgressRPGHealth");
+        rpgEnergyDriver = ResolveRpgDriver("ProgressRPGEnergy");
+        rpgHitHealthDriver = ResolveRpgDriver("ProgressRPGPlayerHitHealth");
+    }
+
+    private float PumpRpgDriver(UIGameRPGObject driver) {
+
+        if(driver == null) {
+            return -1f;
+        }
+
+        // The hit-health driver reads through a GamePlayerController it caught in Start(). On a
+        // level that had no player yet at that moment it would stay null forever and the bar would
+        // never move; re-catching only while it is null leaves the legacy behaviour untouched.
+        UIGameRPGPlayerObject playerDriver = driver as UIGameRPGPlayerObject;
+
+        if(playerDriver != null && playerDriver.gamePlayerController == null) {
+            playerDriver.gamePlayerController = GameController.CurrentGamePlayerController;
+        }
+
+        if(!driver.gameObject.activeInHierarchy) {
+            driver.Update();
+        }
+
+        return Mathf.Clamp01((float)driver.lastValue);
+    }
+
+    private void UpdateToolkitStatBar(
+        UIGameRPGObject driver, string elementName, ref float lastFill) {
+
+        float val = PumpRpgDriver(driver);
+
+        if(val < 0f) {
+            return;
+        }
+
+        // Runs every frame: only touch the element when the eased value actually moved. The driver
+        // rounds to 2 decimals, so this settles rather than writing a hair of difference forever.
+        if(Mathf.Abs(val - lastFill) < 0.001f) {
+            return;
+        }
+
+        lastFill = val;
+
+        // Falls through SetSliderValue's Slider -> Scroller -> image-fill fallback to the fill's
+        // width as a percentage of its track. See .hud-bar-track in common.uss for why the fill is
+        // wrapped rather than absolute.
+        UIUtil.SetSliderValue(UIUtil.ResolveDeep(viewRoot, elementName), val);
+    }
+
+    private void UpdateToolkitStatBars() {
+
+        if(!isToolkitPanel || !toolkitChromeShown) {
+            return;
+        }
+
+        ResolveRpgDrivers();
+
+        UpdateToolkitStatBar(rpgHealthDriver, "ProgressRPGHealth", ref lastHealthFill);
+        UpdateToolkitStatBar(rpgEnergyDriver, "ProgressRPGEnergy", ref lastEnergyFill);
+        UpdateToolkitStatBar(
+            rpgHitHealthDriver, "ProgressRPGPlayerHitHealth", ref lastHitHealthFill);
+    }
+
+    private Engine.UI.UIRenderStage hudCoinStage;
+
+    // The HUD coin rendered DIM and hard to read, because in place it is a raw 3D mesh lit by
+    // whatever the level's lighting happens to be (user, 2026-08-01: "needs to be unlit or better
+    // visible, make it like the coin on the default header"). The header already solved this:
+    // UIRenderStage moves the mesh to a dedicated widget layer with its own camera and renders it
+    // to a RenderTexture, which the toolkit view then draws as a plain image — consistent and
+    // unaffected by scene lighting. Same treatment here, same framing (128px RT, 1.3 headroom).
+    private void SetupHudCoinStage() {
+
+        if(hudCoinStage != null) {
+            return;
+        }
+
+        Transform coin = transform.Find(hudTopLeft + "Coins/HUDCoin");
+
+        if(coin == null) {
+            return;
+        }
+
+        int layer = LayerMask.NameToLayer("UIWidget3D");
+
+        if(layer < 0) {
+            layer = LayerMask.NameToLayer("UI3D");
+        }
+
+        // lightIntensity 0 = BORROW the layer's light (the 7th argument is the stage light's intensity).
+        // Stage lights are directional with cullingMask = the whole UIWidget3D layer, so they ADD, and
+        // the header's coin stage (0.97) stays attached through a round: measured live, an own 0.97
+        // here put 1.94 on this coin and rendered it flat lemon (252,248,26) against the header's gold
+        // (235,209,25). Borrowing the header's 0.97 gives the header's exposure. B9 S2, iter 34.
+        hudCoinStage = Engine.UI.UIRenderStage.Attach(
+            coin.gameObject, layer, 128, 1.3f, false, false, 0f);
+
+        if(hudCoinStage != null) {
+            UIUtil.SetImageTexture(UIUtil.ResolveDeep(viewRoot, "IconCoin"), hudCoinStage.texture);
+        }
+    }
+
+    // Symmetric restore, so flipping UIPlatform.toolkitViewsEnabled back off returns a working
+    // legacy HUD rather than a half-hidden one.
+    protected override void FreeToolkitView() {
+
+        // Detach() puts the mesh back on its original layer — kill-switch safe.
+        if(hudCoinStage != null) {
+            hudCoinStage.Detach();
+            hudCoinStage = null;
+        }
+
+
+        for(int i = 0; i < suppressedLegacy.Count; i++) {
+
+            if(suppressedLegacy[i] != null) {
+                suppressedLegacy[i].Show();
+            }
+        }
+
+        suppressedLegacy.Clear();
+
+        // Controls: hand touch back to the legacy pads (kill switch) and drop the stale refs.
+        // No knob write here — this runs from FreeToolkitView / OnDisable / OnDestroy, where the
+        // view host is already gone (see OnToolkitStick's updateKnob note).
+        if(GameTouchInputAxis.touchDrivenExternally) {
+            ReleaseToolkitSticks(false);
+            GameTouchInputAxis.touchDrivenExternally = false;
+        }
+
+        legacyControlVisuals.Clear();
+        padMoveKnob = UIRef.none;
+        padAttackKnob = UIRef.none;
+        buttonInputUseElement = UIRef.none;
+
+        // Re-resolve on the next suppression: if a level teardown destroyed and rebuilt any of these
+        // children, the cached Transforms would be stale.
+        legacyClusters = null;
+
+        // Let the legacy FPS label be re-hidden if the view is loaded again.
+        fpsLegacyHidden = false;
+        lastFpsText = null;
+        lastFpsValue = float.NaN;
+
+        // B11.2: the EDIT button state belongs to the view being freed.
+        lastEditButtonVisible = -1;
+        lastEditButtonPlaying = -1;
+
+        // The per-view label caches: the next view is a new UIRef so they would rebind anyway, but
+        // drop the dead element refs now rather than hold them until the next write.
+        viewLabelFps.Clear();
+        viewLabelScore.Clear();
+        viewLabelScores.Clear();
+        viewLabelCoins.Clear();
+        viewLabelTime.Clear();
+
+        // Same reason legacyClusters is dropped above: a level teardown can rebuild these children,
+        // and the mirrored fills belong to a view that no longer exists.
+        rpgDriversResolved = false;
+        rpgHealthDriver = null;
+        rpgEnergyDriver = null;
+        rpgHitHealthDriver = null;
+        lastHealthFill = -1f;
+        lastEnergyFill = -1f;
+        lastHitHealthFill = -1f;
+
+        // MUST reset: this tracks the visibility of a view that no longer exists. Leaving it true
+        // across a teardown makes SyncToolkitChromeVisibility early-return on the NEXT level —
+        // shouldShow(true) == toolkitChromeShown(true) — against a freshly loaded view that
+        // LoadToolkitView's continuation left hidden, giving a blank HUD from the second level on.
+        toolkitChromeShown = false;
+
+        if(smartsButtonCollider != null) {
+            smartsButtonCollider.enabled = smartsButtonColliderWasEnabled;
+            smartsButtonCollider = null;
+        }
+
+        base.FreeToolkitView();
+    }
+
     public virtual void SetLevelInit(GameLevel gameLevel) {
 
         if(gameLevel != null) {
@@ -239,28 +1059,182 @@ public class BaseGameHUD : GameUIPanelBase {
 
     }
 
+    // The label* fields are legacy UILabel handles, NOT UIRef, so BindElements cannot rebind them
+    // to the toolkit view (same situation as the worlds panel's title/description). The toolkit
+    // branch therefore writes BY ELEMENT NAME instead. The legacy write still runs underneath: the
+    // widget is suppressed, so it costs nothing and keeps the kill-switch path correct.
+    //
+    // PER-FRAME COST. Update calls SetScore/SetScores/SetCoins/SetSpecials/SetTime every frame of a
+    // round, almost always with the SAME value, and each call formatted a string and resolved its
+    // toolkit element by name (a Q() walk + a new UIRef): ~475 B/frame measured. Now:
+    //   * the toolkit element is resolved once per view (UIViewLabel: rebinds on a new view ref and
+    //     when the cached element goes dead, so a recycled element is never written);
+    //   * the format is skipped when the value, the locale AND both labels' CURRENT text still
+    //     match what was written — the UIGameRPGObject.SetLabelValue design. A value-only cache
+    //     would never refill an element that came back blank after a view teardown, and a language
+    //     change must reformat the digits. When the skip does not apply, the writes are exactly
+    //     the old ones.
+
+    private readonly UIViewLabel viewLabelScore = new UIViewLabel("LabelScore");
+    private readonly UIViewLabel viewLabelScores = new UIViewLabel("LabelScoresValue");
+    private readonly UIViewLabel viewLabelCoins = new UIViewLabel("LabelCoins");
+    private readonly UIViewLabel viewLabelTime = new UIViewLabel("LabelTime");
+
+    // What a counter last formatted, and under which value/locale.
+    private sealed class ShownText {
+        public double value = double.NaN;
+        public string locale;
+        public string text;
+    }
+
+    private readonly ShownText shownScore = new ShownText();
+    private readonly ShownText shownScores = new ShownText();
+    private readonly ShownText shownCoins = new ShownText();
+    private readonly ShownText shownSpecials = new ShownText();
+
+    // The clock keys on the parts it DISPLAYS (minutes, seconds, milliseconds), not the double.
+    private int shownTimeMinutes;
+    private int shownTimeSeconds;
+    private int shownTimeMilliseconds;
+    private string shownTimeText;
+
+#if USE_UI_NGUI_2_7 || USE_UI_NGUI_3
+    // A missing legacy label shows nothing to refill (the write would no-op), so it counts as a match.
+    private static bool LegacyLabelShows(UILabel label, string text) {
+        return label == null || label.text == text;
+    }
+#else
+    // null = unbound or dead ref: the write would no-op, so it counts as a match.
+    private static bool LegacyLabelShows(UIRef label, string text) {
+        string current = UIUtil.GetLabelValue(label);
+        return current == null || current == text;
+    }
+#endif
+
+    // True when the counter can skip: same value, same locale, and every label still shows it.
+    private bool CounterShows(ShownText shown, double value, string locale,
+        UIViewLabel viewLabel, bool legacyShows) {
+
+        if(shown.text == null || value != shown.value || locale != shown.locale || !legacyShows) {
+            return false;
+        }
+
+        return viewLabel == null || !isToolkitPanel || viewLabel.Shows(viewRoot, shown.text);
+    }
+
+    private string FormatCounter(ShownText shown, double value, string locale) {
+        shown.text = value.ToString("N0", Engine.Game.App.BaseApp.L10n.NumberFormat);
+        shown.value = value;
+        shown.locale = locale;
+        return shown.text;
+    }
+
     public virtual void SetScore(double score) {
-        UIUtil.SetLabelValue(labelScore, score.ToString("N0"));
+
+        string locale = Engine.Game.App.BaseApp.L10n.CurrentCode;
+
+        if(CounterShows(shownScore, score, locale, viewLabelScore,
+                LegacyLabelShows(labelScore, shownScore.text))) {
+            return;
+        }
+
+        string value = FormatCounter(shownScore, score, locale);
+
+        if(isToolkitPanel) {
+            viewLabelScore.Set(viewRoot, value);
+        }
+
+        UIUtil.SetLabelValue(labelScore, value);
     }
 
     public virtual void SetScores(double scores) {
-        UIUtil.SetLabelValue(labelScores, scores.ToString("N0"));
+
+        string locale = Engine.Game.App.BaseApp.L10n.CurrentCode;
+
+        if(CounterShows(shownScores, scores, locale, viewLabelScores,
+                LegacyLabelShows(labelScores, shownScores.text))) {
+            return;
+        }
+
+        string value = FormatCounter(shownScores, scores, locale);
+
+        if(isToolkitPanel) {
+            viewLabelScores.Set(viewRoot, value);
+        }
+
+        UIUtil.SetLabelValue(labelScores, value);
     }
 
     public virtual void SetCoins(double coins) {
-        UIUtil.SetLabelValue(labelCoins, coins.ToString("N0"));
+
+        string locale = Engine.Game.App.BaseApp.L10n.CurrentCode;
+
+        if(CounterShows(shownCoins, coins, locale, viewLabelCoins,
+                LegacyLabelShows(labelCoins, shownCoins.text))) {
+            return;
+        }
+
+        string value = FormatCounter(shownCoins, coins, locale);
+
+        if(isToolkitPanel) {
+            viewLabelCoins.Set(viewRoot, value);
+        }
+
+        UIUtil.SetLabelValue(labelCoins, value);
     }
 
     public virtual void SetSpecials(double specials) {
-        UIUtil.SetLabelValue(labelSpecials, specials.ToString("N0"));
+        // No toolkit element: the specials counter is not part of the 3H chrome (it does not render
+        // in the legacy HUD capture either).
+        string locale = Engine.Game.App.BaseApp.L10n.CurrentCode;
+
+        if(CounterShows(shownSpecials, specials, locale, null,
+                LegacyLabelShows(labelSpecials, shownSpecials.text))) {
+            return;
+        }
+
+        UIUtil.SetLabelValue(labelSpecials, FormatCounter(shownSpecials, specials, locale));
     }
 
     public virtual void SetLevel(string levelName) {
+
+        if(isToolkitPanel) {
+            UIUtil.UpdateLabelObject(viewRoot, "LabelLevel", levelName);
+        }
+
         UIUtil.SetLabelValue(labelLevel, levelName);
     }
 
     public virtual void SetTime(double time) {
-        UIUtil.SetLabelValue(labelTime, FormatUtil.GetFormattedTimeMinutesSecondsMsSmall(time));
+
+        // The same TimeSpan GetFormattedTimeMinutesSecondsMsSmall(double) builds, so the parts
+        // compared here are exactly the ones it prints ("{1:D2}:{2:D2}.{3:D1}" = m, s, ms). A clock
+        // that is not moving (paused, untimed mode, round over) now formats nothing; a running one
+        // still changes every frame, but formats through the boxing-free overload (one string
+        // instead of 4 boxed ints + a params array + the string).
+        TimeSpan t = TimeSpan.FromSeconds(time);
+
+        if(shownTimeText != null
+            && t.Minutes == shownTimeMinutes
+            && t.Seconds == shownTimeSeconds
+            && t.Milliseconds == shownTimeMilliseconds
+            && LegacyLabelShows(labelTime, shownTimeText)
+            && (!isToolkitPanel || viewLabelTime.Shows(viewRoot, shownTimeText))) {
+            return;
+        }
+
+        string value = FormatUtil.GetFormattedTimeMinutesSecondsMsSmall(t);
+
+        shownTimeMinutes = t.Minutes;
+        shownTimeSeconds = t.Seconds;
+        shownTimeMilliseconds = t.Milliseconds;
+        shownTimeText = value;
+
+        if(isToolkitPanel) {
+            viewLabelTime.Set(viewRoot, value);
+        }
+
+        UIUtil.SetLabelValue(labelTime, value);
     }
 
     public virtual void ShowHitOne() {
@@ -268,9 +1242,7 @@ public class BaseGameHUD : GameUIPanelBase {
 
         DeviceUtil.Vibrate();
 
-        //HideOverlayRed(.1f, 0f, 0f);
-        ShowOverlayRed(.2f, .1f, 0f, .4f);
-        HideOverlayRed(1, .2f, .4f, 0f);
+        FlashOverlayRed(.4f);
     }
 
     public virtual void ShowHitOne(float modifier) {
@@ -278,9 +1250,26 @@ public class BaseGameHUD : GameUIPanelBase {
 
         DeviceUtil.Vibrate();
 
-        //HideOverlayRed(.1f, 0f, 0f);
-        ShowOverlayRed(.2f, .1f, 0f, .4f * modifier);
-        HideOverlayRed(1, .2f, .4f * modifier, 0f);
+        FlashOverlayRed(.4f * modifier);
+    }
+
+    // Fade in, THEN fade out. Queuing both back to back (the old ShowOverlayRed + HideOverlayRed
+    // pair) never drew: every fade cancels the target's alpha channel and captures its start alpha
+    // when it is queued, so the hide cancelled the show and faded 0 -> 0. Chain on completion.
+    public virtual void FlashOverlayRed(float peak) {
+
+        if(overlayRedObject == null) {
+            return;
+        }
+
+        TweenMeta meta = TweenUtil.GetMetaDefault(
+            TweenLib.internalEasing, overlayRedObject, .2f, .1f);
+
+        meta.onComplete = () => {
+            HideOverlayRed(1f, .2f, peak, 0f);
+        };
+
+        TweenUtil.FadeToObject(meta, peak);
     }
 
     public virtual void ShowOverlayRed() {
@@ -524,6 +1513,21 @@ public class BaseGameHUD : GameUIPanelBase {
     }
 
     public virtual void Update() {
+
+        SyncToolkitChromeVisibility();
+
+        // Legacy suppression is re-asserted every frame a toolkit view OWNS the HUD — deliberately
+        // NOT gated on the chrome being visible. The invariant is "if the toolkit view exists, the
+        // legacy flat chrome stays hidden": during prepare/tips the toolkit chrome is intentionally
+        // hidden, and if the game re-activated a cluster in that window the LEGACY HUD would flash
+        // there — the exact window that is meant to stay clear.
+        if(isToolkitPanel) {
+            ReassertLegacySuppression();
+        }
+
+        UpdateToolkitFps();
+        UpdateToolkitStatBars();
+        UpdateToolkitEditButton();
         /*
         var ry = 0f;
         //var rx = 0f;
@@ -1349,8 +2353,11 @@ public class GameHUD : GameObjectBehavior {
         
         yield return null;
         
-        //Resources.UnloadUnusedAssets();
-        GC.Collect();
+        // Was a blocking GC.Collect() -- a full stop-the-world pause on
+        // whatever frame this happened to land on. MemoryUtil coalesces the
+        // request and services it incrementally, or at the next safe point.
+        MemoryUtil.RequestCollect("hud-vehicle-sounds-started");
+        MemoryUtil.RequestUnloadUnusedAssets("hud-vehicle-sounds-started");
     }
     
     void FadeAndStopVehicleSounds() {
@@ -2078,7 +3085,9 @@ public class GameHUD : GameObjectBehavior {
             if(labelTime != null) {
                 if(RaceManagerScript.Instance != null) {
                     string time = FormatUtil.GetFormattedTimeMinutesSecondsMs(RaceManagerScript.Instance.TotalRaceTime);
-                    labelTime.text = time;
+                    // 2.11: labelTime is UIRef in the non-NGUI branch; SetLabelValue is
+                    // backend-blind (UILabel/Text/UIRef overloads) so this works either way.
+                    UIUtil.SetLabelValue(labelTime, time);
                 }
             }
             

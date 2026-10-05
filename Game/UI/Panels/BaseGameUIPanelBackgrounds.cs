@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using UnityEngine;
 
 using Engine.Events;
+using Engine.UI;
 using Engine.Utility;
 
 public class BaseGameUIPanelBackgrounds : GameUIPanelBase {
@@ -27,8 +28,50 @@ public class BaseGameUIPanelBackgrounds : GameUIPanelBase {
         }
     }
 
+    // Shared chrome: never drives the character rig (see UIPanelBase.drivesCharacterDisplay).
+    public override bool drivesCharacterDisplay {
+        get {
+            return false;
+        }
+    }
+
     public override void Awake() {
         base.Awake();
+        SyncQuadSprites();
+    }
+
+    // THE BACKDROP'S NON-NGUI PATH. The plain, the vignette and the per-screen backer card carry
+    // a UIQuadSprite twin baked from the legacy widget (same GameObject, transform, layer and
+    // camera). It cannot be a UI Toolkit view: toolkit panels composite above every camera, and
+    // the backdrop has to stay BEHIND the worlds rig, the small rig and the menu particles.
+    // Toolkit on -> quads draw and the NGUI widgets are off; kill switch off -> the reverse.
+    // Re-checked on every AnimateIn so a runtime flip lands on the next transition.
+    bool quadSpritesSynced = false;
+    bool quadSpritesUseQuads = false;
+
+    protected void SyncQuadSprites() {
+
+        bool useQuads = UIPlatform.toolkitViewsEnabled;
+
+        if(quadSpritesSynced && useQuads == quadSpritesUseQuads) {
+            return;
+        }
+
+        quadSpritesSynced = true;
+        quadSpritesUseQuads = useQuads;
+
+        foreach(UIQuadSprite quad in GetComponentsInChildren<UIQuadSprite>(true)) {
+
+            quad.SetVisible(useQuads);
+
+#if USE_UI_NGUI_2_7 || USE_UI_NGUI_3
+            UIWidget widget = quad.GetComponent<UIWidget>();
+
+            if(widget != null) {
+                widget.enabled = !useQuads;
+            }
+#endif
+        }
     }
 
     public override void OnEnable() {
@@ -146,14 +189,35 @@ public class BaseGameUIPanelBackgrounds : GameUIPanelBase {
         }
     }
     
+    // Latch so hideUI can tell "put a visible backer away" (tween) from "it's already away"
+    // (snap). Without it, hiding an already-hidden backer tweened it from its old parked spot
+    // THROUGH the visible screen to the new one — the glitchy bottom-to-top sweep on the title
+    // screen.
+    protected bool backerUIVisible = false;
+
     public void showUI() {
+        backerUIVisible = true;
+
+        // A panel can request the shared backer (HandleBackgroundDisplay -> ShowUI) while this
+        // Backgrounds GameObject is inactive — e.g. a panel shown over a context where the backer
+        // layer is off. StartCoroutine throws on an inactive GameObject ("Coroutine couldn't be
+        // started because the game object 'Backgrounds' is inactive"), and an inactive backer would
+        // not render anyway, so guard it: skip the entrance rather than error out.
+        if(!isActiveAndEnabled) {
+            return;
+        }
+
         StartCoroutine(showUICo());
         //Debug.Log("GameUIPanelBackgrounds::ShowUI");
     }
     
     public IEnumerator showUICo() {
-        yield return new WaitForSeconds(.55f);
-        TweenUtil.ShowObjectBottom(backgroundUI, TweenCoord.local, true);
+        // A breath, then the backer LEADS: it eases down from the top immediately and the panel
+        // content follows with a slight lag (panel-show delay in tokens.json). The old stack-up
+        // (.55s wait + .55s tween delay ≈ 1.1s) had content landing BEFORE the backer even
+        // started, which read as broken.
+        yield return new WaitForSeconds(.1f);
+        TweenUtil.ShowObjectTop(backgroundUI, TweenCoord.local, true, .45f, 0f);
 
         //Debug.Log("GameUIPanelBackgrounds::ShowUICo");
     }
@@ -165,7 +229,18 @@ public class BaseGameUIPanelBackgrounds : GameUIPanelBase {
     }
     
     public virtual void hideUI() {
-        TweenUtil.HideObjectBottom(backgroundUI, TweenCoord.local, true);
+
+        // Already hidden: park it at the closed-top position INSTANTLY (near-zero tween) so it
+        // never sweeps across the screen on panels that hide an already-hidden backer.
+        if(!backerUIVisible) {
+            TweenUtil.HideObjectTop(backgroundUI, TweenCoord.local, false, .01f, 0f);
+            return;
+        }
+
+        backerUIVisible = false;
+
+        // Symmetric with showUICo: retract to the top, not the bottom.
+        TweenUtil.HideObjectTop(backgroundUI, TweenCoord.local, true);
         //Debug.Log("GameUIPanelBackgrounds::HideUI");
     }
 
@@ -179,6 +254,8 @@ public class BaseGameUIPanelBackgrounds : GameUIPanelBase {
     public override void AnimateIn() {
         
         base.AnimateIn();
+
+        SyncQuadSprites();
         
         ShowBackgroundPlain();
         //

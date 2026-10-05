@@ -5,12 +5,18 @@ using System.Collections.Generic;
 using UnityEngine;
 
 using Engine.Events;
+using Engine.UI;
 using Engine.Utility;
-using UnityEngine.UI;
 
 public enum UIPanelBackgroundDisplayState {
     None,
     PanelBacker
+}
+
+// Which screen edge a centre-wired panel enters from / parks out to.
+public enum UIPanelEnterDirection {
+    Bottom,
+    Top
 }
 
 public enum UIPanelCharacterDisplayState {
@@ -59,6 +65,14 @@ public class UIPanelBase : UIAppPanel {
     public UIPanelBackgroundDisplayState backgroundDisplayState = UIPanelBackgroundDisplayState.None;
     public UIPanelAdDisplayState adDisplayState = UIPanelAdDisplayState.None;
     public GameObject listGridRoot;
+
+    // Horizontal nudge, in design units, for the SMALL shared character on this screen only.
+    // The rig belongs to the header, so a screen that wants it elsewhere asks rather than moving it.
+    public virtual float characterDisplayOffsetX {
+        get {
+            return 0f;
+        }
+    }
     
 #if USE_UI_NGUI_2_7 || USE_UI_NGUI_3
 
@@ -151,6 +165,11 @@ public class UIPanelBase : UIAppPanel {
 
         panelTypes.Add(UIPanelBaseTypes.typeDefault);
 
+        // THE ONLY place a panel subscribes to the click bus. OnButtonClickEventHandler is virtual,
+        // so this registration already resolves to the most-derived override — a subclass that adds
+        // it AGAIN after chaining base.OnEnable() registers the SAME target+method twice, and
+        // Messenger is a plain multicast delegate with no dedupe, so the handler runs once PER
+        // registration. 33 subclasses did exactly that (removed 2026-09-05); do not re-add it.
         Messenger<string>.AddListener(ButtonEvents.EVENT_BUTTON_CLICK, OnButtonClickEventHandler);
         Messenger<string, Dictionary<string, object>>.AddListener(ButtonEvents.EVENT_BUTTON_CLICK_DATA, OnButtonClickEventDataHandler);
 
@@ -164,12 +183,21 @@ public class UIPanelBase : UIAppPanel {
         Messenger<string, string>.AddListener(UIControllerMessages.uiPanelAnimateOutClassType, OnUIControllerPanelAnimateOutClassType);
 
         Messenger<string, string>.AddListener(UIControllerMessages.uiPanelAnimateType, OnUIControllerPanelAnimateType);
+
+        // Warm the view now rather than at first show — see toolkitPreloadView. Symmetric with
+        // OnDisable's FreeToolkitView, so a preloading panel reloads whenever it comes back.
+        if(toolkitPreloadView) {
+            PreloadToolkitView();
+        }
     }
 
     public virtual void OnDisable() {
 
-        Messenger<string>.AddListener(ButtonEvents.EVENT_BUTTON_CLICK, OnButtonClickEventHandler);
-        Messenger<string, Dictionary<string, object>>.AddListener(ButtonEvents.EVENT_BUTTON_CLICK_DATA, OnButtonClickEventDataHandler);
+        // Pre-existing bug (flagged in the 2.9 design): these were AddListener on DISABLE, so
+        // every hide re-subscribed the panel and listeners accumulated across enable cycles.
+        // They must be RemoveListener, symmetric with OnEnable's AddListener.
+        Messenger<string>.RemoveListener(ButtonEvents.EVENT_BUTTON_CLICK, OnButtonClickEventHandler);
+        Messenger<string, Dictionary<string, object>>.RemoveListener(ButtonEvents.EVENT_BUTTON_CLICK_DATA, OnButtonClickEventDataHandler);
 
         Messenger<string>.RemoveListener(UIControllerMessages.uiPanelAnimateIn, OnUIControllerPanelAnimateIn);
         Messenger<string>.RemoveListener(UIControllerMessages.uiPanelAnimateOut, OnUIControllerPanelAnimateOut);
@@ -181,6 +209,231 @@ public class UIPanelBase : UIAppPanel {
         Messenger<string, string>.RemoveListener(UIControllerMessages.uiPanelAnimateOutClassType, OnUIControllerPanelAnimateOutClassType);
 
         Messenger<string, string>.RemoveListener(UIControllerMessages.uiPanelAnimateType, OnUIControllerPanelAnimateType);
+
+        // Pooled-away: free the toolkit view so its UXML + PanelRenderer are reclaimed. Reloads
+        // on the next show.
+        FreeToolkitView();
+    }
+
+    // The real memory unload the per-panel PanelRenderer model exists for.
+    //
+    // This project POOLS panels — it does NOT destroy them on navigation. Verified in play mode:
+    // a navigated-away panel lives on under _ObjectPoolKeyedManager, deactivated (SetActive false),
+    // so OnDisable fires and OnDestroy does not. OnDisable is therefore the "panel put away"
+    // signal, and freeing the view there is what makes the memory actually come back. When the
+    // pooled panel is later re-shown (OnEnable -> AnimateIn -> EnsureToolkitView), it reloads.
+    //
+    // Also freed in OnDestroy for the genuine-teardown case (scene unload), so the separate
+    // PanelRenderer GameObject can't outlive its panel. DestroyView on an already-freed
+    // (UIRef.none) view is a no-op, so calling from both is safe.
+    protected virtual void FreeToolkitView() {
+
+        // Before the early return: a binding must come off even when the view is already gone
+        // (freed elsewhere, host destroyed first on scene teardown) — its layers still need
+        // restoring and its RT releasing.
+        UnstageAllLegacy3D();
+
+        if(!isToolkitPanel) {
+            return;
+        }
+
+        // Stop any in-flight show/hide slide first: destroying the view detaches the VisualElement,
+        // and a still-ticking translate/fade tween would then write style on a panel-less element
+        // (Unity NREs in ApplyStyleTranslate). Cancelling here is the clean stop; the detached-guard
+        // in VisualElementTweenTarget is the backstop.
+        TweenUtil.Cancel(viewRoot);
+
+        IUIBackend backend = UIPlatform.For(viewRoot);
+
+        if(backend != null) {
+            backend.DestroyView(viewRoot);
+        }
+
+        viewRoot = UIRef.none;
+        toolkitLoadRequested = false;
+    }
+
+    // STAGED LEGACY 3D (B9 S1, 2026-10-03)
+    //
+    // Live 3D content that sits around/inside a converted view (a bot, a coin) cannot draw over a
+    // toolkit view from the world — overlay panels draw above every camera. StageLegacy3D renders
+    // it into a RenderTexture shown in the named element via an Engine.UI.UIRenderStageBinding,
+    // which also owns when it renders (element + view visible, content active, element alive) and
+    // the RT size (from the element's pixel size). Every binding made here is freed by
+    // FreeToolkitView, so a pooled-away panel gives its layers and RTs back.
+    //
+    // CALL IT FROM BindElements (or later, while the view is alive) — NEVER from OnEnable /
+    // OnDisable / AnimateIn / AnimateOut or any other (de)activation callback. Those run every
+    // pool cycle; a second Attach on already-staged content records the stage layer as the
+    // "original" one and the content never comes back to the legacy cameras. Kill switch: it
+    // returns null (nothing staged) unless the view is alive, i.e. only on the toolkit path.
+    //
+    // The content must stay ACTIVE: SuppressLegacyView's default hides the whole panelContainer,
+    // and content under it is inactive, so its camera never turns on. Panels staging content from
+    // inside their container override SuppressLegacyView to hide only the flat widgets.
+    //
+    // The existing hand-wired stages (header, HUD, Products, ProductCurrency, notification coin)
+    // do not use this and are unchanged.
+
+    private List<UIRenderStageBinding> stagedLegacy3D;
+
+    // Stage into an element of this panel's own view.
+    protected UIRenderStageBinding StageLegacy3D(
+        GameObject content, string elementName, UIRenderStageBinding.Options options = null) {
+
+        return StageLegacy3D(content, viewRoot, elementName, options);
+    }
+
+    // Stage into an element of another view this panel owns (a split front/back cluster).
+    protected UIRenderStageBinding StageLegacy3D(
+        GameObject content, UIRef view, string elementName,
+        UIRenderStageBinding.Options options = null) {
+
+        if(content == null || view == null || !view.alive) {
+            return null;
+        }
+
+        if(stagedLegacy3D == null) {
+            stagedLegacy3D = new List<UIRenderStageBinding>();
+        }
+
+        // Already staged by this panel: hand back the live binding (see the double-Attach note).
+        for(int i = stagedLegacy3D.Count - 1; i >= 0; i--) {
+
+            UIRenderStageBinding existing = stagedLegacy3D[i];
+
+            if(existing == null || !existing.isBound) {
+                stagedLegacy3D.RemoveAt(i);
+                continue;
+            }
+
+            if(existing.content == content) {
+                return existing;
+            }
+        }
+
+        UIRenderStageBinding binding =
+            UIRenderStageBinding.Bind(content, view, elementName, options);
+
+        if(binding != null) {
+            stagedLegacy3D.Add(binding);
+        }
+
+        return binding;
+    }
+
+    // Free one binding early (content leaves the screen before the view does).
+    protected void UnstageLegacy3D(UIRenderStageBinding binding) {
+
+        if(binding == null) {
+            return;
+        }
+
+        if(stagedLegacy3D != null) {
+            stagedLegacy3D.Remove(binding);
+        }
+
+        binding.Unbind();
+    }
+
+    protected void UnstageAllLegacy3D() {
+
+        if(stagedLegacy3D == null || stagedLegacy3D.Count == 0) {
+            return;
+        }
+
+        for(int i = 0; i < stagedLegacy3D.Count; i++) {
+
+            // Unity-null when scene teardown destroyed the stage object first: nothing to free.
+            if(stagedLegacy3D[i] != null) {
+                stagedLegacy3D[i].Unbind();
+            }
+        }
+
+        stagedLegacy3D.Clear();
+    }
+
+    // SAFE-POINT VIEW RECLAIM
+    //
+    // MemoryUtil.onSafePointReclaim had no subscriber at all: a safe point trimmed the pools and
+    // collected, and every toolkit view still in memory stayed in memory. A view is a
+    // PanelRenderer GameObject holding a VisualTreeAsset (and, for a bitty view, a retained
+    // parsed tree) -- exactly the kind of live reference UnloadUnusedAssets cannot get past.
+    //
+    // WHY OnDisable DOES NOT ALREADY COVER THIS, measured rather than assumed. FreeToolkitView
+    // runs from OnDisable because the project POOLS panels with SetActive(false). But a panel
+    // that is merely hidden is NOT deactivated -- it stays active and goes invisible. Measured at
+    // the menu, just after a round -> UI transition: 7 of 7 toolkit panels read isVisible=False
+    // with activeInHierarchy=True, every one of them still holding its view. So the predicate
+    // that matters here is isVisible, NOT activeInHierarchy; a sweep written against
+    // activeInHierarchy frees nothing, which is what the first version of this did.
+    //
+    // WHY ONLY low-memory AND application-paused. Freeing a view means rebuilding it on the next
+    // show, and this set includes panel-main, panel-header and panel-footer -- the panels every
+    // navigation re-shows immediately. Sweeping on every safe point would trade memory for
+    // re-show cost on the hottest panels in the app, which is the opposite of what this branch
+    // wants. On these two reasons the trade is all upside: the app is under memory pressure or
+    // has been backgrounded, and re-show latency does not exist. Scene loads are deliberately not
+    // included -- a single-mode load already destroys the outgoing panels, so OnDestroy has
+    // freed those views before this would ever look at them.
+
+    private static int viewsReclaimed;
+
+    public static int viewsReclaimedAtSafePoint {
+        get {
+            return viewsReclaimed;
+        }
+    }
+
+    public static string lastViewReclaim { get; private set; }
+
+    // AfterSceneLoad, NOT BeforeSceneLoad, and the ordering is the entire reason. MemoryUtil
+    // resets its statics from a BeforeSceneLoad hook, and that reset includes
+    // `onSafePointReclaim = null` ("products re-subscribe from their own boot"). Two
+    // BeforeSceneLoad callbacks have no defined order between them, so subscribing there is a
+    // coin flip -- lose it and the handler is silently gone for the whole session, with nothing
+    // to show that it ever existed. AfterSceneLoad always runs after every BeforeSceneLoad hook.
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
+    private static void HookSafePointReclaim() {
+
+        // Reset first: with "Enter Play Mode Options" skipping the domain reload, these statics
+        // survive into the next play session.
+        viewsReclaimed = 0;
+        lastViewReclaim = "";
+
+        MemoryUtil.onSafePointReclaim -= OnSafePointReclaim;
+        MemoryUtil.onSafePointReclaim += OnSafePointReclaim;
+    }
+
+    private static void OnSafePointReclaim(string reason) {
+
+        if(reason != "low-memory" && reason != "application-paused") {
+            return;
+        }
+
+        UIPanelBase[] panels = UnityEngine.Object.FindObjectsByType<UIPanelBase>(
+            FindObjectsInactive.Include, FindObjectsSortMode.None);
+
+        int freed = 0;
+
+        for(int i = 0; i < panels.Length; i++) {
+
+            UIPanelBase panel = panels[i];
+
+            if(panel == null || panel.isVisible || !panel.isToolkitPanel) {
+                continue;
+            }
+
+            panel.FreeToolkitView();
+            freed++;
+        }
+
+        viewsReclaimed += freed;
+        lastViewReclaim = reason + ":" + freed + "@f" + Time.frameCount;
+    }
+
+    public virtual void OnDestroy() {
+        FreeToolkitView();
     }
 
     public virtual void OnButtonClickEventHandler(
@@ -280,8 +533,27 @@ public class UIPanelBase : UIAppPanel {
         AnimateInCenter(panelCenterObject, time, delay, fade);
     }
 
+    // Which edge centre-wired content enters from. DEFAULT: panels showing the shared PanelBacker
+    // enter WITH it (top — the backer leads, content follows); bare flows (worlds/levels, no
+    // backer) keep the classic bottom rise. Safe to derive here: HandleShow() (where panels set
+    // backgroundDisplayState) runs before AnimateInCenter in the AnimateIn flow. Override per
+    // panel for anything that wants an explicit direction.
+    public virtual UIPanelEnterDirection centerEnterDirection {
+        get {
+            return backgroundDisplayState == UIPanelBackgroundDisplayState.PanelBacker
+                ? UIPanelEnterDirection.Top
+                : UIPanelEnterDirection.Bottom;
+        }
+    }
+
     public virtual void AnimateInCenter(GameObject go, float time = .5f, float delay = .5f, bool fade = true) {
-        TweenUtil.ShowObjectBottom(go, TweenCoord.local, fade, time, delay);
+
+        if(centerEnterDirection == UIPanelEnterDirection.Top) {
+            TweenUtil.ShowObjectTop(go, TweenCoord.local, fade, time, delay);
+        }
+        else {
+            TweenUtil.ShowObjectBottom(go, TweenCoord.local, fade, time, delay);
+        }
     }
 
     public virtual void AnimateOutCenter(float time = .3f, float delay = 0f, bool fade = true) {
@@ -289,7 +561,13 @@ public class UIPanelBase : UIAppPanel {
     }
 
     public virtual void AnimateOutCenter(GameObject go, float time = .3f, float delay = 0f, bool fade = true) {
-        TweenUtil.HideObjectBottom(go, TweenCoord.local, fade, time, delay);
+
+        if(centerEnterDirection == UIPanelEnterDirection.Top) {
+            TweenUtil.HideObjectTop(go, TweenCoord.local, fade, time, delay);
+        }
+        else {
+            TweenUtil.HideObjectBottom(go, TweenCoord.local, fade, time, delay);
+        }
     }
 
     // LEFT
@@ -438,9 +716,264 @@ public class UIPanelBase : UIAppPanel {
 
     // ANIMATE
 
+    // ------------------------------------------------------------------------
+    // UI TOOLKIT PATH
+    //
+    // A panel is a "toolkit panel" once it has a loaded view (a UXML tree bound to viewRoot).
+    // Until then every panel is an NGUI panel and takes the original path untouched — that is
+    // what lets a migrated screen and an NGUI screen coexist in the same frame through all of
+    // Phase 3.
+    //
+    // The toolkit path deliberately does NOT reproduce the nine-edge slide choreography
+    // (panelLeftObject, panelRightTopObject, ...). Those are ±4500-unit GameObject slides that
+    // exist because NGUI had no layout engine; in UXML a panel is one view that fades/translates
+    // as a unit, driven by a named preset from tokens.json. Panels that genuinely need per-edge
+    // entrances get them back as bitty patterns in Phase 3.
+
+    public bool isToolkitPanel {
+        get {
+            return viewRoot != null && viewRoot.alive;
+        }
+    }
+
+    // "This panel is a MIGRATION TARGET" — known synchronously, unlike isToolkitPanel, which only
+    // becomes true once the async view build lands (a frame or two into the first show).
+    //
+    // Decisions made during AnimateIn about what the toolkit will own must use THIS: asking
+    // isToolkitPanel there answers false on every first show, so a migrated screen would take the
+    // legacy branch exactly once and then switch — a one-show flicker that is hard to attribute.
+    public bool isToolkitMigrated {
+        get {
+            return Engine.UI.UIPlatform.toolkitViewsEnabled
+                && !string.IsNullOrEmpty(toolkitViewKey);
+        }
+    }
+
+    // A panel migrates to UI Toolkit by overriding this with its view key — the SAME string the
+    // NGUI path already uses (e.g. "panel-settings-credits"). Empty means "stay on NGUI".
+    //
+    // The view is loaded lazily on first AnimateIn, NOT in Init/Start. Panels are instantiated
+    // inactive (BaseUIController.syncPanelLoaded parents a pooled prefab), so Start never runs
+    // until the panel is first shown — hooking Init meant LoadToolkitView was simply never
+    // called, and the panel silently stayed on NGUI with no error. First-show is the only moment
+    // the panel is guaranteed to be alive.
+    public virtual string toolkitViewKey {
+        get {
+            return "";
+        }
+    }
+
+    // Opt-in view PRELOADING — build the view when the panel is ENABLED instead of at its first
+    // AnimateIn.
+    //
+    // Lazy loading is right for the ~30 pooled flow panels: the view arrives a frame or two after
+    // the first show, and that gap is hidden inside a screen transition that is already animating.
+    // It is WRONG for a dialog that interrupts live gameplay. The 3F pause overlay showed exactly
+    // why (2026-07-20): its first show was visibly late, and during the gap the panel was still
+    // running its NGUI path, so the tap that opened it fell through to whatever NGUI widget shares
+    // that corner of the screen. A preloaded view is alive before the tap, so AnimateIn takes the
+    // toolkit branch immediately and the dialog appears in the same frame.
+    //
+    // Only meaningful for SCENE-RESIDENT panels (UIPanelPause and the dialog family are scene
+    // singletons, not catalog-loaded pooled prefabs). A pooled panel is instantiated INACTIVE and
+    // is enabled by the show itself, so for it "on enable" and "on first show" are the same moment
+    // and preloading buys nothing.
+    public virtual bool toolkitPreloadView {
+        get {
+            return false;
+        }
+    }
+
+    // Deferred by one frame ON PURPOSE. UIToolkitHost publishes the shared PanelSettings from its
+    // OWN OnEnable, and Unity does not define OnEnable order between two scene objects — going
+    // straight to LoadView from here would race the host and hit its "no PanelSettings registered"
+    // bail, which leaves the panel silently on NGUI. By end-of-frame every scene object has run
+    // Awake/OnEnable/Start, so the host is registered.
+    protected virtual void PreloadToolkitView() {
+
+        // StartCoroutine throws on an inactive GameObject, and OnEnable can run while the object
+        // is still being brought up as part of an inactive parent.
+        if(!gameObject.activeInHierarchy) {
+            return;
+        }
+
+        StartCoroutine(PreloadToolkitViewCo());
+    }
+
+    IEnumerator PreloadToolkitViewCo() {
+
+        yield return new WaitForEndOfFrame();
+
+        // The panel may have been shown, or put away again, during that frame. Both outcomes are
+        // already handled: EnsureToolkitView is idempotent (isToolkitPanel / toolkitLoadRequested
+        // short-circuits), and LoadToolkitView's continuation matches the fresh view to isVisible.
+        EnsureToolkitView();
+    }
+
+    // Which draw-order band this panel's view sits in (see Engine.UI.UILayers). Default `auto`
+    // keeps the original behavior (draw order == load order, within the panel band). Always-on
+    // chrome overrides this with UILayers.chrome so it renders ABOVE screens that load after it.
+    //
+    // NOTE: this is draw order only — it is NOT a lifetime hint. A view is still released by
+    // FreeToolkitView on OnDisable, so a flow-scoped panel is loaded and cleaned up exactly as
+    // before; chrome merely stays resident for as long as its GameObject stays enabled.
+    public virtual int toolkitSortOrder {
+        get {
+            return UILayers.auto;
+        }
+    }
+
+    // Named motion presets driving this panel's toolkit show/hide slide (tokens.json -> TweenPresets).
+    // Chrome overrides these with chrome-show/chrome-hide so the header's entrance has slight
+    // timing/ease variance from the content body — fluid, not mechanical lock-step.
+    public virtual string toolkitShowPreset {
+        get {
+            return "panel-show";
+        }
+    }
+
+    public virtual string toolkitHidePreset {
+        get {
+            return "panel-hide";
+        }
+    }
+
+    protected virtual void EnsureToolkitView() {
+
+        // Global kill switch: NGUI stays the shipping path, and one flag turns the whole toolkit
+        // path off without touching any panel's code.
+        if(!UIPlatform.toolkitViewsEnabled) {
+            return;
+        }
+
+        if(isToolkitPanel || string.IsNullOrEmpty(toolkitViewKey)) {
+            return;
+        }
+
+        LoadToolkitView(toolkitViewKey);
+    }
+
+    // set true once a load is in flight, so EnsureToolkitView doesn't kick a second one while the
+    // deferred PanelRenderer build is still pending.
+    private bool toolkitLoadRequested = false;
+
+    // Requests this panel's view from the backend and binds it when ready.
+    //
+    // ASYNCHRONOUS: PanelRenderer builds its UXML on a later panel update (verified in-editor), so
+    // the bind/hide work runs in the onReady continuation, not inline. On the very first show the
+    // panel therefore briefly runs its NGUI path until the view arrives (a frame or two later),
+    // then the continuation hides the NGUI container and the toolkit view takes over. Subsequent
+    // shows are instant (viewRoot already alive). Pre-loading at scene load to remove that first
+    // frame is a Phase 3 refinement.
+    public virtual void LoadToolkitView(string viewKey) {
+
+        IUIBackend backend = UIPlatform.viewBackend;
+
+        if (backend == null || string.IsNullOrEmpty(viewKey) || toolkitLoadRequested) {
+            return;
+        }
+
+        toolkitLoadRequested = true;
+
+        backend.LoadView(viewKey, toolkitSortOrder, (UIRef view) => {
+
+            if (view == null || !view.alive) {
+                // No UXML for this key: stay on NGUI. Allow a later retry.
+                toolkitLoadRequested = false;
+                return;
+            }
+
+            // The load is deferred (a frame or two), and the panel can be DESTROYED in that
+            // window — a scene unload does exactly this. The toolkitLoadRequested check below
+            // does not catch it: the managed object outlives the native one, so its fields still
+            // read normally and the guard passes, and then the first member that touches the
+            // native side throws. Observed as
+            // "MissingReferenceException: The object of type 'GameHUD' has been destroyed" out of
+            // SuppressLegacyView() -> get_transform, on a level load that tore the scene down
+            // while the HUD's view was still building. `this == null` is Unity's overloaded
+            // comparison and is true for a destroyed object; the view is orphaned either way, so
+            // it is destroyed here rather than leaked.
+            if (this == null) {
+                backend.DestroyView(view);
+                return;
+            }
+
+            // The load is deferred (a frame or two). If the panel was pooled away in the meantime,
+            // FreeToolkitView cleared toolkitLoadRequested — the view we just built is orphaned, so
+            // destroy it now instead of leaking its PanelRenderer.
+            if (!toolkitLoadRequested) {
+                backend.DestroyView(view);
+                return;
+            }
+
+            viewRoot = view;
+
+            LoadBindManifest(viewKey);
+            BindElements(view);
+
+            // The NGUI prefab for this panel is still instantiated (BaseUIController
+            // .syncPanelLoaded loads it by code, unchanged). Its widgets would render UNDERNEATH
+            // the toolkit view — two copies of the same screen. Suppressing the NGUI container is
+            // what makes a migrated panel replace its predecessor rather than double it.
+            SuppressLegacyView();
+
+            // Match whatever visibility the panel should currently have: if it was shown while the
+            // load was still pending, show now; otherwise start hidden (Start() -> AnimateOut()).
+            //
+            // Slide, don't pop: on a fresh show the view arrives ASYNC — AnimateIn already ran
+            // (isToolkitPanel was still false there, so its ShowObjectTop never fired) and a bare
+            // Show() made first shows appear in place while re-shows slid. ShowObjectTop parks the
+            // view off-screen-top in the same frame as Show, so there's no flash.
+            if(isVisible) {
+                backend.Show(view);
+                ShowToolkitViewSlide();
+            }
+            else {
+                backend.Hide(view);
+            }
+        });
+    }
+
+    // Which edge the whole view slides in/out through. Top is the standard for flow panels and
+    // top chrome (enters WITH the shared backer); bottom chrome (footer) overrides both to the
+    // bottom edge so the band rises from its own screen edge.
+    protected virtual void ShowToolkitViewSlide() {
+        TweenUtil.ShowObjectTop(viewRoot, toolkitShowPreset);
+    }
+
+    protected virtual void HideToolkitViewSlide() {
+        TweenUtil.HideObjectTop(viewRoot, toolkitHidePreset);
+    }
+
+    // HYBRID panels keep live legacy content next to their toolkit view (panel-main's 3D
+    // character in panelBottomObject, particles in panelCenterObject). For them the nine-edge
+    // NGUI slides must KEEP RUNNING alongside the toolkit view slide — the early-return that is
+    // right for fully-migrated panels would leave the legacy content parked on screen forever
+    // (the character never animated out after a tap). Suppressed flat widgets under those edges
+    // are inactive, so tweening them too is harmless.
+    protected virtual bool toolkitKeepsLegacyMotion {
+        get {
+            return false;
+        }
+    }
+
+    // What LoadToolkitView hides so the NGUI prefab doesn't render underneath the toolkit view.
+    // Default: the whole panelContainer. Overridable because some panels carry NON-flat content
+    // inside their container that must survive the swap — the header's 3D character preview
+    // (Characters lives inside its Container) is the first case; it hides only the flat widgets
+    // its view replaces.
+    protected virtual void SuppressLegacyView() {
+
+        if(panelContainer != null) {
+            panelContainer.Hide();
+        }
+    }
+
     public virtual void AnimateIn() {
 
         //AnimateOut(0f, 0f);
+
+        EnsureToolkitView();
 
         HandleUniquePanelTypes();
 
@@ -463,9 +996,7 @@ public class UIPanelBase : UIAppPanel {
 
         yield return new WaitForSeconds(delay);
 
-#if USE_EASING_LEANTWEEN
-        LeanTween.cancelAll();
-#endif
+        TweenUtil.CancelAll();
     }
 
     public virtual void AnimateIn(float time = .5f, float delay = .5f) {
@@ -485,6 +1016,25 @@ public class UIPanelBase : UIAppPanel {
         HandleButtonDisplay();
 
         HandleBackgroundDisplay();
+
+        // Toolkit panels slide the whole view DOWN from off-screen top + fade, synced with the
+        // shared PanelBacker (which also enters from the top). Fade-only left the content sitting
+        // still while the backer moved. The nine-edge slide below is the NGUI choreography and does
+        // not apply. Everything above (HandleShow, character/ad/button/background) still runs.
+        if(isToolkitPanel) {
+
+            ShowToolkitViewSlide();
+
+            if(!toolkitKeepsLegacyMotion) {
+
+                isVisible = true;
+
+                return;
+            }
+
+            // Hybrid: fall through so the legacy edge slides bring the live NGUI content
+            // (character, particles) in alongside the view.
+        }
 
         AnimateInCenter(time, delay);
         AnimateInLeft(time, delay);
@@ -527,6 +1077,28 @@ public class UIPanelBase : UIAppPanel {
 
         AdNetworks.HideAd();
 
+        if(isToolkitPanel) {
+
+            HideToolkitViewSlide();
+
+            if(!toolkitKeepsLegacyMotion) {
+
+                isVisible = false;
+
+                // NOT HidePanel() -- see HideToolkitViewWhenSlideEnds. Hiding here put
+                // display: none on the view in the same frame, so the slide above ran to
+                // completion on an element nobody could see and every toolkit panel POPPED
+                // out while the legacy ones eased.
+                HideToolkitViewWhenSlideEnds();
+
+                return;
+            }
+
+            // Hybrid: fall through so the legacy edge slides take the live NGUI content
+            // (character, particles) off screen; HidePanel runs on the legacy path's
+            // delayed coroutine as before.
+        }
+
         AnimateOutCenter(time, delay);
         AnimateOutLeft(time, delay);
         AnimateOutLeftBottom(time, delay);
@@ -557,7 +1129,78 @@ public class UIPanelBase : UIAppPanel {
         HidePanel();
     }
 
+    // HOW LONG THE HIDE SLIDE RUNS.
+    //
+    // Preset-driven (tokens.json -> TweenPresets), so retiming panel-hide retimes this with it and
+    // there is no constant to drift. It is a SEPARATE virtual from HideToolkitViewSlide rather
+    // than a return value, because that method is a protected virtual in a SHARED lib -- changing
+    // its signature would silently orphan overrides in the other products.
+    //
+    // A panel that hides IN PLACE (no tween) must override this to 0: UIPanelPause and
+    // GameUIPanelLoader both do, and any future TweenUtil.HideViewInPlace override has to. The
+    // cost of forgetting is a view that lingers for the preset duration after it should be gone,
+    // not a stuck panel -- the token below still clears it.
+    protected virtual float toolkitHideSeconds {
+        get {
+            Engine.Animation.TweenPreset preset = Engine.Animation.TweenPresets.Get(toolkitHidePreset);
+
+            return preset.time + preset.delay;
+        }
+    }
+
+    // Bumped by every show and every hide, so a deferred hide belonging to an earlier cycle cannot
+    // fire into a later one (re-show during the slide, or a second hide superseding the first).
+    private int toolkitVisibilityToken = 0;
+
+    // The display hide, landing WITH the slide instead of before it.
+    //
+    // gate learning #1 still holds -- display state is never a tween side effect. Nothing here
+    // listens to the tween or reads its progress; the hide is scheduled off the preset's own
+    // duration and re-checks isVisible before it commits, so a panel re-shown mid-slide stays up.
+    //
+    // Realtime, not scaled: a panel dismissed while the game is paused would otherwise never
+    // reach its hide. The panels that are actually SHOWN at timeScale 0 hide in place anyway
+    // (toolkitHideSeconds 0), so they never get here.
+    protected virtual void HideToolkitViewWhenSlideEnds() {
+
+        int token = ++toolkitVisibilityToken;
+
+        float seconds = toolkitHideSeconds;
+
+        // In-place hides, and a pooled-away panel (StartCoroutine throws on an inactive
+        // GameObject, and a coroutine would be killed by the deactivation anyway).
+        if(seconds <= 0f || !gameObject.activeInHierarchy) {
+            HidePanel();
+            return;
+        }
+
+        StartCoroutine(HideToolkitViewWhenSlideEndsCo(seconds, token));
+    }
+
+    IEnumerator HideToolkitViewWhenSlideEndsCo(float seconds, int token) {
+
+        yield return new WaitForSecondsRealtime(seconds);
+
+        // Superseded, or shown again while the slide was running.
+        if(token != toolkitVisibilityToken || isVisible) {
+            yield break;
+        }
+
+        HidePanel();
+    }
+
     public virtual void HidePanel() {
+
+        // Display state, never a tween side effect (gate learning #1). The tween fades opacity;
+        // this is what actually removes the view from layout.
+        if(isToolkitPanel) {
+
+            if(!isVisible) {
+                UIUtil.HideObject(viewRoot);
+            }
+
+            return;
+        }
 
         if(!isVisible) {
             if(panelContainer != null) {
@@ -569,7 +1212,16 @@ public class UIPanelBase : UIAppPanel {
 
     public virtual void ShowPanel() {
 
+        // Cancels any deferred hide still pending from the last dismissal, so a panel shown again
+        // mid-slide cannot be hidden out from under itself a moment later.
+        toolkitVisibilityToken++;
+
         if(isVisible) {
+            return;
+        }
+
+        if(isToolkitPanel) {
+            UIUtil.ShowObject(viewRoot);
             return;
         }
 
@@ -866,7 +1518,10 @@ public class UIPanelBase : UIAppPanel {
             UILabel label = t.GetComponent<UILabel>();
 #else
 
-            Text label = t.GetComponent<Text>();
+            // B10: was GetComponent<Text>(). The backend's label getter returns null (not "")
+            // when the object carries no label, which is the same test without the UGUI type.
+            GameObject label = UIUtil.GetLabelValue(Engine.UI.UIRef.Of(t.gameObject)) != null
+                ? t.gameObject : null;
 #endif
             if(label != null) {
                 return label.gameObject;
@@ -877,19 +1532,80 @@ public class UIPanelBase : UIAppPanel {
 
     // PANEL SECTIONS STATES
 
+    // Whether this panel's own show drives the shared character rig. Content screens do; the
+    // shared chrome (footer, header, backgrounds) must not. A content panel's AnimateIn can bring
+    // the footer in mid-entrance (HandleButtonDisplay -> ShowButtonGameNetworks -> footer
+    // AnimateIn), and the footer always declares characterDisplayState None, so its None branch
+    // HideCharacters()'d the bot the content panel had started showing one call earlier. That is
+    // how Results lost its bot after a round (the footer was hidden during play, so its AnimateIn
+    // ran in full). Chrome overrides this to false and leaves the rig to the screen it frames.
+    public virtual bool drivesCharacterDisplay {
+        get {
+            return true;
+        }
+    }
+
     public void HandleCharacterDisplay() {
 
         // handle character display
 
+        if(!drivesCharacterDisplay) {
+            return;
+        }
+
+        // LEAVE THE RIG ALONE IF IT IS ALREADY SHOWING WHAT WE WANT.
+        //
+        // The character is shared and lives on the header, but this ran on every panel show and
+        // unconditionally re-drove it: hide the other container, then a coroutine that waits and
+        // slides this one back in. Two consecutive screens that both want the same character
+        // therefore tore it down and rebuilt it, and the rig was ABSENT for the whole wait —
+        // captured as a frame sequence on 2026-09-12: the bot present for three frames, GONE for
+        // three, then sliding in. The header remembers what it was last asked for and every hide
+        // clears that memo, so this can only skip work that is genuinely already done.
+        if(GameUIPanelHeader.IsCharacterDisplayApplied(
+               characterDisplayState == UIPanelCharacterDisplayState.Character
+                   ? GameUIPanelHeader.characterDisplaySmall
+                   : characterDisplayState == UIPanelCharacterDisplayState.CharacterLarge
+                       ? GameUIPanelHeader.characterDisplayLarge
+                       : GameUIPanelHeader.characterDisplayNone,
+               isToolkitMigrated,
+               characterDisplayOffsetX)) {
+            return;
+        }
+
         if(characterDisplayState ==
             UIPanelCharacterDisplayState.Character) {
 
-            GameUIPanelHeader.ShowCharacter();
+            GameUIPanelHeader.HideCharacterLarge();
+
+            // Same seam as SetCharacterLargeToolkit below: the small card's CUSTOMIZE button
+            // converts only on a screen that can host a toolkit view.
+            GameUIPanelHeader.SetCharacterSmallToolkit(isToolkitMigrated);
+
+            GameUIPanelHeader.ShowCharacter(characterDisplayOffsetX);
         }
         else if(characterDisplayState ==
             UIPanelCharacterDisplayState.CharacterLarge) {
 
+            GameUIPanelHeader.HideCharacter();
+
+            // The character rig belongs to the HEADER, not to us (iter-8: the card, the bot and
+            // the CUSTOMIZE button on the customize screen are all its). All we contribute is
+            // whether the screen about to appear can host the converted card — a toolkit view
+            // draws above the whole NGUI stack, so on an unmigrated screen it would bury the
+            // content. Staging must be decided BEFORE the show, so the entrance uses it.
+            GameUIPanelHeader.SetCharacterLargeToolkit(isToolkitMigrated);
+
             GameUIPanelHeader.ShowCharacterLarge();
+        }
+        else {
+            // Panels that declare no character must hide it, mirroring
+            // HandleBackgroundDisplay's show-on-state / hide-on-None symmetry.
+            // Without this the character card leaks onto every later panel and
+            // collides with their content (GameCenter buttons on statistics/
+            // achievements, filter tiles on products). The leak never rendered
+            // pre-flip because the show fade was a silent no-op.
+            GameUIPanelHeader.HideCharacters();
         }
     }
 
