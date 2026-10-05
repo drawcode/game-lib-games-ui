@@ -318,6 +318,8 @@ public class UIPanelDialogEditItems : UIAppPanelBaseList {
 
     protected override void FreeToolkitView() {
 
+        ReleaseThumbnails();
+
         for(int i = 0; i < toolkitSuppressed.Count; i++) {
 
             if(toolkitSuppressed[i] != null) {
@@ -367,6 +369,10 @@ public class UIPanelDialogEditItems : UIAppPanelBaseList {
             // base's deferred hide).
             HideToolkitViewWhenSlideEnds();
         }
+
+        // Closing the picker frees every thumbnail RT (the dark panel hides at once, so nothing
+        // is still on screen to go blank). Reopening re-renders: ~one frame budget per few rows.
+        ReleaseThumbnails();
     }
 
     // A dark panel never gets OnDisable/OnDestroy, so GameDraggableEditor frees its view.
@@ -381,6 +387,14 @@ public class UIPanelDialogEditItems : UIAppPanelBaseList {
         }
 
         toolkitListPending = false;
+
+        // A reload (filter change) supersedes the queued thumbnails of the rows it is about to
+        // clear; the cached textures stay and answer the new rows at once.
+        thumbnailGeneration++;
+
+        if(thumbnailSnapshots != null) {
+            thumbnailSnapshots.CancelPending();
+        }
 
         UIUtil.ClearListItems(viewRoot, elementItemList);
 
@@ -406,13 +420,14 @@ public class UIPanelDialogEditItems : UIAppPanelBaseList {
 
             UIUtil.UpdateLabelObject(item, elementItemLabelName, asset.display_name);
 
-            // B11.4 SEAM -- THUMBNAILS. The legacy row instantiates the asset's 3D prefab
+            // B11.4 THUMBNAILS. The legacy row instantiates the asset's 3D prefab
             // (GameDraggableEditor.LoadSpriteUI, "portal-" codes use their "-sm" variant) under
-            // GameLevelItemObject on the UIEditor layer. A view cannot host live 3D; B11.4 renders
-            // each code ONCE into a cached texture (new engine UIRenderSnapshot, borrowed light,
-            // rule 189) and sets it here:
-            //     UIUtil.SetImageTexture(UIUtil.ResolveDeep(item, elementItemThumbnail), texture);
-            // Until then the row shows its name only.
+            // GameLevelItemObject on the UIEditor layer. A view cannot host live 3D, and a live
+            // UIRenderStage per row would be 163 cameras: each code is rendered ONCE into a cached
+            // texture (engine UIRenderSnapshot, the layer's shared stage light) and set here, in
+            // row order (the top rows are the visible ones). A code with no model stays text-only,
+            // as legacy (LoadSpriteUI finds nothing to load).
+            RequestThumbnail(item, asset.code);
 
             UIUtil.SetElementName(
                 UIUtil.ResolveDeep(item, elementItemButton),
@@ -422,6 +437,79 @@ public class UIPanelDialogEditItems : UIAppPanelBaseList {
         }
 
         UIUtil.ScrollToTop(UIUtil.ResolveDeep(viewRoot, elementItemList), false);
+    }
+
+    // ------------------------------------------------------------------------------------------
+    // B11.4 THUMBNAILS
+
+    // Off: rows are text-only (the B11.2 shell). For A/B and for a device that cannot spare it.
+    public static bool thumbnailsEnabled = true;
+
+    // 1.6x the 70 x 50 .lei-row-thumb box, same aspect: SetImageTexture stretches to the element.
+    public static int thumbnailWidth = 112;
+    public static int thumbnailHeight = 80;
+
+    Engine.UI.UIRenderSnapshot thumbnailSnapshots;
+
+    // Bumped on every reload / release: a callback for an older list must not write into rows
+    // that were cleared (toolkit elements are recycled -- a stale row may be another view's now).
+    int thumbnailGeneration = 0;
+
+    public Engine.UI.UIRenderSnapshot thumbnails {
+        get {
+            return thumbnailSnapshots;
+        }
+    }
+
+    void RequestThumbnail(Engine.UI.UIRef item, string code) {
+
+        if(!thumbnailsEnabled || string.IsNullOrEmpty(code) || !GameDraggableEditor.isInst) {
+            return;
+        }
+
+        Engine.UI.UIRef thumb = UIUtil.ResolveDeep(item, elementItemThumbnail);
+
+        if(!thumb.alive) {
+            return;
+        }
+
+        if(thumbnailSnapshots == null) {
+            thumbnailSnapshots = new Engine.UI.UIRenderSnapshot();
+            thumbnailSnapshots.width = thumbnailWidth;
+            thumbnailSnapshots.height = thumbnailHeight;
+        }
+
+        int generation = thumbnailGeneration;
+
+        thumbnailSnapshots.Request(code, SpawnThumbnailContent, (c, texture) => {
+
+            if(texture == null || generation != thumbnailGeneration || !isToolkitPanel) {
+                return;
+            }
+
+            UIUtil.SetImageTexture(thumb, texture);
+        });
+    }
+
+    // Spawned exactly as the legacy row did (LoadSpriteUI, the "-sm" portal variant).
+    static GameObject SpawnThumbnailContent(GameObject parent, string code) {
+
+        string assetCode = code;
+
+        if(assetCode.Contains("portal-")) {
+            assetCode = assetCode + "-sm";
+        }
+
+        return GameDraggableEditor.LoadSpriteUI(parent, assetCode, Vector3.one);
+    }
+
+    public void ReleaseThumbnails() {
+
+        thumbnailGeneration++;
+
+        if(thumbnailSnapshots != null) {
+            thumbnailSnapshots.Clear();
+        }
     }
 
     // ==========================================================================================
