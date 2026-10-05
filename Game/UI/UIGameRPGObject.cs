@@ -49,8 +49,8 @@ public class UIGameRPGObject : GameObjectBehavior {
     }
 
     private bool worldQuadsActive;
-#if USE_UI_NGUI_2_7
     private Engine.UI.UIQuadSprite progressFillQuad;
+#if USE_UI_NGUI_2_7
     private UISprite progressFillSprite;
 #endif
 
@@ -85,6 +85,17 @@ public class UIGameRPGObject : GameObjectBehavior {
         }
 
         MirrorProgressFill();
+#else
+        // No legacy slider: the BAKED fill quad (UIQuadSpriteBaker, filled-sprite case) is the bar
+        // itself and SetProgressValue drives it directly.
+        progressFillQuad = null;
+
+        foreach (Engine.UI.UIQuadSprite quad in GetComponentsInChildren<Engine.UI.UIQuadSprite>(true)) {
+            if (quad.fillAxis != Engine.UI.UIQuadSprite.FillAxis.None) {
+                progressFillQuad = quad;
+                break;
+            }
+        }
 #endif
     }
 
@@ -177,8 +188,17 @@ public class UIGameRPGObject : GameObjectBehavior {
     }
 
     public virtual void SetProgressValue(double val) {
+#if USE_UI_NGUI_2_7 || USE_UI_NGUI_3
         UIUtil.SetSliderValue(sliderProgress, (float)val);
         MirrorProgressFill();
+#else
+        if (progressFillQuad != null) {
+            progressFillQuad.SetFillAmount((float)val);
+        }
+        else {
+            UIUtil.SetSliderValue(sliderProgress, (float)val);
+        }
+#endif
     }
 
     public virtual void UpdateInterval() {
