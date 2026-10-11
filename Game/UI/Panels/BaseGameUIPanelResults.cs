@@ -275,10 +275,11 @@ public class BaseGameUIPanelResults : GameUIPanelBase {
         // round that had just granted 1,064 XP. The round's grant is what
         // BaseGameController hands to CurrentCharacterAddGamePlayerProgressXP at round end:
         // totalScoreValue (so it equals TOTAL SCORE until that "TODO by skill/RPG" lands; read
-        // the same field so the two stay in step if it ever changes).
+        // the same field so the two stay in step if it ever changes). Since gameplay iter 27 that
+        // field is totalXPValue: totalScoreValue plus the sidekick-near bonus.
         UIUtil.UpdateLabelObject(
             viewRoot, labelNameTotalXP,
-            lastRuntimeData.totalScoreValue.ToString("N0", Engine.Game.App.BaseApp.L10n.NumberFormat));
+            lastRuntimeData.totalXPValue.ToString("N0", Engine.Game.App.BaseApp.L10n.NumberFormat));
 
         // TOTAL XP is the current character's progress XP. The round's grant is applied BEFORE
         // UpdateDisplay runs, so this already includes it.
