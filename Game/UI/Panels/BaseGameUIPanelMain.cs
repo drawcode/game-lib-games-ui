@@ -22,6 +22,11 @@ public class BaseGameUIPanelMain : GameUIPanelBase {
 
     public GameObject buttonPlayerDefaultObject;
 
+    // The toolkit tap rect over the bot (panel-main.uxml). Without NGUI nothing sends the collider's
+    // OnClick, and IsButtonClicked(GameObject) only name-matches Image/Button components, so the
+    // view element is matched here by its own name.
+    public const string buttonPlayerDefaultViewName = "ButtonPlayerDefault";
+
     // Toolkit parallel (3B part 3): the pulsing tap-to-play CTA in panel-main.uxml, bound by
     // BindElements from the manifest. The logo/sponsor need no refs — no runtime ops touch them.
     public UIRef startObjectRef;
@@ -331,7 +336,8 @@ public class BaseGameUIPanelMain : GameUIPanelBase {
         else 
         */
 
-        if(UIUtil.IsButtonClicked(buttonPlayerDefaultObject, buttonName)) {
+        if(UIUtil.IsButtonClicked(buttonPlayerDefaultObject, buttonName)
+            || buttonName == buttonPlayerDefaultViewName) {
             loadCharacter = true;
         }
 
