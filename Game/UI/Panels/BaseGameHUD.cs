@@ -316,7 +316,11 @@ public class BaseGameHUD : GameUIPanelBase {
             return;
         }
 
-        bool shouldShow = GameController.IsGameRunning;
+        // Hidden while the level editor is open too (owner, iter 39: "hide whole HUD"): the editor's
+        // top strip and bottom dock own the screen, and its PLAY brings the HUD back by leaving edit
+        // mode. Same path as pause/prepare, so the 3D bits and the sticks go with it.
+        bool shouldShow = GameController.IsGameRunning
+            && !(GameDraggableEditor.isInst && GameDraggableEditor.isEditing);
 
         if(shouldShow == toolkitChromeShown) {
             return;
