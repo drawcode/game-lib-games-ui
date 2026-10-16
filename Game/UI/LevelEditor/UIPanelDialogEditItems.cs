@@ -356,6 +356,10 @@ public class UIPanelDialogEditItems : UIAppPanelBaseList {
         if(isToolkitPanel) {
             UIUtil.ShowObject(viewRoot);
             ShowToolkitViewSlide();
+
+            // A reopen without a reload (the rows survived the hide, their textures did not):
+            // re-arm the window; the layout pass that follows the show pages the rows back in.
+            RefreshThumbnailWindow();
         }
     }
 
@@ -397,6 +401,7 @@ public class UIPanelDialogEditItems : UIAppPanelBaseList {
         }
 
         UIUtil.ClearListItems(viewRoot, elementItemList);
+        ClearThumbnailRows();
 
         if(AppContentAssets.Instance == null) {
             return;
@@ -424,10 +429,10 @@ public class UIPanelDialogEditItems : UIAppPanelBaseList {
             // (GameDraggableEditor.LoadSpriteUI, "portal-" codes use their "-sm" variant) under
             // GameLevelItemObject on the UIEditor layer. A view cannot host live 3D, and a live
             // UIRenderStage per row would be 163 cameras: each code is rendered ONCE into a cached
-            // texture (engine UIRenderSnapshot, the layer's shared stage light) and set here, in
-            // row order (the top rows are the visible ones). A code with no model stays text-only,
-            // as legacy (LoadSpriteUI finds nothing to load).
-            RequestThumbnail(item, asset.code);
+            // texture (engine UIRenderSnapshot, the layer's shared stage light). Rows are only
+            // REGISTERED here; RefreshThumbnailWindow pages the renders in as the rows scroll into
+            // view (iter 40). Characters render their model too (legacy rows were text-only).
+            AddThumbnailRow(item, asset);
 
             UIUtil.SetElementName(
                 UIUtil.ResolveDeep(item, elementItemButton),
@@ -437,10 +442,23 @@ public class UIPanelDialogEditItems : UIAppPanelBaseList {
         }
 
         UIUtil.ScrollToTop(UIUtil.ResolveDeep(viewRoot, elementItemList), false);
+
+        // The rows get bounds a frame later; the window callback fires then and pages them in.
+        RefreshThumbnailWindow();
     }
 
     // ------------------------------------------------------------------------------------------
-    // B11.4 THUMBNAILS
+    // B11.4 THUMBNAILS, PAGED (iter 40)
+    //
+    // A row's thumbnail is a 3D model rendered once into a texture. Rendering all 163 at open
+    // (the B11.4 shape) instantiated every prefab and held every RT whether or not the row was ever
+    // scrolled to. Now only rows in or near the viewport load:
+    //   - rows in view render first, then rows within thumbnailLoadMargin viewports above/below;
+    //   - a scroll re-queues: renders still pending for rows that left the window are dropped;
+    //   - rows beyond thumbnailKeepMargin viewports release their texture (and come back on the
+    //     way back, from a fresh render);
+    //   - a hidden picker has no layout, so nothing is in view and nothing loads.
+    // The window is read from row bounds (UIUtil.ListItemsInView), so the 4-column grid pages too.
 
     // Off: rows are text-only (the B11.2 shell). For A/B and for a device that cannot spare it.
     public static bool thumbnailsEnabled = true;
@@ -449,11 +467,35 @@ public class UIPanelDialogEditItems : UIAppPanelBaseList {
     public static int thumbnailWidth = 112;
     public static int thumbnailHeight = 80;
 
+    // Viewport heights beyond the visible area: load ahead of the scroll, keep a little behind it.
+    public static float thumbnailLoadMargin = 1f;
+    public static float thumbnailKeepMargin = 2f;
+
+    // Characters face +Z; the stage camera looks along +Z, so turn them to face it, three-quarter.
+    public static float thumbnailCharacterYaw = 155f;
+
     Engine.UI.UIRenderSnapshot thumbnailSnapshots;
 
     // Bumped on every reload / release: a callback for an older list must not write into rows
     // that were cleared (toolkit elements are recycled -- a stale row may be another view's now).
     int thumbnailGeneration = 0;
+
+    enum ThumbState { None, Requested, Shown }
+
+    class ThumbRow {
+        public Engine.UI.UIRef thumb;
+        public string code;
+        public bool character;
+        public ThumbState state;
+    }
+
+    readonly Dictionary<string, ThumbRow> thumbRows = new Dictionary<string, ThumbRow>();
+    readonly List<string> thumbWindow = new List<string>();
+    readonly List<string> thumbKeep = new List<string>();
+    readonly HashSet<string> thumbKeepSet = new HashSet<string>();
+    readonly HashSet<string> thumbKeptCodes = new HashSet<string>();
+    readonly List<string> thumbDrop = new List<string>();
+    System.Action thumbWindowUnregister;
 
     public Engine.UI.UIRenderSnapshot thumbnails {
         get {
@@ -461,9 +503,42 @@ public class UIPanelDialogEditItems : UIAppPanelBaseList {
         }
     }
 
-    void RequestThumbnail(Engine.UI.UIRef item, string code) {
+    // PROBES: rows registered / with a render queued / showing a texture.
+    public int thumbnailRowCount {
+        get {
+            return thumbRows.Count;
+        }
+    }
 
-        if(!thumbnailsEnabled || string.IsNullOrEmpty(code) || !GameDraggableEditor.isInst) {
+    public int thumbnailShownCount {
+        get {
+            return CountThumbState(ThumbState.Shown);
+        }
+    }
+
+    public int thumbnailRequestedCount {
+        get {
+            return CountThumbState(ThumbState.Requested);
+        }
+    }
+
+    int CountThumbState(ThumbState state) {
+
+        int n = 0;
+
+        foreach(ThumbRow r in thumbRows.Values) {
+            if(r.state == state) {
+                n++;
+            }
+        }
+
+        return n;
+    }
+
+    void AddThumbnailRow(Engine.UI.UIRef item, AppContentAsset asset) {
+
+        if(!thumbnailsEnabled || asset == null || string.IsNullOrEmpty(asset.code)
+            || !item.alive || string.IsNullOrEmpty(item.name)) {
             return;
         }
 
@@ -473,22 +548,126 @@ public class UIPanelDialogEditItems : UIAppPanelBaseList {
             return;
         }
 
+        ThumbRow row = new ThumbRow();
+        row.thumb = thumb;
+        row.code = asset.code;
+        row.character = asset.key == Engine.Game.Data.BaseDataObjectKeys.characters;
+        row.state = ThumbState.None;
+
+        thumbRows[item.name] = row;
+    }
+
+    void ClearThumbnailRows() {
+        thumbRows.Clear();
+    }
+
+    // Re-solve which rows load. Cheap when nothing changed (a list walk); called on every scroll
+    // step, layout pass and open.
+    public void RefreshThumbnailWindow() {
+
+        if(!thumbnailsEnabled || !isToolkitPanel || thumbRows.Count == 0
+            || !GameDraggableEditor.isInst) {
+            return;
+        }
+
+        if(thumbWindowUnregister == null) {
+            thumbWindowUnregister = UIUtil.OnListWindowChanged(
+                viewRoot, elementItemList, RefreshThumbnailWindow);
+        }
+
         if(thumbnailSnapshots == null) {
             thumbnailSnapshots = new Engine.UI.UIRenderSnapshot();
             thumbnailSnapshots.width = thumbnailWidth;
             thumbnailSnapshots.height = thumbnailHeight;
         }
 
+        // Visible rows first, then the load margin (duplicates skipped by state below).
+        thumbWindow.Clear();
+        UIUtil.ListItemsInView(viewRoot, elementItemList, 0f, thumbWindow);
+        UIUtil.ListItemsInView(viewRoot, elementItemList, thumbnailLoadMargin, thumbWindow);
+
+        thumbKeep.Clear();
+        UIUtil.ListItemsInView(viewRoot, elementItemList, thumbnailKeepMargin, thumbKeep);
+
+        thumbKeepSet.Clear();
+        thumbKeptCodes.Clear();
+
+        for(int i = 0; i < thumbKeep.Count; i++) {
+
+            ThumbRow kept;
+
+            thumbKeepSet.Add(thumbKeep[i]);
+
+            if(thumbRows.TryGetValue(thumbKeep[i], out kept)) {
+                thumbKeptCodes.Add(kept.code);
+            }
+        }
+
+        // Pending renders are re-queued in window order below; anything that left the window
+        // simply is not queued again.
+        thumbnailSnapshots.CancelPending();
+
+        thumbDrop.Clear();
+
+        foreach(KeyValuePair<string, ThumbRow> kv in thumbRows) {
+
+            ThumbRow r = kv.Value;
+
+            if(r.state == ThumbState.Requested) {
+                r.state = ThumbState.None;
+            }
+            else if(r.state == ThumbState.Shown && !thumbKeepSet.Contains(kv.Key)) {
+                thumbDrop.Add(kv.Key);
+            }
+        }
+
+        for(int i = 0; i < thumbDrop.Count; i++) {
+
+            ThumbRow r = thumbRows[thumbDrop[i]];
+
+            UIUtil.ClearImageTexture(r.thumb);
+            r.state = ThumbState.None;
+
+            // A code shared with a row still kept stays cached for that row.
+            if(!thumbKeptCodes.Contains(r.code)) {
+                thumbnailSnapshots.Release(r.code);
+            }
+        }
+
         int generation = thumbnailGeneration;
 
-        thumbnailSnapshots.Request(code, SpawnThumbnailContent, (c, texture) => {
+        for(int i = 0; i < thumbWindow.Count; i++) {
 
-            if(texture == null || generation != thumbnailGeneration || !isToolkitPanel) {
-                return;
+            ThumbRow r;
+
+            if(!thumbRows.TryGetValue(thumbWindow[i], out r) || r.state != ThumbState.None) {
+                continue;
             }
 
-            UIUtil.SetImageTexture(thumb, texture);
-        });
+            r.state = ThumbState.Requested;
+
+            ThumbRow target = r;
+
+            thumbnailSnapshots.Request(
+                r.code,
+                r.character ? (Engine.UI.UIRenderSnapshot.Spawner)SpawnCharacterThumbnail : SpawnThumbnailContent,
+                (c, texture) => {
+
+                    if(generation != thumbnailGeneration || !isToolkitPanel
+                        || target.state != ThumbState.Requested) {
+                        return;
+                    }
+
+                    if(texture == null) {
+                        // No model: text-only row, and never asked again this list.
+                        target.state = ThumbState.Shown;
+                        return;
+                    }
+
+                    UIUtil.SetImageTexture(target.thumb, texture);
+                    target.state = ThumbState.Shown;
+                });
+        }
     }
 
     // Spawned exactly as the legacy row did (LoadSpriteUI, the "-sm" portal variant).
@@ -503,9 +682,41 @@ public class UIPanelDialogEditItems : UIAppPanelBaseList {
         return GameDraggableEditor.LoadSpriteUI(parent, assetCode, Vector3.one);
     }
 
+    // A character row's code is its model asset code (character-bot-1 has a model but no
+    // GameCharacter row, so the model is loaded directly). Unpooled: the snapshot destroys it.
+    static GameObject SpawnCharacterThumbnail(GameObject parent, string code) {
+
+        GameObject go = AppContentAssets.LoadAsset(code, Vector3.zero, Quaternion.identity, false);
+
+        if(go == null) {
+            return null;
+        }
+
+        go.transform.parent = parent.transform;
+        go.transform.localPosition = Vector3.zero;
+        go.transform.localScale = Vector3.one;
+        go.transform.localRotation = Quaternion.Euler(0f, thumbnailCharacterYaw, 0f);
+
+        return go;
+    }
+
     public void ReleaseThumbnails() {
 
         thumbnailGeneration++;
+
+        if(thumbWindowUnregister != null) {
+            thumbWindowUnregister();
+            thumbWindowUnregister = null;
+        }
+
+        foreach(ThumbRow r in thumbRows.Values) {
+
+            if(r.state == ThumbState.Shown) {
+                UIUtil.ClearImageTexture(r.thumb);
+            }
+
+            r.state = ThumbState.None;
+        }
 
         if(thumbnailSnapshots != null) {
             thumbnailSnapshots.Clear();
