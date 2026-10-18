@@ -153,10 +153,8 @@ public class UICustomizeProfileCharacters : UICustomizeSelectObject {
 
     public virtual void ChangeCharacterDisplayName(string val) {
 
-        if(inputCurrentDisplayName == null) {
-            return;
-        }
-
+        // No legacy-input guard: the toolkit field (InputCharacterNameValue) renames through here
+        // too, and SetInputValue below no-ops on a missing legacy input.
         if(profileCharacterItem == null) {
             return;
         }
@@ -315,12 +313,75 @@ public class UICustomizeProfileCharacters : UICustomizeSelectObject {
 
         Engine.UI.UIRef root = panel.viewRoot;
 
+        // The name is an editable field (legacy InputCharacterName). Older views carry a plain
+        // label under the old name; whichever exists is written, the other no-ops.
         UIUtil.SetLabelValue(UIUtil.ResolveDeep(root, "LabelCharacterNameValue"),
             item.characterDisplayName);
+
+        Engine.UI.UIRef nameField = UIUtil.ResolveDeep(root, elementInputCharacterName);
+
+        BindToolkitNameField(root, nameField);
+
+        UIUtil.SetInputValue(nameField, item.characterDisplayName);
         UIUtil.SetLabelValue(UIUtil.ResolveDeep(root, "LabelType"), characterType);
         UIUtil.SetLabelValue(UIUtil.ResolveDeep(root, "LabelStatus"), status);
 
         UpdateToolkitInfoCard(item, characterType);
+    }
+
+    public const string elementInputCharacterName = "InputCharacterNameValue";
+
+    // Registered once per view: a rebuilt view (FreeToolkitView, then a re-show) gets a new root.
+    private Engine.UI.UIRef nameFieldBoundRoot;
+
+    private void BindToolkitNameField(Engine.UI.UIRef root, Engine.UI.UIRef nameField) {
+
+        if(nameField == null || !nameField.alive || nameFieldBoundRoot == root) {
+            return;
+        }
+
+        nameFieldBoundRoot = root;
+
+        Engine.UI.UIInputChange.SetInputDelayed(nameField, true);
+        Engine.UI.UIInputChange.SetInputHandlerChange(nameField, OnToolkitNameChanged);
+    }
+
+    // The toolkit twin of OnInputChanged for the name. SetInputValue (a bot cycle) also lands
+    // here with the name already stored, which is skipped; an emptied field snaps back, as the
+    // legacy input kept its last value.
+    private void OnToolkitNameChanged(string val) {
+
+        if(profileCharacterItem == null) {
+            return;
+        }
+
+        if(string.IsNullOrEmpty(val)) {
+            UpdateToolkitNameField(profileCharacterItem.characterDisplayName);
+            return;
+        }
+
+        if(val == profileCharacterItem.characterDisplayName) {
+            return;
+        }
+
+        ChangeCharacterDisplayName(val);
+
+        UIPanelBase panel = HostPanel();
+
+        if(panel != null && panel.isToolkitPanel) {
+            UIUtil.SetLabelValue(UIUtil.ResolveDeep(panel.viewRoot, "LabelCardName"), val);
+        }
+    }
+
+    private void UpdateToolkitNameField(string val) {
+
+        UIPanelBase panel = HostPanel();
+
+        if(panel == null || !panel.isToolkitPanel) {
+            return;
+        }
+
+        UIUtil.SetInputValue(UIUtil.ResolveDeep(panel.viewRoot, elementInputCharacterName), val);
     }
 
     // The info callout under the plate (user request, 2026-08-28): identity plus the four RPG

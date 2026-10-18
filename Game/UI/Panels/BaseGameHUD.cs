@@ -316,7 +316,11 @@ public class BaseGameHUD : GameUIPanelBase {
             return;
         }
 
-        bool shouldShow = GameController.IsGameRunning;
+        // Hidden while the level editor is open too (owner, iter 39: "hide whole HUD"): the editor's
+        // top strip and bottom dock own the screen, and its PLAY brings the HUD back by leaving edit
+        // mode. Same path as pause/prepare, so the 3D bits and the sticks go with it.
+        bool shouldShow = GameController.IsGameRunning
+            && !(GameDraggableEditor.isInst && GameDraggableEditor.isEditing);
 
         if(shouldShow == toolkitChromeShown) {
             return;
@@ -691,18 +695,11 @@ public class BaseGameHUD : GameUIPanelBase {
             return;
         }
 
-        if(FPSDisplay.Instance.labelFPS == null) {
-            return;
-        }
-
         fpsLegacyHidden = true;
 
-        GameObject go = FPSDisplay.Instance.labelFPS.gameObject;
-
-        if(go.activeSelf) {
-            go.Hide();
-            suppressedLegacy.Add(go);
-        }
+        // Widget only: FPSDisplay lives ON the label's GameObject, so hiding the GameObject (as
+        // this used to) stopped the measurement itself and the readout froze at the 30 fps target.
+        FPSDisplay.Instance.HideLegacyReadout();
     }
 
     // B11.2 THE EDIT BUTTON. The legacy ButtonGameEdit sits in TopRight/Toolbar/DevObject, a cluster
@@ -769,8 +766,9 @@ public class BaseGameHUD : GameUIPanelBase {
 
         SuppressLegacyFpsLabel();
 
-        // Release builds carry no readout (FPSDisplay.showReadout); hide the element once.
-        if(!FPSDisplay.showReadout) {
+        // Release builds carry no readout (FPSDisplay.showReadout), and while FPSDisplay draws its
+        // own always-on view (panel-fps) this copy would double it; hide the element once.
+        if(!FPSDisplay.showReadout || FPSDisplay.hasToolkitReadout) {
             if(lastFpsText != "") {
                 lastFpsText = "";
                 viewLabelFps.Set(viewRoot, "");

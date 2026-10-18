@@ -38,10 +38,10 @@ public class UICustomizeTexturePresets : UICustomizeSelectObject {
 
     public override void OnButtonClickEventHandler(string buttonName) {
 
-        if(UIUtil.IsButtonClicked(buttonCycleLeft, buttonName)) {
+        if(IsCycleLeftClicked(buttonName)) {
             ChangePresetNext();
         }
-        else if(UIUtil.IsButtonClicked(buttonCycleRight, buttonName)) {
+        else if(IsCycleRightClicked(buttonName)) {
             ChangePresetPrevious();
         }
     }
@@ -107,7 +107,7 @@ public class UICustomizeTexturePresets : UICustomizeSelectObject {
 
             if(index == -1) {
 
-                UIUtil.SetLabelValue(labelCurrentDisplayName, "My Previous Uniform");
+                SetCurrentDisplayName("My Previous Uniform");
 
                 GameCustomController.UpdateTexturePresetObject(
                     initialProfileCustomItem, currentObject, type);
@@ -125,7 +125,7 @@ public class UICustomizeTexturePresets : UICustomizeSelectObject {
 
                 GameCustomController.SaveCustomItem(currentProfileCustomItem);
 
-                UIUtil.SetLabelValue(labelCurrentDisplayName, preset.display_name);
+                SetCurrentDisplayName(preset.display_name);
             }
         }
     }

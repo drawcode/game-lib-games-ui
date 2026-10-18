@@ -89,6 +89,10 @@ public class UICustomizeColorPresets : UICustomizeSelectObject {
         }
     }
 
+    // NGUI-free selection source: when set (by a toolkit panel that owns the property stars), it
+    // decides which properties a picked colour applies to instead of the legacy checkboxes.
+    public System.Func<string, bool> isPropertySelected;
+
     public virtual void OnCustomColorChanged(Color color) {
 
         GameAudio.PlayEffect(GameAudioEffects.audio_effect_ui_button_1);
@@ -104,19 +108,24 @@ public class UICustomizeColorPresets : UICustomizeSelectObject {
 
                 bool update = false;
 
+                if(isPropertySelected != null) {
+                    update = isPropertySelected(prop.code);
+                }
+                else {
 #if USE_UI_NGUI_2_7 || USE_UI_NGUI_3
-                foreach(KeyValuePair<string, UICheckbox> pair in checkboxes) {
+                    foreach(KeyValuePair<string, UICheckbox> pair in checkboxes) {
 #else
-                foreach (KeyValuePair<string, Engine.UI.UIRef> pair in checkboxes) {
+                    foreach (KeyValuePair<string, Engine.UI.UIRef> pair in checkboxes) {
 #endif
-                    if(pair.Value == null) {
-                        LogUtil.Log("Checkbox not found:" + pair.Key);
-                        continue;
-                    }
+                        if(pair.Value == null) {
+                            LogUtil.Log("Checkbox not found:" + pair.Key);
+                            continue;
+                        }
 
-                    if(UIUtil.IsCheckboxChecked(pair.Value)//.isChecked 
-                        && prop.code == pair.Key) {
-                        update = true;
+                        if(UIUtil.IsCheckboxChecked(pair.Value)//.isChecked 
+                            && prop.code == pair.Key) {
+                            update = true;
+                        }
                     }
                 }
 
@@ -140,10 +149,10 @@ public class UICustomizeColorPresets : UICustomizeSelectObject {
 
     public override void OnButtonClickEventHandler(string buttonName) {
 
-        if(UIUtil.IsButtonClicked(buttonCycleLeft, buttonName)) {
+        if(IsCycleLeftClicked(buttonName)) {
             ChangePresetPrevious();
         }
-        else if(UIUtil.IsButtonClicked(buttonCycleRight, buttonName)) {
+        else if(IsCycleRightClicked(buttonName)) {
             ChangePresetNext();
         }
     }
@@ -209,7 +218,7 @@ public class UICustomizeColorPresets : UICustomizeSelectObject {
 
             if(index == -1) {
 
-                UIUtil.SetLabelValue(labelCurrentDisplayName, "My Previous Colors");
+                SetCurrentDisplayName("My Previous Colors");
 
                 GameCustomController.UpdateColorPresetObject(
                     initialProfileCustomItem, currentObject, type);
@@ -226,7 +235,7 @@ public class UICustomizeColorPresets : UICustomizeSelectObject {
 
                 GameCustomController.SaveCustomItem(currentProfileCustomItem);
 
-                UIUtil.SetLabelValue(labelCurrentDisplayName, preset.display_name);
+                SetCurrentDisplayName(preset.display_name);
             }
         }
     }

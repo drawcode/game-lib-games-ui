@@ -162,22 +162,38 @@ public class BaseGameUIPanelSettingsLanguage : GameUIPanelBase {
         UIUtil.SetDropdownIndex(dropdownLanguage, index, false);
     }
 
+    // Only a real user pick may change the saved language. index < 0 means the dropdown's value
+    // is not one of the choices -- a recycled/torn-down element reset to "" -- and used to fall
+    // into the row-0 branch ("follow the device"), silently switching the player to the system
+    // language (English on an English phone). Also ignore events while this panel is not live
+    // (teardown), and skip no-op picks so nothing re-saves the profile for no reason.
     public virtual void OnDropdownChanged(int index) {
 
-        if(index <= 0) {
-            GameLocalizationService.SetLanguage("");
+        if(index < 0 || !gameObject.activeInHierarchy) {
             return;
         }
 
-        List<GameLocaleInfo> all = GameLocales.All;
+        string code = "";
 
-        int localeIndex = index - 1;
+        if(index > 0) {
 
-        if(localeIndex < 0 || localeIndex >= all.Count) {
+            List<GameLocaleInfo> all = GameLocales.All;
+
+            int localeIndex = index - 1;
+
+            if(localeIndex >= all.Count) {
+                return;
+            }
+
+            code = all[localeIndex].code;
+        }
+
+        if(string.Equals(code, GameLocalizationService.SavedLanguage ?? "",
+                StringComparison.OrdinalIgnoreCase)) {
             return;
         }
 
-        GameLocalizationService.SetLanguage(all[localeIndex].code);
+        GameLocalizationService.SetLanguage(code);
     }
 
     // Fires on every SetLanguage, including the one this panel's own dropdown just caused --
