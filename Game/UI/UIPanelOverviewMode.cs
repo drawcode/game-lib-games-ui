@@ -98,6 +98,7 @@ public class UIPanelOverviewMode : UIPanelBase {
 
         // A fresh view starts with the arcade group display: none (USS); re-apply on next Update.
         arcadeTipApplied = -1;
+        tipsStageApplied = -1;
     }
 
     // The legacy overview slides in from the bottom (AnimateInBottom(containerOverview)).
@@ -355,6 +356,9 @@ public class UIPanelOverviewMode : UIPanelBase {
     public override void OnButtonClickEventHandler(string buttonName) {
         if(UIUtil.IsButtonClicked(buttonOverviewReady, buttonName)) {
             Ready();
+        }
+        else if(buttonName == elementTipsClose) {
+            CloseTips();
         }
         else if(UIUtil.IsButtonClicked(buttonOverviewMode, buttonName)) {
             ChangeTipsState(AppOverviewFlowState.Mode);
@@ -615,6 +619,10 @@ public class UIPanelOverviewMode : UIPanelBase {
 
         ShowDataTip();
 
+        tipsStage = GameController.isInst && GameController.Instance.levelPlayerReadied
+            ? tipsStageTips : tipsStageAll;
+        tipsStageApplied = -1;
+
         ContentPause();
 
         UIColors.UpdateColors();
@@ -705,6 +713,7 @@ public class UIPanelOverviewMode : UIPanelBase {
         if(isToolkitPanel) {
             ReassertLegacySuppression();
             UpdateToolkitTipStatus();
+            ApplyTipsStage();
             UpdateToolkitArcadeTip();
         }
         else if(arcade3DMoved) {
@@ -852,6 +861,71 @@ public class UIPanelOverviewMode : UIPanelBase {
         return null;
     }
 
+    // TIPS FIRST (iter 33, owner: "on the M.A.N. 9000 overlay with action tips, only show the
+    // READY screen after the tips are closed"). Over a live round (levelPlayerReadied: the HUD
+    // tap) the screen opens on the tips with OK in READY's slot; OK hides the tips and brings
+    // READY up. The pre-round screen keeps tips + READY together: READY is its "click to begin".
+    // Applied by element name from Update, so a view that binds late still gets the stage.
+    const string elementTipsClose = "ButtonOverviewTipsClose";
+
+    static readonly string[] tipsStageTipElements = {
+        "TipsIcon", "LabelTipsHowTo", "LabelCurrentTipStatus", "LabelNextSteps", "NextIcon"
+    };
+
+    static readonly string[] tipsStageReadyElements = {
+        "ButtonGameReady", "LabelOverviewStatus"
+    };
+
+    const int tipsStageAll = 0;     // pre-round: tips + READY together
+    const int tipsStageTips = 1;    // live round: tips + OK
+    const int tipsStageReady = 2;   // live round, tips closed: READY only
+
+    private int tipsStage = tipsStageAll;
+    private int tipsStageApplied = -1;
+
+    public void CloseTips() {
+
+        if(tipsStage != tipsStageTips) {
+            return;
+        }
+
+        tipsStage = tipsStageReady;
+    }
+
+    private void ApplyTipsStage() {
+
+        if(tipsStage == tipsStageApplied || viewRoot == null || !viewRoot.alive) {
+            return;
+        }
+
+        tipsStageApplied = tipsStage;
+
+        foreach(string name in tipsStageReadyElements) {
+            SetViewElementShown(name, tipsStage != tipsStageTips);
+        }
+
+        foreach(string name in tipsStageTipElements) {
+            SetViewElementShown(name, tipsStage != tipsStageReady);
+        }
+
+        SetViewElementShown(elementTipsClose, tipsStage == tipsStageTips);
+
+        // The arcade card / data tip follow the stage on the next UpdateToolkitArcadeTip.
+        arcadeTipApplied = -1;
+    }
+
+    private void SetViewElementShown(string name, bool shown) {
+
+        UIRef el = UIUtil.ResolveDeep(viewRoot, name);
+
+        if(shown) {
+            UIUtil.ShowObject(el);
+        }
+        else {
+            UIUtil.HideObject(el);
+        }
+    }
+
     // DATA TIP (iter 31, owner: the M.A.N. 9000 tap showed no tips). The legacy per-mode tip
     // cards were never ported, so outside arcade tip 1 the screen was empty. A tip from the data
     // the level-load overlay rotates (AppContentTips), written by element name so it lands even
@@ -892,7 +966,8 @@ public class UIPanelOverviewMode : UIPanelBase {
                 && active.name.Contains(AppContentStateMeta.appContentStateGameArcade);
         }
 
-        bool show = arcadeTipsSetIsArcade && active != null && active.currentTipIndex == 0;
+        bool show = arcadeTipsSetIsArcade && active != null && active.currentTipIndex == 0
+            && tipsStage != tipsStageReady;
         int applied = show ? 1 : 0;
 
         if(applied != arcadeTipApplied && viewRoot != null && viewRoot.alive) {
@@ -908,10 +983,11 @@ public class UIPanelOverviewMode : UIPanelBase {
                 UIUtil.HideObject(group);
             }
 
-            // The data tip fills the screen whenever the arcade card does not.
+            // The data tip fills the screen whenever the arcade card does not -- except once the
+            // tips are closed (READY only).
             UIRef dataTip = UIUtil.ResolveDeep(viewRoot, elementDataTip);
 
-            if(show) {
+            if(show || tipsStage == tipsStageReady) {
                 UIUtil.HideObject(dataTip);
             }
             else {

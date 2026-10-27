@@ -1677,7 +1677,9 @@ public class BaseGameUIPanelHeader : GameUIPanelBase {
     // only on a change.
     public virtual void SyncPlayObject() {
 
-        bool show = playHeaderShown && !IsPlayFlowClass(playLastPanelClass);
+        // Main carries its own big PLAY under the bot (iter 33, owner), so the header's goes there too.
+        bool show = playHeaderShown && !IsPlayFlowClass(playLastPanelClass)
+            && playLastPanelClass != BaseUIPanel.panelClassNameMain;
         int state = show ? 1 : 0;
 
         if(state == playObjectState) {

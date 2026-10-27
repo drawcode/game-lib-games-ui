@@ -332,6 +332,7 @@ public class BaseGameHUD : GameUIPanelBase {
         // coin mesh rendering (they have no sprite equivalent), but they are part of the HUD — so
         // when the chrome hides for pause/prepare they must go too. Without this the bot stayed on
         // screen over the pause menu after the rest of the HUD had gone (user, 2026-08-02).
+        // The bot rig is the exception in timing: it lands when the slide does (UpdateLegacyHudBot).
         SetLegacyHudVisualsVisible(shouldShow);
 
         if(!shouldShow) {
@@ -427,20 +428,70 @@ public class BaseGameHUD : GameUIPanelBase {
 
         ResolveLegacyClusters();
 
-        Transform smarts = transform.Find(hudTopLeft + "Character/ButtonGameSmartsShow");
-
-        if(smarts != null && smarts.gameObject.activeSelf != visible) {
-
-            if(visible) {
-                smarts.gameObject.Show();
-            }
-            else {
-                smarts.gameObject.Hide();
-            }
+        // The bot never shows here: UpdateLegacyHudBot shows it once the slide has landed.
+        if(visible) {
+            legacyHudBotShowAt = Time.unscaledTime + toolkitShowSeconds;
+        }
+        else {
+            legacyHudBotShowAt = -1f;
+            SetLegacyHudBotVisible(false);
         }
 
         if(hudCoinStage != null) {
             hudCoinStage.SetVisible(visible);
+        }
+    }
+
+    // THE BOT LANDS WITH THE SLIDE (iter 33, owner: "the model in the HUD header is present too
+    // early - before the HUD is shown, and when you click the health bars"). The rig is legacy 3D
+    // outside the view, so no tween moves it: shown on the chrome's first frame it sat there
+    // full-size while the bars were still sliding down from the top - at round start and again on
+    // every resume (the health-bar recharge dialog pauses and resumes the round). Its show now
+    // waits out the show preset; hides stay instant. While the chrome is down it is held hidden
+    // every frame - the flag starts false, so the first sync never ran a hide and an authored-
+    // active rig showed through prepare/READY.
+    private float legacyHudBotShowAt = -1f;
+    private Transform legacyHudBot;
+
+    private float toolkitShowSeconds {
+        get {
+            Engine.Animation.TweenPreset preset = Engine.Animation.TweenPresets.Get(toolkitShowPreset);
+
+            return preset.time + preset.delay;
+        }
+    }
+
+    private void SetLegacyHudBotVisible(bool visible) {
+
+        if(legacyHudBot == null) {
+            legacyHudBot = transform.Find(hudTopLeft + "Character/ButtonGameSmartsShow");
+        }
+
+        if(legacyHudBot != null && legacyHudBot.gameObject.activeSelf != visible) {
+
+            if(visible) {
+                legacyHudBot.gameObject.Show();
+            }
+            else {
+                legacyHudBot.gameObject.Hide();
+            }
+        }
+    }
+
+    private void UpdateLegacyHudBot() {
+
+        if(!isToolkitPanel) {
+            return;
+        }
+
+        if(!toolkitChromeShown) {
+            SetLegacyHudBotVisible(false);
+            return;
+        }
+
+        if(legacyHudBotShowAt >= 0f && Time.unscaledTime >= legacyHudBotShowAt) {
+            legacyHudBotShowAt = -1f;
+            SetLegacyHudBotVisible(true);
         }
     }
 
@@ -727,8 +778,11 @@ public class BaseGameHUD : GameUIPanelBase {
             return;
         }
 
+        // Iter 33 (owner): only in a level entered to CREATE it (levelCreateRequested, the level
+        // select's EDIT play button) - or while already editing, where it is the way back to PLAY.
         bool visible = GameDraggableEditor.isInst
             && GameDraggableEditor.editButtonRequested
+            && (GameDraggableEditor.levelCreateRequested || GameDraggableEditor.isEditing)
             && !GameDraggableEditor.editAssetSheetShown;
 
         int visibleState = visible ? 1 : 0;
@@ -1033,6 +1087,10 @@ public class BaseGameHUD : GameUIPanelBase {
         // shouldShow(true) == toolkitChromeShown(true) — against a freshly loaded view that
         // LoadToolkitView's continuation left hidden, giving a blank HUD from the second level on.
         toolkitChromeShown = false;
+
+        // A pending bot reveal belongs to the freed view; the transform may be rebuilt too.
+        legacyHudBotShowAt = -1f;
+        legacyHudBot = null;
 
         if(smartsButtonCollider != null) {
             smartsButtonCollider.enabled = smartsButtonColliderWasEnabled;
@@ -1513,6 +1571,7 @@ public class BaseGameHUD : GameUIPanelBase {
     public virtual void Update() {
 
         SyncToolkitChromeVisibility();
+        UpdateLegacyHudBot();
 
         // Legacy suppression is re-asserted every frame a toolkit view OWNS the HUD — deliberately
         // NOT gated on the chrome being visible. The invariant is "if the toolkit view exists, the
