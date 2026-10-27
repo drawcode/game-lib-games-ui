@@ -251,6 +251,10 @@ public class UIPanelOverviewMode : UIPanelBase {
         string status = Engine.Game.App.BaseApp.L10n.TrOrDefault("game_ui_overview_mode_tip_status",
             "Tip {0} of {1}", index, total);
 
+        if(index != lastTipStatusIndex) {
+            ShowDataTip();
+        }
+
         lastTipStatusIndex = index;
         lastTipStatusTotal = total;
         lastTipStatusLocale = locale;
@@ -372,6 +376,19 @@ public class UIPanelOverviewMode : UIPanelBase {
     }
 
     public void Ready() {
+
+        // The HUD's M.A.N. 9000 tap brings this screen back over a LIVE round, and its READY only
+        // resumes it. Re-running the level-start player sequence there rebuilt the player's runtime
+        // data and started a warp fade-out from 0 to 0 that never finished, which latched
+        // effectWarpEnabled: no movement for the rest of the round (iter 31 device report).
+        if(GameController.isInst && GameController.Instance.levelPlayerReadied) {
+            HideAll();
+            return;
+        }
+
+        if(GameController.isInst) {
+            GameController.Instance.levelPlayerReadied = true;
+        }
 
         // The round goes live here, so the level-load sequence is over even if its finish
         // coroutine never completed -- release its flag and its overlay rather than carry them
@@ -595,6 +612,8 @@ public class UIPanelOverviewMode : UIPanelBase {
                 }
             }
         }
+
+        ShowDataTip();
 
         ContentPause();
 
@@ -833,6 +852,36 @@ public class UIPanelOverviewMode : UIPanelBase {
         return null;
     }
 
+    // DATA TIP (iter 31, owner: the M.A.N. 9000 tap showed no tips). The legacy per-mode tip
+    // cards were never ported, so outside arcade tip 1 the screen was empty. A tip from the data
+    // the level-load overlay rotates (AppContentTips), written by element name so it lands even
+    // before the async view binds (SetViewLabel replays it).
+    const string elementDataTip = "DataTip";
+
+    List<AppContentTip> dataTips;
+
+    public virtual void ShowDataTip() {
+
+        if(dataTips == null) {
+            dataTips = AppContentTips.Instance.items;
+        }
+
+        if(dataTips == null || dataTips.Count == 0) {
+            return;
+        }
+
+        AppContentTip tip = dataTips[UnityEngine.Random.Range(0, dataTips.Count)];
+
+        string type = tip.keys != null && tip.keys.Count > 0
+            ? Engine.Game.App.BaseApp.L10n.TrOrDefault(
+                "game_ui_overlay_prepare_" + tip.keys[0] + "_tips", tip.keys[0] + " Tips")
+            : "";
+
+        SetViewLabel("LabelDataTipType", type);
+        SetViewLabel("LabelDataTipTitle", tip.display_name);
+        SetViewLabel("LabelDataTipDescription", tip.description);
+    }
+
     private void UpdateToolkitArcadeTip() {
 
         UIPanelTips active = activeTipsSet;
@@ -857,6 +906,16 @@ public class UIPanelOverviewMode : UIPanelBase {
             }
             else {
                 UIUtil.HideObject(group);
+            }
+
+            // The data tip fills the screen whenever the arcade card does not.
+            UIRef dataTip = UIUtil.ResolveDeep(viewRoot, elementDataTip);
+
+            if(show) {
+                UIUtil.HideObject(dataTip);
+            }
+            else {
+                UIUtil.ShowObject(dataTip);
             }
         }
 

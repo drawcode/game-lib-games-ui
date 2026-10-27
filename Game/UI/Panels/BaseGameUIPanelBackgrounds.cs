@@ -155,6 +155,9 @@ public class BaseGameUIPanelBackgrounds : GameUIPanelBase {
     //
 
     public virtual void ShowBackgroundPlain() {
+        // The theme backer (iter 31): the quad and the clears behind it are one colour.
+        UIThemeBacker.ApplyQuad(backgroundPlainObject);
+        UIThemeBacker.ApplyCameras();
         TweenUtil.FadeToObject(backgroundPlainObject, 1f, durationShow, durationDelayShow);
 	}
 	
