@@ -177,9 +177,10 @@ public class UIPanelEditAsset : UIAppPanel, IUIPanelLevelEditorView {
     public override void Init() {
         base.Init();
 
-        LoadData();
-
+        // before LoadData, which sets the slider from the asset's rotation
         UIUtil.SetSliderValue(sliderRotationSpeed, .5f);
+
+        LoadData();
     }
 
     public void LoadData() {
@@ -213,7 +214,7 @@ public class UIPanelEditAsset : UIAppPanel, IUIPanelLevelEditorView {
                 UIUtil.SetToggleValue(checkboxEditAssetGravity, itemAsset.gravity);
 #endif
 
-                UpdateRotation((float)itemAsset.speed_rotation.z);
+                UpdateRotation(GetStoredRotation());
             }
 
             UpdateDisplay();
@@ -256,6 +257,19 @@ public class UIPanelEditAsset : UIAppPanel, IUIPanelLevelEditorView {
 
     public void UpdateRotation(float val) {
         UpdateRotation(val, false, false);
+    }
+
+    // The field value UpdateRotation stored: it keeps -val on the canvas axis (z on 2D, y on
+    // 3D). Reading z un-negated flipped the sign on every 2D load and zeroed every 3D item's
+    // spin (this game is CANVAS_3D) as soon as its sheet opened.
+    public float GetStoredRotation() {
+
+        Vector3 speed = itemAsset.speed_rotation.GetVector3();
+
+        float stored = GameDraggableEditor.GetCanvasType() == GameDraggableCanvasType.CANVAS_2D
+            ? speed.z : speed.y;
+
+        return -stored;
     }
 
     public void UpdateRotation(float val, bool deferSlider, bool deferInput) {
