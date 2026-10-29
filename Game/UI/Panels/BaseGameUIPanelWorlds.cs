@@ -394,8 +394,11 @@ public class BaseGameUIPanelWorlds : GameUIPanelBase {
         string appContentState = AppContentStates.Current.code;
         string appState = AppStates.Current.code;
 
-        foreach(AppContentCollect mission in
-                 AppContentCollects.GetMissionsByWorld(worldCode)) {
+        // unlocked for the current bot, plus the next "more to come" teasers (content gating)
+        List<AppContentCollect> teasers = new List<AppContentCollect>();
+
+        foreach(AppContentCollect mission in GameContentGate.Visible(
+                 AppContentCollects.GetMissionsByWorld(worldCode), teasers)) {
 
             double scoreMission = 0;
 
@@ -409,6 +412,12 @@ public class BaseGameUIPanelWorlds : GameUIPanelBase {
                 UIUtil.HideObject(UIUtil.ResolveDeep(item, "action-" + a));
 
                 SetStarsToolkit(UIUtil.ResolveDeep(item, "summary-star-" + a), false);
+            }
+
+            if(teasers.Contains(mission)) {
+                SetMissionTeaserToolkit(item);
+                i++;
+                continue;
             }
 
             int j = 0;
@@ -457,6 +466,27 @@ public class BaseGameUIPanelWorlds : GameUIPanelBase {
 
             i++;
         }
+    }
+
+    // A locked mission: greyed, "more to come" in place of its actions, and a play tile that
+    // carries no play payload and takes no input (opacity alone still clicks).
+    public virtual void SetMissionTeaserToolkit(Engine.UI.UIRef item) {
+
+        UIUtil.SetClass(item, "wm-row--teaser", true);
+
+        Engine.UI.UIRef actionRow = UIUtil.ResolveDeep(item, "action-1");
+
+        UIUtil.ShowObject(actionRow);
+        UIUtil.HideObject(UIUtil.ResolveDeep(actionRow, "StarWrap"));
+        UIUtil.UpdateLabelObject(actionRow, "LabelDescription",
+            L10n.TrOrDefault("game_ui_worlds_more_to_come", "More to come"));
+
+        UIUtil.HideObject(UIUtil.ResolveDeep(item, "SummaryStars"));
+        UIUtil.UpdateLabelObject(item, "LabelScore", "");
+
+        Engine.UI.UIRef play = UIUtil.ResolveDeep(item, "ButtonAction");
+        UIUtil.SetElementName(play, "ButtonActionTeaser");
+        UIUtil.SetElementEnabled(play, false);
     }
 
     // The toolkit twin of SetStars: each star slot holds a StarComplete/StarIncomplete pair.
