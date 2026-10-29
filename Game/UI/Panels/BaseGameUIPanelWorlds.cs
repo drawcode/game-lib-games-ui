@@ -355,6 +355,29 @@ public class BaseGameUIPanelWorlds : GameUIPanelBase {
 
     }
 
+    // A mission's stored points, whatever numeric type they were saved or loaded as (int when set
+    // at runtime, long/double after a JSON load). The old Get<double> then Get<int> read threw on
+    // every unplayed mission: Get<double> wrote a 0.0 default, and Get<int> cannot unbox a double.
+    // Read without Get so nothing is written into the profile.
+    public static double GetCollectPoints(string collectType, string collectKey) {
+
+        GameProfileContentCollectItem item =
+            GameProfileModes.Current.GetContentCollectItem(collectType, collectKey);
+
+        object raw;
+
+        if (item == null || !item.TryGetValue(BaseDataObjectKeys.points, out raw) || raw == null) {
+            return 0;
+        }
+
+        try {
+            return Convert.ToDouble(raw);
+        }
+        catch (Exception) {
+            return 0;
+        }
+    }
+
     // Toolkit missions rows: rebuild WorldMissionItemTemplate per mission of the current
     // world, mirroring loadDataMissions below — name/action rows/star states/score, and the
     // row's ButtonAction renamed to the $-encoded play payload (elements have no
@@ -414,13 +437,7 @@ public class BaseGameUIPanelWorlds : GameUIPanelBase {
                 bool complete = GameProfileModes.Current.GetContentCollectValue<bool>(
                     BaseDataObjectKeys.mission, collectKey, BaseDataObjectKeys.complete);
 
-                double points = GameProfileModes.Current.GetContentCollectValue<double>(
-                    BaseDataObjectKeys.mission, collectKey, BaseDataObjectKeys.points);
-
-                if(points == 0) {
-                    points = GameProfileModes.Current.GetContentCollectValue<int>(
-                        BaseDataObjectKeys.mission, collectKey, BaseDataObjectKeys.points);
-                }
+                double points = GetCollectPoints(BaseDataObjectKeys.mission, collectKey);
 
                 if(complete) {
                     scoreMission += points;
@@ -574,13 +591,7 @@ public class BaseGameUIPanelWorlds : GameUIPanelBase {
                             bool complete = GameProfileModes.Current.GetContentCollectValue<bool>(
                                 collectType, collectKey, BaseDataObjectKeys.complete);
 
-                            double points = GameProfileModes.Current.GetContentCollectValue<double>(
-                                collectType, collectKey, BaseDataObjectKeys.points);
-
-                            if(points == 0) {
-                                points = GameProfileModes.Current.GetContentCollectValue<int>(
-                                    collectType, collectKey, BaseDataObjectKeys.points);
-                            }
+                            double points = GetCollectPoints(collectType, collectKey);
 
 
                             if(complete) {
