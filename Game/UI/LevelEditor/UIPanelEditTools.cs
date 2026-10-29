@@ -4,6 +4,8 @@ using System.Collections.Generic;
 
 using UnityEngine;
 
+using Engine.Game.App.BaseApp;
+
 // B11.1: the level editor TOOLBAR (UIEditor.prefab .../AnchorTop/TopContainer/GameEditTools:
 // ITEMS / LEVEL / PLAY / SAVE, the EDIT ASSET button, and the ItemTools "<" button).
 //
@@ -11,8 +13,8 @@ using UnityEngine;
 // (gameEditToolsObject) and handles every one of its clicks by name. That stays true on the
 // toolkit path -- the view's buttons broadcast the same names onto ButtonEvents.EVENT_BUTTON_CLICK
 // and GameDraggableEditor.OnButtonClickEventHandler answers them -- so this class owns only what
-// a view needs: the key, the lifecycle (UIPanelLevelEditorView, safe on an inactive panel), and
-// the EDIT ASSET button's show/hide state.
+// a view needs: the key, the lifecycle (UIPanelLevelEditorView, safe on an inactive panel), the
+// EDIT ASSET button's show/hide state, and RESET reading UNDO while a reset can be undone.
 //
 // NOT in UIEditor.prefab yet: B11.2 adds it to GameEditTools. GameDraggableEditor finds it
 // there (GetComponentInChildren, inactive included); a product without it gets no toolbar view
@@ -61,6 +63,12 @@ public class UIPanelEditTools : UIAppPanel, IUIPanelLevelEditorView {
     public const string elementAssetButtonContainer = "GameEditAssetButton";
     public const string elementButtonAssetTools = "ButtonGameEditAssetTools";
     public const string elementButtonItemLeft = "ButtonGameItemLeft";
+    public const string elementButtonReset = "ButtonGameEditReset";
+    public const string elementLabelReset = "LabelGameEditReset";
+
+    public const string classResetUndo = "le-tool--undo";
+    public const string locoReset = "game_ui_level_editor_reset";
+    public const string locoUndo = "game_ui_level_editor_undo";
 
     UIPanelLevelEditorView _editorView;
 
@@ -120,6 +128,7 @@ public class UIPanelEditTools : UIAppPanel, IUIPanelLevelEditorView {
 
     public virtual void ShowEditorView() {
         editorView.Show();
+        ApplyResetButton();
     }
 
     public virtual void HideEditorView() {
@@ -142,6 +151,22 @@ public class UIPanelEditTools : UIAppPanel, IUIPanelLevelEditorView {
 
     public virtual void OnToolkitViewReady(Engine.UI.UIRef view) {
         ApplyAssetToolsButton();
+        ApplyResetButton();
+    }
+
+    // One button, two actions (GameDraggableEditor answers its click by resetUndoAvailable):
+    // RESET normally, UNDO right after a RESET that backed up a save.
+    public virtual void ApplyResetButton() {
+
+        if(!isToolkitPanel) {
+            return;
+        }
+
+        bool undo = GameDraggableEditor.resetUndoAvailable;
+
+        UIUtil.SetLabelValue(editorView.Resolve(elementLabelReset),
+            Locos.Get(undo ? locoUndo : locoReset));
+        UIUtil.SetClass(editorView.Resolve(elementButtonReset), classResetUndo, undo);
     }
 
     public virtual void OnToolkitViewFreed() {
