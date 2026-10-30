@@ -93,6 +93,16 @@ public class BaseGameUIPanelHeader : GameUIPanelBase {
     public Engine.UI.UIRef backerObjectRef;
     public Engine.UI.UIRef titleObjectRef;
 
+    // PLAY -> the worlds picker from any menu screen (iter 31, owner): the header is on every
+    // menu screen, so its PLAY button reaches "almost anywhere". Hidden while the player is
+    // already in the play flow. A view without the element leaves both unbound (no-ops).
+    public Engine.UI.UIRef playObjectRef;
+    public Engine.UI.UIRef buttonPlayWorlds;
+
+    string playLastPanelClass = null;
+    bool playHeaderShown = false;
+    int playObjectState = -1;
+
     // The coin element in the toolkit view; a UIRenderStage feeds it the LIVE 3D coin (mesh +
     // particle effects) from the NGUI prefab as a RenderTexture — the real coin, key to drawing
     // players into the store/coin flows, composited inside the toolkit chrome.
@@ -283,6 +293,11 @@ public class BaseGameUIPanelHeader : GameUIPanelBase {
 
     public override void OnUIControllerPanelAnimateIn(string classNameTo) {
 
+        if(className != classNameTo && IsPlayScreenClass(classNameTo)) {
+            playLastPanelClass = classNameTo;
+            SyncPlayObject();
+        }
+
         if(className == classNameTo) {
             AnimateIn();
         }
@@ -345,6 +360,9 @@ public class BaseGameUIPanelHeader : GameUIPanelBase {
 
     public override void AnimateOut() {
         base.AnimateOut();
+
+        playHeaderShown = false;
+        SyncPlayObject();
 
         HideBackButtonObject();
         HideBackerObject();
@@ -588,6 +606,8 @@ public class BaseGameUIPanelHeader : GameUIPanelBase {
     }
 
     public virtual void showFull() {
+        playHeaderShown = true;
+        SyncPlayObject();
         ShowCoinsObject();
         ShowBackerObject();
         ShowBackButtonObject();
@@ -602,6 +622,8 @@ public class BaseGameUIPanelHeader : GameUIPanelBase {
     }
 
     public virtual void showMain() {
+        playHeaderShown = true;
+        SyncPlayObject();
         ShowCoinsObject();
         HideBackerObject();
         HideBackButtonObject();
@@ -1620,6 +1642,54 @@ public class BaseGameUIPanelHeader : GameUIPanelBase {
         if(!isToolkitPanel) {
             TweenUtil.FadeToObject(backerObject, 0f);
         }
+    }
+
+    // Screens that change what PLAY should do. Chrome and overlays (header, footer, backgrounds,
+    // dialogs, tips) come and go on top of a screen and must not decide it.
+    static bool IsPlayScreenClass(string cls) {
+
+        if(string.IsNullOrEmpty(cls)) {
+            return false;
+        }
+
+        return !(cls.Contains("Header") || cls.Contains("Footer") || cls.Contains("Background")
+            || cls.Contains("Dialog") || cls.Contains("Overlay") || cls.Contains("Tips")
+            || cls.Contains("Blank") || cls.Contains("Navigation"));
+    }
+
+    // Already in the play flow: the worlds and levels pickers, every game-mode screen, Results
+    // (CONTINUE goes to worlds), and gameplay itself.
+    public static bool IsPlayFlowClass(string cls) {
+
+        if(string.IsNullOrEmpty(cls)) {
+            return false;
+        }
+
+        return cls.Contains("Worlds") || cls.Contains("Levels")
+            || cls == BaseUIPanel.panelClassNameLevel
+            || cls.StartsWith(BaseUIPanel.panelClassNameGameMode)
+            || cls == BaseUIPanel.panelClassNameResults
+            || cls == BaseUIPanel.panelClassNameHUD
+            || cls == BaseUIPanel.panelClassNameInGame;
+    }
+
+    // Faded AND disabled when hidden: an opacity-0 toolkit element still takes picks. Touched
+    // only on a change.
+    public virtual void SyncPlayObject() {
+
+        // Main carries its own big PLAY under the bot (iter 33, owner), so the header's goes there too.
+        bool show = playHeaderShown && !IsPlayFlowClass(playLastPanelClass)
+            && playLastPanelClass != BaseUIPanel.panelClassNameMain;
+        int state = show ? 1 : 0;
+
+        if(state == playObjectState) {
+            return;
+        }
+
+        playObjectState = state;
+
+        TweenUtil.FadeToObject(playObjectRef, show ? 1f : 0f, show ? "fade-in" : "fade-out");
+        UIUtil.SetElementEnabled(buttonPlayWorlds, show);
     }
 
     public virtual void ShowTitleObject() {

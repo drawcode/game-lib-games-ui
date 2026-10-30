@@ -41,11 +41,9 @@ public class UIPanelDialogEditItemsFilter {
 	public static string levelAssetsHide = "level-assets-hide";
 	public static string groupLevel = "level";
 
-	// Characters are NOT placeable yet (measured iter 40): EditModeCreateAsset never sets the item
-	// type, so a character code takes the level-asset path, finds no prefab, and leaves an empty,
-	// invisible draggable (0 renderers, no actor) that a SAVE would keep. Level data spawns
-	// characters only at round start (type "character" -> actor queue). Listed under "show
-	// unplaceable" until the editor can create them.
+	// Keys whose every row places. Characters are decided per code (IsPlaceable below): the editor
+	// places one as an actor item, which needs a GameCharacter row -- a model-only code
+	// (character-bot-1/-2, character-zombie-1) cannot become an actor and stays unplaceable.
 	public static List<string> placeableKeys = new List<string> { levelAssets, levelAssetsHide };
 
 	// Tab order; a key not listed gets its own tab after these.
@@ -138,6 +136,15 @@ public class UIPanelDialogEditItemsFilter {
 
 	public static bool IsPlaceable(string assetKey) {
 		return placeableKeys.Contains(assetKey);
+	}
+
+	public static bool IsPlaceable(string assetKey, string assetCode) {
+
+		if(assetKey == Engine.Game.Data.BaseDataObjectKeys.characters) {
+			return GameDraggableEditor.CanCreateCharacter(assetCode);
+		}
+
+		return IsPlaceable(assetKey);
 	}
 
 	public static string IconOf(string group) {
@@ -558,7 +565,7 @@ public class UIPanelDialogEditItems : UIAppPanelBaseList {
                 continue;
             }
 
-            bool placeable = !createPicker || UIPanelDialogEditItemsFilter.IsPlaceable(asset.key);
+            bool placeable = !createPicker || UIPanelDialogEditItemsFilter.IsPlaceable(asset.key, asset.code);
             string group = UIPanelDialogEditItemsFilter.GroupOf(asset.key);
 
             if(createPicker) {
@@ -664,7 +671,7 @@ public class UIPanelDialogEditItems : UIAppPanelBaseList {
 
         foreach(AppContentAsset asset in assets) {
 
-            if(!showUnplaceable && !UIPanelDialogEditItemsFilter.IsPlaceable(asset.key)) {
+            if(!showUnplaceable && !UIPanelDialogEditItemsFilter.IsPlaceable(asset.key, asset.code)) {
                 continue;
             }
 

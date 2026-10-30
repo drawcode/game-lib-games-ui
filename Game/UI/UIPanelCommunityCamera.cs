@@ -7,6 +7,8 @@ using System.Linq;
 using UnityEngine;
 
 using Engine.Events;
+using Engine.Game.App.BaseApp;
+using Engine.Social;
 
 public class UIPanelCommunityCamera : UIPanelCommunityBase {
 
@@ -31,10 +33,111 @@ public class UIPanelCommunityCamera : UIPanelCommunityBase {
 
     // Elements in panel-community-camera.uxml (legacy GameObject names). The photo itself
     // (PhotoPlaceholder, a UITexture fed by GameCommunitySocialController) is a B9 placeholder:
-    // the view keeps an empty box of the same size.
+    // the view keeps an empty box of the same size -- until CommunityFeatures.nativeShare, which
+    // captures the photo here and shows it in that box (ApplyPhoto).
     public const string elementPhotoCard = "PanelContentPhoto";
+    public const string elementPhoto = "PanelContentPhoto/PhotoPlaceholder";
     public const string elementPhotoFrame = "PanelContentPhoto/Backgrounds/BackgroundColor";
     public const string elementPhotoClose = "ButtonGameCommunityClose/Background";
+
+    public override void BindElements(Engine.UI.UIRef root) {
+
+        base.BindElements(root);
+
+        ApplyPhoto();
+    }
+
+    // ----------------------------------------------------------------------------------------
+    // NATIVE SHARE (CommunityFeatures.nativeShare)
+
+    public const string photoFileName = "photo.png";
+    public const string shareMessageKey = "game_ui_community_share_message";
+
+    Texture2D photoTexture;
+    string photoPath;
+
+    public bool hasPhoto {
+        get {
+            return photoTexture != null && !string.IsNullOrEmpty(photoPath);
+        }
+    }
+
+    // The Results share card leaves the shot first, then the screen is captured as the player
+    // sees it, then the flash and the dialog with the photo in its preview box.
+    IEnumerator takePhotoNativeCo() {
+
+        UIPanelCommunityShare.HideSharesCenter();
+
+        ShowNone();
+
+        yield return new WaitForSeconds(.4f);
+
+        Texture2D shot = null;
+        string path = NativeShare.GetCapturePath(photoFileName);
+
+        yield return StartCoroutine(NativeShare.CaptureScreen(path, captured => shot = captured));
+
+        SetPhoto(shot, shot != null ? path : null);
+
+        GameUIPanelOverlays.Instance.ShowOverlayWhiteFlash();
+
+        yield return new WaitForSeconds(.7f);
+
+        GameController.GameRunningStateContent();
+
+        showDialog();
+    }
+
+    void SetPhoto(Texture2D texture, string path) {
+
+        if (photoTexture != null && photoTexture != texture) {
+            Destroy(photoTexture);
+        }
+
+        photoTexture = texture;
+        photoPath = path;
+
+        ApplyPhoto();
+    }
+
+    void ApplyPhoto() {
+
+        if (!isToolkitPanel) {
+            return;
+        }
+
+        Engine.UI.UIRef photo = toolkit.ResolvePath(elementPhoto);
+
+        if (photo == null || !photo.alive) {
+            return;
+        }
+
+        if (photoTexture != null) {
+            UIUtil.SetImageTexture(photo, photoTexture);
+        }
+        else {
+            UIUtil.ClearImageTexture(photo);
+        }
+    }
+
+    // The dialog's share and save buttons: the platform sheet with the photo (it offers save to
+    // photos, messages, the player's social apps).
+    public static bool SharePhoto() {
+        if (isInst) {
+            return Instance.sharePhoto();
+        }
+        return false;
+    }
+
+    public bool sharePhoto() {
+
+        NativeShareRequest request = new NativeShareRequest();
+        request.text = Locos.Get(shareMessageKey);
+        request.subject = Locos.Get(LocoKeys.app_display_name);
+        request.imagePath = hasPhoto ? photoPath : null;
+
+        return NativeShare.Share(request);
+    }
 
     // ----------------------------------------------------------------------------------------
 
@@ -108,6 +211,12 @@ public class UIPanelCommunityCamera : UIPanelCommunityBase {
     }
     
     public void takePhoto() {   
+
+        if (CommunityFeatures.nativeShare) {
+            StartCoroutine(takePhotoNativeCo());
+            return;
+        }
+
         if (photoMaterial == null) {
             Debug.LogWarning("No photoMaterial found");
             return;
@@ -262,6 +371,8 @@ public class UIPanelCommunityCamera : UIPanelCommunityBase {
 
         toolkit.SetCard(elementPhotoCard, true, UIPanelCommunityToolkit.CardEdge.Bottom);
         toolkit.ApplyModeColors(elementPhotoFrame, elementPhotoClose);
+
+        ApplyPhoto();
                 
         UIPanelCommunityBackground.ShowBackground();
     }

@@ -20,6 +20,11 @@ public static class CommunityFeatures {
     public static bool actionBarPhoto = false;      // ButtonGameCommunityCameraTakePhoto
     public static bool actionBarBroadcast = false;  // ButtonGameCommunityBroadcastOpen
 
+    // The photo dialog's share/save buttons open the platform share sheet (Engine.Social.NativeShare)
+    // with the captured photo, instead of the legacy network uploaders (dead SDKs). Its preview
+    // shows the photo. Off = the legacy path, unchanged.
+    public static bool nativeShare = false;
+
     public const string cardAppRate = "ContainerActionAppRate";
     public const string cardActionBar = "ContainerActions";
     public const string buttonPhoto = "ButtonGameCommunityCameraTakePhoto";
@@ -74,6 +79,7 @@ public static class CommunityFeatures {
         public bool actionBar;
         public bool actionBarPhoto;
         public bool actionBarBroadcast;
+        public bool nativeShare;
     }
 
     // Manage the rollout from a JSON TextAsset under Resources ({"appRateBadge":true,...}).
@@ -108,5 +114,6 @@ public static class CommunityFeatures {
         actionBar = data.actionBar;
         actionBarPhoto = data.actionBarPhoto;
         actionBarBroadcast = data.actionBarBroadcast;
+        nativeShare = data.nativeShare;
     }
 }

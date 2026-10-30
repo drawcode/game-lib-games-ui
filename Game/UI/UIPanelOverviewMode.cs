@@ -98,6 +98,8 @@ public class UIPanelOverviewMode : UIPanelBase {
 
         // A fresh view starts with the arcade group display: none (USS); re-apply on next Update.
         arcadeTipApplied = -1;
+        tipsStageApplied = -1;
+        vsCardFilled = false;
     }
 
     // The legacy overview slides in from the bottom (AnimateInBottom(containerOverview)).
@@ -161,6 +163,7 @@ public class UIPanelOverviewMode : UIPanelBase {
         lastTipStatus = null;
         viewLabelTipStatus.Clear();
         tipsCacheValid = false;
+        ReleaseVsCard();
 
         base.FreeToolkitView();
     }
@@ -236,6 +239,11 @@ public class UIPanelOverviewMode : UIPanelBase {
         // screen shows ContainerTips/LabelCurrentTipStatus as AUTHORED: "Tip 1 of 3" (measured).
         int index = active != null ? active.currentTipIndex + 1 : 1;
         int total = active != null ? active.tipsTotal : 3;
+
+        if(vsLevelCardEnabled) {
+            index = tipsSlide + 1;
+            total = TipsSlideCount();
+        }
         string locale = Engine.Game.App.BaseApp.L10n.CurrentCode;
 
         if(lastTipStatus != null
@@ -250,6 +258,10 @@ public class UIPanelOverviewMode : UIPanelBase {
         // the raw key on screen there -- the English format is the fallback.
         string status = Engine.Game.App.BaseApp.L10n.TrOrDefault("game_ui_overview_mode_tip_status",
             "Tip {0} of {1}", index, total);
+
+        if(index != lastTipStatusIndex && !vsLevelCardEnabled) {
+            ShowDataTip();
+        }
 
         lastTipStatusIndex = index;
         lastTipStatusTotal = total;
@@ -352,6 +364,9 @@ public class UIPanelOverviewMode : UIPanelBase {
         if(UIUtil.IsButtonClicked(buttonOverviewReady, buttonName)) {
             Ready();
         }
+        else if(buttonName == elementTipsClose) {
+            CloseTips();
+        }
         else if(UIUtil.IsButtonClicked(buttonOverviewMode, buttonName)) {
             ChangeTipsState(AppOverviewFlowState.Mode);
         }
@@ -372,6 +387,19 @@ public class UIPanelOverviewMode : UIPanelBase {
     }
 
     public void Ready() {
+
+        // The HUD's M.A.N. 9000 tap brings this screen back over a LIVE round, and its READY only
+        // resumes it. Re-running the level-start player sequence there rebuilt the player's runtime
+        // data and started a warp fade-out from 0 to 0 that never finished, which latched
+        // effectWarpEnabled: no movement for the rest of the round (iter 31 device report).
+        if(GameController.isInst && GameController.Instance.levelPlayerReadied) {
+            HideAll();
+            return;
+        }
+
+        if(GameController.isInst) {
+            GameController.Instance.levelPlayerReadied = true;
+        }
 
         // The round goes live here, so the level-load sequence is over even if its finish
         // coroutine never completed -- release its flag and its overlay rather than carry them
@@ -596,6 +624,13 @@ public class UIPanelOverviewMode : UIPanelBase {
             }
         }
 
+        ShowDataTip();
+        ResetTipsCycle();
+
+        tipsStage = GameController.isInst && GameController.Instance.levelPlayerReadied
+            ? tipsStageTips : tipsStageAll;
+        tipsStageApplied = -1;
+
         ContentPause();
 
         UIColors.UpdateColors();
@@ -685,7 +720,9 @@ public class UIPanelOverviewMode : UIPanelBase {
 
         if(isToolkitPanel) {
             ReassertLegacySuppression();
+            UpdateTipsCycle();
             UpdateToolkitTipStatus();
+            ApplyTipsStage();
             UpdateToolkitArcadeTip();
         }
         else if(arcade3DMoved) {
@@ -718,6 +755,11 @@ public class UIPanelOverviewMode : UIPanelBase {
 
     void OnToolkitTipsTap(TapGesture gesture) {
 
+        if(TipsCycleTakesInput()) {
+            AdvanceTipsSlide();
+            return;
+        }
+
         UIPanelTips tips = ToolkitTipsNeedingInput();
 
         if(tips != null) {
@@ -726,6 +768,11 @@ public class UIPanelOverviewMode : UIPanelBase {
     }
 
     void OnToolkitTipsSwipe(SwipeGesture gesture) {
+
+        if(TipsCycleTakesInput()) {
+            AdvanceTipsSlide();
+            return;
+        }
 
         UIPanelTips tips = ToolkitTipsNeedingInput();
 
@@ -833,6 +880,416 @@ public class UIPanelOverviewMode : UIPanelBase {
         return null;
     }
 
+    // TIPS FIRST (iter 33, owner: "on the M.A.N. 9000 overlay with action tips, only show the
+    // READY screen after the tips are closed"). Over a live round (levelPlayerReadied: the HUD
+    // tap) the screen opens on the tips with OK in READY's slot; OK hides the tips and brings
+    // READY up. The pre-round screen keeps tips + READY together: READY is its "click to begin".
+    // Applied by element name from Update, so a view that binds late still gets the stage.
+    const string elementTipsClose = "ButtonOverviewTipsClose";
+
+    static readonly string[] tipsStageTipElements = {
+        "TipsIcon", "LabelTipsHowTo", "LabelCurrentTipStatus", "LabelNextSteps", "NextIcon"
+    };
+
+    static readonly string[] tipsStageReadyElements = {
+        "ButtonGameReady", "LabelOverviewStatus"
+    };
+
+    const int tipsStageAll = 0;     // pre-round: tips + READY together
+    const int tipsStageTips = 1;    // live round: tips + OK
+    const int tipsStageReady = 2;   // live round, tips closed: READY only
+
+    private int tipsStage = tipsStageAll;
+    private int tipsStageApplied = -1;
+
+    public void CloseTips() {
+
+        if(tipsStage != tipsStageTips) {
+            return;
+        }
+
+        tipsStage = tipsStageReady;
+    }
+
+    private void ApplyTipsStage() {
+
+        if(tipsStage == tipsStageApplied || viewRoot == null || !viewRoot.alive) {
+            return;
+        }
+
+        tipsStageApplied = tipsStage;
+
+        foreach(string name in tipsStageReadyElements) {
+            SetViewElementShown(name, tipsStage != tipsStageTips);
+        }
+
+        foreach(string name in tipsStageTipElements) {
+            SetViewElementShown(name, tipsStage != tipsStageReady);
+        }
+
+        SetViewElementShown(elementTipsClose, tipsStage == tipsStageTips);
+
+        // The arcade card / data tip follow the stage on the next UpdateToolkitArcadeTip.
+        arcadeTipApplied = -1;
+    }
+
+    private void SetViewElementShown(string name, bool shown) {
+
+        UIRef el = UIUtil.ResolveDeep(viewRoot, name);
+
+        if(shown) {
+            UIUtil.ShowObject(el);
+        }
+        else {
+            UIUtil.HideObject(el);
+        }
+    }
+
+    // DATA TIP (iter 31, owner: the M.A.N. 9000 tap showed no tips). The legacy per-mode tip
+    // cards were never ported, so outside arcade tip 1 the screen was empty. A tip from the data
+    // the level-load overlay rotates (AppContentTips), written by element name so it lands even
+    // before the async view binds (SetViewLabel replays it).
+    const string elementDataTip = "DataTip";
+
+    List<AppContentTip> dataTips;
+
+    public virtual void ShowDataTip() {
+
+        if(dataTips == null) {
+            dataTips = AppContentTips.Instance.items;
+        }
+
+        if(dataTips == null || dataTips.Count == 0) {
+            return;
+        }
+
+        AppContentTip tip = dataTips[UnityEngine.Random.Range(0, dataTips.Count)];
+
+        string type = tip.keys != null && tip.keys.Count > 0
+            ? Engine.Game.App.BaseApp.L10n.TrOrDefault(
+                "game_ui_overlay_prepare_" + tip.keys[0] + "_tips", tip.keys[0] + " Tips")
+            : "";
+
+        SetViewLabel("LabelDataTipType", type);
+        SetViewLabel("LabelDataTipTitle", tip.display_name);
+        SetViewLabel("LabelDataTipDescription", tip.description);
+    }
+
+    // ----------------------------------------------------------------------------------------
+    // TIPS CYCLE + VS CARD (iter 34, owner: "the READY screen should have tips to cycle, and when
+    // it shows who you are fighting it should be your bot on the left, then the enemies of the
+    // level on the right (enemy types)")
+    //
+    // Slides: 0 = the VS card (the ArcadeTip1 group, now on every mode), 1..n = the data tips in
+    // order. They advance every tipsCycleSeconds (unscaled: the screen pauses the round) and on a
+    // tap/swipe, and "Tip n of m" counts them. The cycle stops once the tips are closed (READY
+    // only). The VS card: the player's current bot on the left, the level's enemy types on the
+    // right (BaseAIController.GetLevelCharacterCodes, the roster the round spawns from, most
+    // likely first, up to vsEnemyMax). Both sides are UIRenderSnapshot renders -- one render per
+    // model, no live camera -- instead of the legacy RotatorPlayer / RotatorEnemy bots, which
+    // only exist under the ARCADE tips set and showed a team-coloured bot, not the level's
+    // enemies. Enemy display names are raw codes in the data ("zombie-dog-1"), so the enemy side
+    // is pictures only; the player's bot name is its brand display name.
+    //
+    // Kill switch: vsLevelCardEnabled = false restores the legacy arcade-only card, the legacy
+    // tips index and the random data tip, unchanged.
+
+    public static bool vsLevelCardEnabled = true;
+    public static float tipsCycleSeconds = 6f;
+    public static int vsEnemyMax = 4;
+    public static float vsPlayerYaw = 155f;
+    public static float vsEnemyYaw = 205f;
+
+    const string elementVsPlayerImage = "VsPlayerImage";
+    const string elementVsEnemies = "VsEnemies";
+    const string vsEnemyElementPrefix = "VsEnemy";
+    const string vsEnemiesOneClass = "ovm-vs-enemies--one";
+    const string vsEnemiesThreeClass = "ovm-vs-enemies--three";
+    const string vsPlayerSnapshotPrefix = "vs-player:";
+
+    static readonly string[] vsLegacyElements = {
+        elementArcadePlayerStage, elementArcadeEnemyStage, "LabelTeamEnemy"
+    };
+
+    private int tipsSlide;
+    private float tipsSlideAt;
+    private bool vsCardFilled;
+    private int vsCardGeneration;
+    private string vsPlayerSnapshotCode;
+    private Engine.UI.UIRenderSnapshot vsSnapshots;
+
+    private int TipsSlideCount() {
+
+        if(dataTips == null) {
+            dataTips = AppContentTips.Instance.items;
+        }
+
+        return 1 + (dataTips != null ? dataTips.Count : 0);
+    }
+
+    private void ResetTipsCycle() {
+        tipsSlide = 0;
+        tipsSlideAt = Time.unscaledTime + tipsCycleSeconds;
+        vsCardFilled = false;
+        arcadeTipApplied = -1;
+    }
+
+    private bool TipsCycleTakesInput() {
+        return vsLevelCardEnabled && isToolkitPanel && isVisible && tipsStage != tipsStageReady;
+    }
+
+    private void UpdateTipsCycle() {
+
+        if(!vsLevelCardEnabled || !isVisible || tipsStage == tipsStageReady) {
+            return;
+        }
+
+        if(Time.unscaledTime >= tipsSlideAt) {
+            AdvanceTipsSlide();
+        }
+    }
+
+    private void AdvanceTipsSlide() {
+
+        int count = TipsSlideCount();
+
+        tipsSlide = count > 0 ? (tipsSlide + 1) % count : 0;
+        tipsSlideAt = Time.unscaledTime + tipsCycleSeconds;
+
+        if(tipsSlide > 0) {
+            ShowDataTipAt(tipsSlide - 1);
+        }
+
+        arcadeTipApplied = -1;
+    }
+
+    private void ShowDataTipAt(int i) {
+
+        if(dataTips == null || i < 0 || i >= dataTips.Count) {
+            return;
+        }
+
+        AppContentTip tip = dataTips[i];
+
+        string type = tip.keys != null && tip.keys.Count > 0
+            ? Engine.Game.App.BaseApp.L10n.TrOrDefault(
+                "game_ui_overlay_prepare_" + tip.keys[0] + "_tips", tip.keys[0] + " Tips")
+            : "";
+
+        SetViewLabel("LabelDataTipType", type);
+        SetViewLabel("LabelDataTipTitle", tip.display_name);
+        SetViewLabel("LabelDataTipDescription", tip.description);
+    }
+
+    private void FillVsCard() {
+
+        vsCardFilled = true;
+        int generation = ++vsCardGeneration;
+
+        foreach(string name in vsLegacyElements) {
+            SetViewElementShown(name, false);
+        }
+
+        if(GameWorlds.Current != null) {
+            SetViewLabel("LabelTitle", GameWorlds.Current.display_name);
+        }
+
+        if(vsSnapshots == null) {
+            vsSnapshots = new Engine.UI.UIRenderSnapshot();
+            vsSnapshots.width = 192;
+            vsSnapshots.height = 192;
+        }
+
+        // The player's bot can change between rounds (colours too): render it fresh each fill.
+        string characterCode = GetVsPlayerCharacterCode();
+        GameCharacter character = string.IsNullOrEmpty(characterCode)
+            ? null : GameCharacters.Instance.GetById(characterCode);
+
+        if(character != null) {
+            SetViewLabel("LabelBlurbPlayer", character.display_name);
+        }
+
+        if(vsPlayerSnapshotCode != null) {
+            vsSnapshots.Release(vsPlayerSnapshotCode);
+        }
+
+        vsPlayerSnapshotCode = vsPlayerSnapshotPrefix + characterCode;
+
+        UIRef playerImage = UIUtil.ResolveDeep(viewRoot, elementVsPlayerImage);
+        UIUtil.ClearImageTexture(playerImage);
+        UIUtil.ShowObject(playerImage);
+
+        vsSnapshots.Request(vsPlayerSnapshotCode, SpawnVsPlayer, (code, texture) => {
+            if(generation == vsCardGeneration && texture != null && viewRoot != null && viewRoot.alive) {
+                UIUtil.SetImageTexture(UIUtil.ResolveDeep(viewRoot, elementVsPlayerImage), texture);
+            }
+        });
+
+        List<string> enemies = BaseAIController.GetLevelCharacterCodes(GameActorType.enemy, vsEnemyMax);
+
+        UIRef enemiesGroup = UIUtil.ResolveDeep(viewRoot, elementVsEnemies);
+        UIUtil.ShowObject(enemiesGroup);
+        UIUtil.SetClass(enemiesGroup, vsEnemiesOneClass, enemies.Count == 1);
+        UIUtil.SetClass(enemiesGroup, vsEnemiesThreeClass, enemies.Count == 3);
+
+        for(int i = 0; i < vsEnemyMax; i++) {
+
+            UIRef slot = UIUtil.ResolveDeep(viewRoot, vsEnemyElementPrefix + (i + 1));
+
+            if(i >= enemies.Count) {
+                UIUtil.HideObject(slot);
+                continue;
+            }
+
+            UIUtil.ClearImageTexture(slot);
+            UIUtil.ShowObject(slot);
+
+            string slotName = vsEnemyElementPrefix + (i + 1);
+
+            vsSnapshots.Request(enemies[i], SpawnVsEnemy, (code, texture) => {
+                if(generation == vsCardGeneration && texture != null && viewRoot != null && viewRoot.alive) {
+                    UIUtil.SetImageTexture(UIUtil.ResolveDeep(viewRoot, slotName), texture);
+                }
+            });
+        }
+    }
+
+    private void ReleaseVsCard() {
+
+        vsCardFilled = false;
+        vsCardGeneration++;
+        vsPlayerSnapshotCode = null;
+
+        if(vsSnapshots != null) {
+            vsSnapshots.Clear();
+        }
+    }
+
+    // The profile's current character (GameCustomPlayerContainer.LoadPlayer's lookup).
+    static string GetVsPlayerCharacterCode() {
+
+        Engine.Game.App.BaseApp.GameProfileCharacterItem item = GameProfileCharacters.Current != null
+            ? GameProfileCharacters.Current.GetCurrentCharacter() : null;
+
+        if(item == null || item.code == BaseDataObjectKeys.defaultKey) {
+            return ProfileConfigs.defaultGameCharacterCode;
+        }
+
+        return item.characterCode;
+    }
+
+    static GameObject SpawnVsModel(GameObject parent, string characterCode, float yaw) {
+
+        GameCharacter character = GameCharacters.Instance.GetById(characterCode);
+
+        if(character == null || character.data == null) {
+            return null;
+        }
+
+        GameDataModel model = character.data.GetModel();
+
+        if(model == null || string.IsNullOrEmpty(model.code)) {
+            return null;
+        }
+
+        // Unpooled: the snapshot destroys what it spawns.
+        GameObject go = AppContentAssets.LoadAsset(model.code, Vector3.zero, Quaternion.identity, false);
+
+        if(go == null) {
+            return null;
+        }
+
+        go.transform.parent = parent.transform;
+        go.transform.localPosition = Vector3.zero;
+        go.transform.localScale = Vector3.one;
+        go.transform.localRotation = Quaternion.Euler(0f, yaw, 0f);
+
+        FitSkinnedBounds(go);
+
+        return go;
+    }
+
+    // The stage frames renderer.bounds, and a skinned mesh's bounds are its authored localBounds:
+    // the 3DRT bots ship them padded ~3x (marine-1: 2.99 x 2.91 x 3.44 local around a ~1 unit
+    // model), so they rendered at a third of the size of the older models. Bake the posed mesh
+    // and set localBounds to what it really covers. The spawned copy is thrown away after the
+    // render, so changing its bounds costs nothing.
+    static void FitSkinnedBounds(GameObject go) {
+
+        Mesh baked = null;
+
+        foreach(SkinnedMeshRenderer smr in go.GetComponentsInChildren<SkinnedMeshRenderer>(true)) {
+
+            if(smr.sharedMesh == null) {
+                continue;
+            }
+
+            if(baked == null) {
+                baked = new Mesh();
+            }
+
+            // vertices come out in the renderer's own space (unscaled: useScale false)
+            smr.BakeMesh(baked, false);
+
+            Vector3[] vertices = baked.vertices;
+
+            if(vertices.Length == 0) {
+                continue;
+            }
+
+            // localBounds are in the root bone's space when it has one
+            Transform boundsSpace = smr.rootBone != null ? smr.rootBone : smr.transform;
+            Matrix4x4 toBounds = boundsSpace.worldToLocalMatrix
+                * Matrix4x4.TRS(smr.transform.position, smr.transform.rotation, Vector3.one);
+
+            Bounds b = new Bounds(toBounds.MultiplyPoint3x4(vertices[0]), Vector3.zero);
+
+            for(int i = 1; i < vertices.Length; i++) {
+                b.Encapsulate(toBounds.MultiplyPoint3x4(vertices[i]));
+            }
+
+            smr.localBounds = b;
+        }
+
+        if(baked != null) {
+            UnityEngine.Object.Destroy(baked);
+        }
+    }
+
+    // The player's bot in the profile's colours/textures (the hero + default custom type reads
+    // them from the profile, synchronously, in Change).
+    static GameObject SpawnVsPlayer(GameObject parent, string code) {
+
+        GameObject go = SpawnVsModel(parent, GetVsPlayerCharacterCode(), vsPlayerYaw);
+
+        if(go == null) {
+            return null;
+        }
+
+        Engine.Game.App.BaseApp.GameProfileCharacterItem item = GameProfileCharacters.Current != null
+            ? GameProfileCharacters.Current.GetCurrentCharacter() : null;
+
+        GameCustomCharacterData custom = new GameCustomCharacterData();
+        custom.actorType = GameCustomActorTypes.heroType;
+        custom.type = GameCustomTypes.defaultType;
+
+        if(item != null) {
+            custom.characterCode = item.code;
+        }
+
+        GameCustomPlayer customPlayer = go.GetOrSet<GameCustomPlayer>();
+
+        if(customPlayer != null) {
+            customPlayer.Change(custom);
+        }
+
+        return go;
+    }
+
+    static GameObject SpawnVsEnemy(GameObject parent, string code) {
+        return SpawnVsModel(parent, code, vsEnemyYaw);
+    }
+
     private void UpdateToolkitArcadeTip() {
 
         UIPanelTips active = activeTipsSet;
@@ -843,7 +1300,13 @@ public class UIPanelOverviewMode : UIPanelBase {
                 && active.name.Contains(AppContentStateMeta.appContentStateGameArcade);
         }
 
-        bool show = arcadeTipsSetIsArcade && active != null && active.currentTipIndex == 0;
+        bool show = arcadeTipsSetIsArcade && active != null && active.currentTipIndex == 0
+            && tipsStage != tipsStageReady;
+
+        if(vsLevelCardEnabled) {
+            show = tipsSlide == 0 && tipsStage != tipsStageReady;
+        }
+
         int applied = show ? 1 : 0;
 
         if(applied != arcadeTipApplied && viewRoot != null && viewRoot.alive) {
@@ -858,9 +1321,24 @@ public class UIPanelOverviewMode : UIPanelBase {
             else {
                 UIUtil.HideObject(group);
             }
+
+            // The data tip fills the screen whenever the arcade card does not -- except once the
+            // tips are closed (READY only).
+            UIRef dataTip = UIUtil.ResolveDeep(viewRoot, elementDataTip);
+
+            if(show || tipsStage == tipsStageReady) {
+                UIUtil.HideObject(dataTip);
+            }
+            else {
+                UIUtil.ShowObject(dataTip);
+            }
         }
 
-        bool want3D = show && isVisible;
+        if(show && vsLevelCardEnabled && !vsCardFilled && viewRoot != null && viewRoot.alive) {
+            FillVsCard();
+        }
+
+        bool want3D = show && isVisible && !vsLevelCardEnabled;
 
         if(want3D && !arcade3DStaged) {
             SetupArcade3D(active);

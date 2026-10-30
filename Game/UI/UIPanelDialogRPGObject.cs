@@ -428,6 +428,8 @@ public class UIPanelDialogRPGObject : UIPanelBase {
     private bool toolkitCoinWasActive = false;
     private readonly List<GameObject> toolkitHiddenLegacy = new List<GameObject>();
     private readonly List<Collider> toolkitDisabledColliders = new List<Collider>();
+    // Inactive ancestors of the kept roots that suppression switched ON (restored OFF).
+    private readonly List<GameObject> toolkitShownAncestors = new List<GameObject>();
 
     // Frames to wait after a show before re-fitting the bot camera: a just-activated Animation has
     // not sampled its pose yet, and the stage frames the BAKED pose.
@@ -576,7 +578,36 @@ public class UIPanelDialogRPGObject : UIPanelBase {
             panelContainer.Show();
         }
 
+        // The container is not the only switch above the bot (iter 33, owner: "the health bars
+        // overlay where you buy recharges should have the model there like before"). In Health,
+        // AnchorCenter/Center sits inactive between the container and RotatorContainer, so the bot
+        // was staged and bound but never active in the hierarchy: an empty RenderTexture and a
+        // disabled stage camera. Every inactive ancestor of a kept root goes ON, recorded for the
+        // restore.
+        ShowToolkitKeptAncestors(toolkitBotRoot);
+        ShowToolkitKeptAncestors(toolkitCoinRoot);
+
         return true;
+    }
+
+    private void ShowToolkitKeptAncestors(GameObject root) {
+
+        if(root == null) {
+            return;
+        }
+
+        for(Transform t = root.transform.parent;
+            t != null && t != panelContainer.transform;
+            t = t.parent) {
+
+            if(!t.gameObject.activeSelf) {
+                t.gameObject.SetActive(true);
+
+                if(!toolkitShownAncestors.Contains(t.gameObject)) {
+                    toolkitShownAncestors.Add(t.gameObject);
+                }
+            }
+        }
     }
 
     protected virtual void SetToolkitLegacy3DActive(bool active) {
@@ -620,6 +651,15 @@ public class UIPanelDialogRPGObject : UIPanelBase {
         }
 
         toolkitHiddenLegacy.Clear();
+
+        for(int i = 0; i < toolkitShownAncestors.Count; i++) {
+
+            if(toolkitShownAncestors[i] != null) {
+                toolkitShownAncestors[i].SetActive(false);
+            }
+        }
+
+        toolkitShownAncestors.Clear();
 
         if(toolkitBotRoot != null) {
             toolkitBotRoot.SetActive(toolkitBotWasActive);
@@ -720,7 +760,8 @@ public class UIPanelDialogRPGObject : UIPanelBase {
             return;
         }
 
-        if(panelContainer != null && !panelContainer.activeSelf) {
+        if((panelContainer != null && !panelContainer.activeSelf)
+            || (toolkitBotRoot != null && toolkitBotRoot.activeSelf && !toolkitBotRoot.activeInHierarchy)) {
             ApplyToolkitLegacySuppression();
         }
 
