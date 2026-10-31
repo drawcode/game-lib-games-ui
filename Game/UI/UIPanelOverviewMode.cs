@@ -1000,11 +1000,29 @@ public class UIPanelOverviewMode : UIPanelBase {
     public static float vsPlayerYaw = 155f;
     public static float vsEnemyYaw = 205f;
 
+    // Owner, 2026-10-31: "the enemies should be standing together more so you can see them teamed
+    // up". One snapshot of all the level's enemy types in a formation - the first at the front
+    // centre, the rest flanking it a step behind, overlapping a little - at their real relative
+    // sizes, instead of one tile per type, each fitted to fill its own cell (which spread them over
+    // a 2 x 2 grid and drew a marine at a third of a dog's height). Kill switch: false restores the
+    // tiles. vsGroupOverlap is how much of the average width neighbours share; vsGroupDepth is how
+    // far behind the flankers stand, as a share of the average depth; vsGroupLift raises them by a
+    // share of the average height, like a back row in a team photo, so the group uses more of the
+    // square picture than one row would.
+    public static bool vsEnemyGroupEnabled = true;
+    public static float vsGroupOverlap = .45f;
+    public static float vsGroupDepth = .6f;
+    public static float vsGroupLift = .2f;
+    public static int vsGroupSnapshotSize = 384;
+
     const string elementVsPlayerImage = "VsPlayerImage";
     const string elementVsEnemies = "VsEnemies";
     const string vsEnemyElementPrefix = "VsEnemy";
     const string vsEnemiesOneClass = "ovm-vs-enemies--one";
     const string vsEnemiesThreeClass = "ovm-vs-enemies--three";
+    const string vsEnemiesGroupClass = "ovm-vs-enemies--group";
+    const string vsEnemyGroupSnapshotPrefix = "vs-enemies:";
+    const char vsEnemyGroupSeparator = '+';
     const string vsPlayerSnapshotPrefix = "vs-player:";
 
     static readonly string[] vsLegacyElements = {
@@ -1017,6 +1035,7 @@ public class UIPanelOverviewMode : UIPanelBase {
     private int vsCardGeneration;
     private string vsPlayerSnapshotCode;
     private Engine.UI.UIRenderSnapshot vsSnapshots;
+    private Engine.UI.UIRenderSnapshot vsGroupSnapshots;
 
     private int TipsSlideCount() {
 
@@ -1129,8 +1148,17 @@ public class UIPanelOverviewMode : UIPanelBase {
 
         UIRef enemiesGroup = UIUtil.ResolveDeep(viewRoot, elementVsEnemies);
         UIUtil.ShowObject(enemiesGroup);
+
+        bool group = vsEnemyGroupEnabled && enemies.Count > 1;
+
         UIUtil.SetClass(enemiesGroup, vsEnemiesOneClass, enemies.Count == 1);
-        UIUtil.SetClass(enemiesGroup, vsEnemiesThreeClass, enemies.Count == 3);
+        UIUtil.SetClass(enemiesGroup, vsEnemiesThreeClass, !group && enemies.Count == 3);
+        UIUtil.SetClass(enemiesGroup, vsEnemiesGroupClass, group);
+
+        if(group) {
+            FillVsEnemyGroup(enemies, generation);
+            return;
+        }
 
         for(int i = 0; i < vsEnemyMax; i++) {
 
@@ -1154,6 +1182,163 @@ public class UIPanelOverviewMode : UIPanelBase {
         }
     }
 
+    // The whole enemy side as one picture in the first slot; the other slots stay hidden.
+    private void FillVsEnemyGroup(List<string> enemies, int generation) {
+
+        if(vsGroupSnapshots == null) {
+            vsGroupSnapshots = new Engine.UI.UIRenderSnapshot();
+            vsGroupSnapshots.width = vsGroupSnapshotSize;
+            vsGroupSnapshots.height = vsGroupSnapshotSize;
+        }
+
+        for(int i = 1; i < vsEnemyMax; i++) {
+            UIUtil.HideObject(UIUtil.ResolveDeep(viewRoot, vsEnemyElementPrefix + (i + 1)));
+        }
+
+        string slotName = vsEnemyElementPrefix + 1;
+        UIRef slot = UIUtil.ResolveDeep(viewRoot, slotName);
+        UIUtil.ClearImageTexture(slot);
+        UIUtil.ShowObject(slot);
+
+        string code = vsEnemyGroupSnapshotPrefix + string.Join(vsEnemyGroupSeparator.ToString(), enemies);
+
+        vsGroupSnapshots.Request(code, SpawnVsEnemyGroup, (c, texture) => {
+            if(generation == vsCardGeneration && texture != null && viewRoot != null && viewRoot.alive) {
+                UIUtil.SetImageTexture(UIUtil.ResolveDeep(viewRoot, slotName), texture);
+            }
+        });
+    }
+
+    // The stage camera looks along +Z with Y up, so x is across the picture and +z is away from
+    // the camera. Positions come from each model's fitted bounds, so a dog and a marine stand at
+    // the spacing their real widths need.
+    static GameObject SpawnVsEnemyGroup(GameObject parent, string code) {
+
+        string[] codes = code.Substring(vsEnemyGroupSnapshotPrefix.Length).Split(vsEnemyGroupSeparator);
+
+        GameObject formation = new GameObject("vs-enemy-group");
+        formation.transform.parent = parent.transform;
+        formation.transform.localPosition = Vector3.zero;
+
+        List<GameObject> models = new List<GameObject>();
+        List<Bounds> bounds = new List<Bounds>();
+
+        foreach(string characterCode in codes) {
+
+            GameObject go = SpawnVsModel(formation, characterCode, vsEnemyYaw);
+
+            if(go == null) {
+                continue;
+            }
+
+            // The body only: particles and flat renderers (blob shadows) are dropped from the
+            // render anyway (UIRenderSnapshot.skipFlatRenderers), and a wide blob would space the
+            // models apart.
+            bool found = false;
+            Bounds b = new Bounds();
+
+            foreach(Renderer r in go.GetComponentsInChildren<Renderer>(true)) {
+
+                if(r is ParticleSystemRenderer) {
+                    continue;
+                }
+
+                Bounds rb = DrawnBounds(r);
+                Vector3 size = rb.size;
+
+                if(size.y < .1f * Mathf.Max(size.x, size.z)) {
+                    continue;
+                }
+
+                if(found) {
+                    b.Encapsulate(rb);
+                }
+                else {
+                    b = rb;
+                    found = true;
+                }
+            }
+
+            if(!found) {
+                UnityEngine.Object.Destroy(go);
+                continue;
+            }
+
+            models.Add(go);
+            bounds.Add(b);
+        }
+
+        if(models.Count == 0) {
+            UnityEngine.Object.Destroy(formation);
+            return null;
+        }
+
+        float width = 0f;
+        float depth = 0f;
+        float height = 0f;
+
+        foreach(Bounds b in bounds) {
+            width += b.size.x;
+            depth += b.size.z;
+            height += b.size.y;
+        }
+
+        width /= bounds.Count;
+        depth /= bounds.Count;
+        height /= bounds.Count;
+
+        float step = width * (1f - vsGroupOverlap);
+
+        // 0 front centre; then left, right, further left: 1 -> -1, 2 -> +1, 3 -> -2.
+        for(int i = 0; i < models.Count; i++) {
+
+            int ring = (i + 1) / 2;
+            float side = i % 2 == 1 ? -1f : 1f;
+            float x = ring * side * step;
+            float y = i == 0 ? 0f : height * vsGroupLift;
+            float z = i == 0 ? 0f : depth * vsGroupDepth;
+
+            // Move the model's bounds centre (x), feet (y) and front face (z) onto its spot.
+            Vector3 spot = formation.transform.position + new Vector3(x, y, z);
+            models[i].transform.position += new Vector3(
+                spot.x - bounds[i].center.x, spot.y - bounds[i].min.y, spot.z - bounds[i].min.z);
+        }
+
+        return formation;
+    }
+
+    // What the renderer draws in its current pose, in world space: the stage frames this (the
+    // UIRenderStage.PosedBounds rule), and a skinned renderer's own bounds hold every pose of the
+    // rig, which spaced the models apart.
+    static Bounds DrawnBounds(Renderer r) {
+
+        SkinnedMeshRenderer smr = r as SkinnedMeshRenderer;
+
+        if(smr == null || smr.sharedMesh == null) {
+            return r.bounds;
+        }
+
+        Mesh baked = new Mesh();
+        smr.BakeMesh(baked, true);
+
+        Bounds local = baked.bounds;
+        UnityEngine.Object.Destroy(baked);
+
+        Transform t = smr.transform;
+        Vector3 c = local.center;
+        Vector3 e = local.extents;
+        Bounds world = new Bounds(t.TransformPoint(c - e), Vector3.zero);
+
+        for(int i = 1; i < 8; i++) {
+            world.Encapsulate(t.TransformPoint(c + new Vector3(
+                (i & 1) == 0 ? -e.x : e.x,
+                (i & 2) == 0 ? -e.y : e.y,
+                (i & 4) == 0 ? -e.z : e.z)));
+        }
+
+        return world;
+    }
+
     private void ReleaseVsCard() {
 
         vsCardFilled = false;
@@ -1162,6 +1347,10 @@ public class UIPanelOverviewMode : UIPanelBase {
 
         if(vsSnapshots != null) {
             vsSnapshots.Clear();
+        }
+
+        if(vsGroupSnapshots != null) {
+            vsGroupSnapshots.Clear();
         }
     }
 
