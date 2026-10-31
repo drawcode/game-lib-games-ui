@@ -46,9 +46,10 @@ public class UIPanelDialogEditItemsFilter {
 	// (character-bot-1/-2, character-zombie-1) cannot become an actor and stays unplaceable.
 	public static List<string> placeableKeys = new List<string> { levelAssets, levelAssetsHide };
 
-	// Tab order; a key not listed gets its own tab after these.
+	// Tab order; a key not listed gets its own tab after these, and ALL comes last. LEVEL leads
+	// and is the default tab (owner, 2026-10-31): level assets are what gets placed most.
 	public static List<string> groupOrder = new List<string> {
-		Engine.Game.Data.BaseDataObjectKeys.characters, groupLevel, "weapon", "item", "indicator",
+		groupLevel, Engine.Game.Data.BaseDataObjectKeys.characters, "weapon", "item", "indicator",
 		effects, "audio-mp3", "world", "ui" };
 
 	public static Dictionary<string, string> groupLabelKeys = new Dictionary<string, string> {
@@ -592,7 +593,9 @@ public class UIPanelDialogEditItems : UIAppPanelBaseList {
     public const string thumbIconClass = "lei-thumb-icon";
 
     // The selected type tab (a group from UIPanelDialogEditItemsFilter.GroupOf, or "all").
-    public string typeTab = UIPanelDialogEditItemsFilter.all;
+    // NonSerialized: as a serialized field the prefab's saved "all" replaced this default.
+    [NonSerialized]
+    public string typeTab = UIPanelDialogEditItemsFilter.groupLevel;
 
     // Off by default: the create picker lists only what the editor can place.
     public bool showUnplaceable = false;
@@ -634,8 +637,6 @@ public class UIPanelDialogEditItems : UIAppPanelBaseList {
             }
         }
 
-        tabGroups.Add(UIPanelDialogEditItemsFilter.all);
-
         foreach(string group in UIPanelDialogEditItemsFilter.groupOrder) {
             if(present.Contains(group)) {
                 tabGroups.Add(group);
@@ -648,9 +649,11 @@ public class UIPanelDialogEditItems : UIAppPanelBaseList {
             }
         }
 
-        // A tab whose rows were just hidden (unplaceable switched off) falls back to ALL.
+        tabGroups.Add(UIPanelDialogEditItemsFilter.all);
+
+        // A tab whose rows were just hidden (unplaceable switched off) falls back to the first.
         if(!tabGroups.Contains(typeTab)) {
-            typeTab = UIPanelDialogEditItemsFilter.all;
+            typeTab = tabGroups[0];
         }
 
         for(int i = 0; i < tabGroups.Count; i++) {

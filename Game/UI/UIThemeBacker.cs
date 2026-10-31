@@ -18,9 +18,34 @@ public static class UIThemeBacker {
 
     public static bool enabled = true;
 
+    // The start-up stays black (owner, 2026-10-31: "red backer is what we want ... but on the
+    // Drawlabs brand logo and start up we want it black"): the boot scene (build index 0, the
+    // loader) clears black, and the theme colour takes over from the first scene loaded after it.
+    // The brand-logo splash is Player Settings' splash background, set black alongside this.
+    public static bool startupBlack = true;
+    public static int startupSceneBuildIndex = 0;
+
+    static bool inStartup = true;
+
+    // Quads painted black during start-up, repainted in the theme colour when it ends (the
+    // Backgrounds panel outlives the boot scene).
+    static readonly List<GameObject> startupQuads = new List<GameObject>();
+
+    // Domain reload is off in the Editor: a second play session must start black again.
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+    static void ResetStatics() {
+        inStartup = true;
+        startupQuads.Clear();
+    }
+
     static readonly List<Camera> cameras = new List<Camera>();
 
     public static bool TryGetColor(out Color color) {
+
+        if (enabled && startupBlack && inStartup) {
+            color = Color.black;
+            return true;
+        }
 
         color = AppColors.GetColor(colorCode);
 
@@ -31,9 +56,24 @@ public static class UIThemeBacker {
     static void RegisterSceneHook() {
         SceneManager.sceneLoaded -= OnSceneLoaded;
         SceneManager.sceneLoaded += OnSceneLoaded;
+
+        // The first scene loaded before this hook existed, so paint it now.
+        ApplyCameras();
     }
 
     static void OnSceneLoaded(Scene scene, LoadSceneMode mode) {
+
+        if (inStartup && scene.buildIndex != startupSceneBuildIndex) {
+
+            inStartup = false;
+
+            foreach (GameObject go in startupQuads) {
+                ApplyQuad(go);
+            }
+
+            startupQuads.Clear();
+        }
+
         ApplyCameras();
     }
 
@@ -74,6 +114,10 @@ public static class UIThemeBacker {
 
         if (go == null || !TryGetColor(out color)) {
             return;
+        }
+
+        if (inStartup && startupBlack && !startupQuads.Contains(go)) {
+            startupQuads.Add(go);
         }
 
         foreach (Engine.UI.UIQuadSprite quad in go.GetComponentsInChildren<Engine.UI.UIQuadSprite>(true)) {
