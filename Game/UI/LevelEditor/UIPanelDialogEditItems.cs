@@ -77,7 +77,55 @@ public class UIPanelDialogEditItemsFilter {
 
 	public static string defaultIcon = "spr-icon-help-64";
 
+	// Extra catalog key -> group map, consulted by GroupOf before the built-in mapping. Empty by
+	// default (Action Bots adds nothing); a game fills it through AddGroup.
+	public static Dictionary<string, string> keyGroups = new Dictionary<string, string>();
+
+	// One call per game-specific catalog key: its tab (group, label loc key, fallback icon), its
+	// tab position (after `afterGroup`, or at the end when that group is not listed) and whether
+	// the create picker may place it (EditModeCreateAsset loads the code from the level-asset
+	// prefab folder, so placeable keys must name level-asset prefabs). Idempotent.
+	public static void AddGroup(
+		string assetKey, string group, string labelKey, string icon, bool placeable, string afterGroup) {
+
+		if(string.IsNullOrEmpty(assetKey) || string.IsNullOrEmpty(group)) {
+			return;
+		}
+
+		keyGroups[assetKey] = group;
+
+		if(!groupOrder.Contains(group)) {
+
+			int after = string.IsNullOrEmpty(afterGroup) ? -1 : groupOrder.IndexOf(afterGroup);
+
+			if(after >= 0) {
+				groupOrder.Insert(after + 1, group);
+			}
+			else {
+				groupOrder.Add(group);
+			}
+		}
+
+		if(!string.IsNullOrEmpty(labelKey)) {
+			groupLabelKeys[group] = labelKey;
+		}
+
+		if(!string.IsNullOrEmpty(icon)) {
+			groupIcons[group] = icon;
+		}
+
+		if(placeable && !placeableKeys.Contains(assetKey)) {
+			placeableKeys.Add(assetKey);
+		}
+	}
+
 	public static string GroupOf(string assetKey) {
+
+		string mapped;
+
+		if(assetKey != null && keyGroups.TryGetValue(assetKey, out mapped)) {
+			return mapped;
+		}
 
 		if(assetKey == levelAssets || assetKey == levelAssetsHide) {
 			return groupLevel;
