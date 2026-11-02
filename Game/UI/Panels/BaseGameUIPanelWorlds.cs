@@ -394,11 +394,25 @@ public class BaseGameUIPanelWorlds : GameUIPanelBase {
         string appContentState = AppContentStates.Current.code;
         string appState = AppStates.Current.code;
 
-        // unlocked for the current bot, plus the next "more to come" teasers (content gating)
+        // the open mission sets (P4: the next opens at 2 of 3 done), then unlocked for the current
+        // bot plus the next "more to come" teasers (content gating), then the next set, locked
         List<AppContentCollect> teasers = new List<AppContentCollect>();
+        List<AppContentCollect> nextSet = new List<AppContentCollect>();
 
-        foreach(AppContentCollect mission in GameContentGate.Visible(
-                 AppContentCollects.GetMissionsByWorld(worldCode), teasers)) {
+        List<AppContentCollect> rows = GameContentGate.Visible(
+            GameContentGate.OpenMissionSets(
+                AppContentCollects.GetMissionsByWorld(worldCode),
+                m => IsMissionDone(m, appState, appContentState, worldCode),
+                nextSet),
+            teasers);
+
+        foreach(AppContentCollect mission in nextSet) {
+            if(!GameContentGate.IsHiddenTest(mission)) {
+                rows.Add(mission);
+            }
+        }
+
+        foreach(AppContentCollect mission in rows) {
 
             double scoreMission = 0;
 
@@ -416,6 +430,13 @@ public class BaseGameUIPanelWorlds : GameUIPanelBase {
 
             if(teasers.Contains(mission)) {
                 SetMissionTeaserToolkit(item);
+                i++;
+                continue;
+            }
+
+            if(nextSet.Contains(mission)) {
+                SetMissionTeaserToolkit(item, L10n.TrOrDefault("game_ui_worlds_set_locked",
+                    "Complete {0} missions to unlock", GameContentGate.setOpenCount));
                 i++;
                 continue;
             }
@@ -468,9 +489,32 @@ public class BaseGameUIPanelWorlds : GameUIPanelBase {
         }
     }
 
+    // A mission's first goal is done in this world (its first star, as the row shows it): what a
+    // mission set counts toward opening the next (P4).
+    public virtual bool IsMissionDone(AppContentCollect mission, string appState, string appContentState, string worldCode) {
+
+        List<AppContentCollectItem> actions = mission.GetItemsData();
+
+        if(actions == null || actions.Count == 0) {
+            return false;
+        }
+
+        string collectKey = GameProfileModes.GetAppContentCollectItemKey(
+            appState, appContentState, worldCode, BaseDataObjectKeys.all, mission.code, actions[0].uid);
+
+        return GameProfileModes.Current.GetContentCollectValue<bool>(
+            BaseDataObjectKeys.mission, collectKey, BaseDataObjectKeys.complete);
+    }
+
     // A locked mission: greyed, "more to come" in place of its actions, and a play tile that
     // carries no play payload and takes no input (opacity alone still clicks).
     public virtual void SetMissionTeaserToolkit(Engine.UI.UIRef item) {
+        SetMissionTeaserToolkit(item, L10n.TrOrDefault("game_ui_worlds_more_to_come", "More to come"));
+    }
+
+    // The same, with the line it shows in place of the actions (a locked mission set says how
+    // it opens).
+    public virtual void SetMissionTeaserToolkit(Engine.UI.UIRef item, string label) {
 
         UIUtil.SetClass(item, "wm-row--teaser", true);
 
@@ -478,8 +522,7 @@ public class BaseGameUIPanelWorlds : GameUIPanelBase {
 
         UIUtil.ShowObject(actionRow);
         UIUtil.HideObject(UIUtil.ResolveDeep(actionRow, "StarWrap"));
-        UIUtil.UpdateLabelObject(actionRow, "LabelDescription",
-            L10n.TrOrDefault("game_ui_worlds_more_to_come", "More to come"));
+        UIUtil.UpdateLabelObject(actionRow, "LabelDescription", label);
 
         UIUtil.HideObject(UIUtil.ResolveDeep(item, "SummaryStars"));
         UIUtil.UpdateLabelObject(item, "LabelScore", "");
