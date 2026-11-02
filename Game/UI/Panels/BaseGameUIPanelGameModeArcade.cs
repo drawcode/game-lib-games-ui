@@ -163,8 +163,16 @@ public class BaseGameUIPanelGameModeArcade : GameUIPanelBase {
 
         int i = 0;
 
-        foreach(AppContentCollect row in GameContentGate.Visible(
-                 AppContentCollects.GetByTypeAndWorld(GameArcadeLevelKeys.arcade, worldCode), teasers)) {
+        // a row behind a FeatureGates key that is off (zombie waves, P5) is not listed at all
+        List<AppContentCollect> rows = new List<AppContentCollect>();
+
+        foreach(AppContentCollect row in AppContentCollects.GetByTypeAndWorld(GameArcadeLevelKeys.arcade, worldCode)) {
+            if(!GameArcadeLevels.IsGatedOff(row)) {
+                rows.Add(row);
+            }
+        }
+
+        foreach(AppContentCollect row in GameContentGate.Visible(rows, teasers)) {
 
             Engine.UI.UIRef item = UIUtil.AddListItem(
                 viewRoot, listArcade, listItemTemplate, "ArcadeItem" + i);
