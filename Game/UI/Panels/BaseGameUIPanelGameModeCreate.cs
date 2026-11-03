@@ -14,6 +14,11 @@ using Engine.Game.App.BaseApp;
 //                world, entered to edit (BaseUIController's play branch, GameLevelCodes)
 //   MY LEVELS  - one row per SAVED created level (GameLevelCodes.ListCreated, newest first); the
 //                row's button is renamed ButtonGameModePlayEditLevel$<code>, which reopens it
+//   row name   - (iter 45) a delayed TextField: the player's name for the level, kept in its
+//                saved file (GameLevelCodes.RenameCreated); cleared, it reads WORLD x - LEVEL y
+//   DELETE     - (iter 45) ButtonGameModeCreateDelete$<code>, tap again within
+//                deleteConfirmSeconds to remove the level for good (the profile strip's pattern
+//                and strings)
 //
 // UI Toolkit only (no NGUI counterpart: new work, not a migration). The view is the bitty JSON
 // panel-game-mode-create.json; rows come from its CreateLevelItemTemplate.
@@ -23,6 +28,20 @@ public class BaseGameUIPanelGameModeCreate : GameUIPanelBase {
 
     public static string listCreateLevels = "CreateLevelList";
     public static string listItemTemplate = "CreateLevelItemTemplate";
+
+    public static string buttonDelete = "ButtonGameModeCreateDelete";
+    // not plain "InputName": a TextField change is broadcast by element name, and the level
+    // editor's META dialog has one
+    public static string elementInputName = "InputCreateLevelName";
+    public static string elementLabelDelete = "LabelDelete";
+
+    public static string locDelete = "game_ui_settings_profiles_delete";
+    public static string locDeleteConfirm = "game_ui_settings_profiles_tap_again_to_delete";
+
+    public float deleteConfirmSeconds = 3f;
+
+    // the row armed by a first DELETE tap, or null
+    string deleteArmed;
 
     public static bool isInst {
         get {
@@ -47,38 +66,105 @@ public class BaseGameUIPanelGameModeCreate : GameUIPanelBase {
         loadData();
     }
 
+    // Chains to UIPanelBase, which subscribes the click bus (DELETE) and the animate messages. The
+    // panel used to add the animate listeners itself without chaining, so it never heard a click.
     public override void OnEnable() {
-
-        Messenger<string>.AddListener(
-            UIControllerMessages.uiPanelAnimateIn,
-            OnUIControllerPanelAnimateIn);
-
-        Messenger<string>.AddListener(
-            UIControllerMessages.uiPanelAnimateOut,
-            OnUIControllerPanelAnimateOut);
-
-        Messenger<string, string>.AddListener(
-            UIControllerMessages.uiPanelAnimateType,
-            OnUIControllerPanelAnimateType);
+        base.OnEnable();
     }
 
     public override void OnDisable() {
 
-        Messenger<string>.RemoveListener(
-            UIControllerMessages.uiPanelAnimateIn,
-            OnUIControllerPanelAnimateIn);
-
-        Messenger<string>.RemoveListener(
-            UIControllerMessages.uiPanelAnimateOut,
-            OnUIControllerPanelAnimateOut);
-
-        Messenger<string, string>.RemoveListener(
-            UIControllerMessages.uiPanelAnimateType,
-            OnUIControllerPanelAnimateType);
+        DisarmDelete();
 
         // Chain to base so UIPanelBase.OnDisable -> FreeToolkitView runs when this panel is
         // pooled away.
         base.OnDisable();
+    }
+
+    public override void OnButtonClickEventHandler(string buttonName) {
+
+        base.OnButtonClickEventHandler(buttonName);
+
+        if(UIUtil.IsButtonClickedLike(buttonDelete + "$", buttonName)) {
+            Delete(buttonName.Substring(buttonName.IndexOf('$') + 1));
+        }
+    }
+
+    // First tap arms the row (its label asks for a second); a second tap on the same row within
+    // deleteConfirmSeconds deletes the level and rebuilds the list.
+    public virtual void Delete(string code) {
+
+        if(deleteArmed != code) {
+
+            DisarmDelete();
+
+            deleteArmed = code;
+            SetDeleteLabel(code, locDeleteConfirm);
+
+            CancelInvoke("DisarmDelete");
+            Invoke("DisarmDelete", deleteConfirmSeconds);
+            return;
+        }
+
+        CancelInvoke("DisarmDelete");
+        deleteArmed = null;
+
+        GameLevelCodes.DeleteCreated(code);
+
+        loadData();
+    }
+
+    void DisarmDelete() {
+
+        CancelInvoke("DisarmDelete");
+
+        if(deleteArmed != null) {
+            SetDeleteLabel(deleteArmed, locDelete);
+            deleteArmed = null;
+        }
+    }
+
+    void SetDeleteLabel(string code, string key) {
+
+        if(!isToolkitPanel) {
+            return;
+        }
+
+        Engine.UI.UIRef button = UIUtil.ResolveDeep(viewRoot, buttonDelete + "$" + code);
+
+        if(button.alive) {
+            UIUtil.SetLabelValue(UIUtil.ResolveDeep(button, elementLabelDelete), Locos.Get(key));
+        }
+    }
+
+    // The name a row shows: the player's, else WORLD x - LEVEL y.
+    public static string RowName(string code, int world, int level) {
+
+        string name = GameLevelCodes.CreatedName(code);
+
+        if(!string.IsNullOrEmpty(name)) {
+            return name;
+        }
+
+        return L10n.TrOrDefault("game_ui_create_level_row", "WORLD {0} - LEVEL {1}", world, level);
+    }
+
+    public virtual void Rename(string code, string name, Engine.UI.UIRef input, int world, int level) {
+
+        string fallback = L10n.TrOrDefault("game_ui_create_level_row", "WORLD {0} - LEVEL {1}", world, level);
+
+        string trimmed = string.IsNullOrEmpty(name) ? "" : name.Trim();
+
+        // committing the default text unchanged is not a name
+        if(trimmed == fallback) {
+            trimmed = "";
+        }
+
+        GameLevelCodes.RenameCreated(code, trimmed);
+
+        if(trimmed.Length == 0) {
+            UIUtil.SetInputValue(input, fallback);
+        }
     }
 
     public override void OnUIControllerPanelAnimateIn(string classNameTo) {
@@ -144,6 +230,8 @@ public class BaseGameUIPanelGameModeCreate : GameUIPanelBase {
         UIUtil.UpdateLabelObject(viewRoot, "LabelNewWorld",
             L10n.TrOrDefault("game_ui_create_in_world", "IN WORLD {0}", worldNum));
 
+        DisarmDelete();
+
         UIUtil.ClearListItems(viewRoot, listCreateLevels);
 
         List<string> codes = GameLevelCodes.ListCreated();
@@ -160,13 +248,21 @@ public class BaseGameUIPanelGameModeCreate : GameUIPanelBase {
             Engine.UI.UIRef item = UIUtil.AddListItem(
                 viewRoot, listCreateLevels, listItemTemplate, "CreateLevelItem" + i);
 
-            UIUtil.UpdateLabelObject(item, "LabelName",
-                L10n.TrOrDefault("game_ui_create_level_row", "WORLD {0} - LEVEL {1}", world, level));
+            string code = codes[i];
 
-            // the click bus carries only the element name, so the row's button carries the code
+            // value first, handler after: setting the text must not commit it as a name
+            Engine.UI.UIRef input = UIUtil.ResolveDeep(item, elementInputName);
+            UIUtil.SetInputValue(input, RowName(code, world, level));
+            Engine.UI.UIInputChange.SetInputHandlerChange(
+                input, value => Rename(code, value, input, world, level));
+
+            // the click bus carries only the element name, so the row's buttons carry the code
             UIUtil.SetElementName(
                 UIUtil.ResolveDeep(item, "ButtonAction"),
-                BaseUIButtonNames.buttonGameModePlayEditLevel + "$" + codes[i]);
+                BaseUIButtonNames.buttonGameModePlayEditLevel + "$" + code);
+
+            UIUtil.SetElementName(
+                UIUtil.ResolveDeep(item, "ButtonDelete"), buttonDelete + "$" + code);
         }
 
         Engine.UI.UIRef empty = UIUtil.ResolveDeep(viewRoot, "LabelEmpty");
