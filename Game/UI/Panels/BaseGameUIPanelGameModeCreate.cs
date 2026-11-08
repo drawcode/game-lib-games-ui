@@ -150,6 +150,10 @@ public class BaseGameUIPanelGameModeCreate : GameUIPanelBase {
     }
 
     public virtual void Rename(string code, string name, Engine.UI.UIRef input, int world, int level) {
+        RenameRow(code, name, input, world, level);
+    }
+
+    public static void RenameRow(string code, string name, Engine.UI.UIRef input, int world, int level) {
 
         string fallback = L10n.TrOrDefault("game_ui_create_level_row", "WORLD {0} - LEVEL {1}", world, level);
 
@@ -234,40 +238,11 @@ public class BaseGameUIPanelGameModeCreate : GameUIPanelBase {
 
         UIUtil.ClearListItems(viewRoot, listCreateLevels);
 
-        List<string> codes = GameLevelCodes.ListCreated();
-
-        for(int i = 0; i < codes.Count; i++) {
-
-            int world;
-            int level;
-
-            if(!GameLevelCodes.TryParseCreated(codes[i], out world, out level)) {
-                continue;
-            }
-
-            Engine.UI.UIRef item = UIUtil.AddListItem(
-                viewRoot, listCreateLevels, listItemTemplate, "CreateLevelItem" + i);
-
-            string code = codes[i];
-
-            // value first, handler after: setting the text must not commit it as a name
-            Engine.UI.UIRef input = UIUtil.ResolveDeep(item, elementInputName);
-            UIUtil.SetInputValue(input, RowName(code, world, level));
-            Engine.UI.UIInputChange.SetInputHandlerChange(
-                input, value => Rename(code, value, input, world, level));
-
-            // the click bus carries only the element name, so the row's buttons carry the code
-            UIUtil.SetElementName(
-                UIUtil.ResolveDeep(item, "ButtonAction"),
-                BaseUIButtonNames.buttonGameModePlayEditLevel + "$" + code);
-
-            UIUtil.SetElementName(
-                UIUtil.ResolveDeep(item, "ButtonDelete"), buttonDelete + "$" + code);
-        }
+        int added = GameWorldsListRows.FillCreated(viewRoot, listCreateLevels, listItemTemplate, buttonDelete, 0);
 
         Engine.UI.UIRef empty = UIUtil.ResolveDeep(viewRoot, "LabelEmpty");
 
-        if(codes.Count == 0) {
+        if(added == 0) {
             UIUtil.ShowObject(empty);
         }
         else {
