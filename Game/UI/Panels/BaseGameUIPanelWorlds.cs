@@ -50,6 +50,22 @@ public class BaseGameUIPanelWorlds : GameUIPanelBase {
     //
     public GameWorldsState gameWorldsState = GameWorldsState.selection;
 
+    // the list's row templates in the view, past the missions one (GameWorldsList)
+    public static string listWorld = "WorldMissionList";
+    public static string templateArcade = "WorldArcadeItemTemplate";
+    public static string templateCreated = "WorldCreateItemTemplate";
+    public static string templateCreateNew = "WorldCreateNewTemplate";
+    public static string templateCreateEmpty = "WorldCreateEmptyTemplate";
+
+    // not the CREATE screen's button name: that panel may still be listening, and one tap must
+    // not count as both of the two a delete takes
+    public static string buttonDeleteCreated = "ButtonGameWorldsCreateDelete";
+
+    GameWorldsListKind listButtonLabelKind = GameWorldsListKind.missions;
+
+    // the created row armed by a first DELETE tap, or null
+    string deleteArmed;
+
     //
     public GameObject containerMissions;
     public GameObject containerButtons;
@@ -197,11 +213,34 @@ public class BaseGameUIPanelWorlds : GameUIPanelBase {
         if(isToolkitPanel) {
             UIUtil.UpdateLabelObject(viewRoot, "LabelTitle", GameWorlds.Current.display_name);
             UIUtil.UpdateLabelObject(viewRoot, "LabelDescription", GameWorlds.Current.description);
+            UpdateListButtonLabel();
             return;
         }
 
         UIUtil.SetLabelValue(labelWorldTitle, GameWorlds.Current.display_name);
         UIUtil.SetLabelValue(labelWorldDescription, GameWorlds.Current.description);
+    }
+
+    // The select tile names what it opens. The view's own text is the missions wording, so a game
+    // that stays on missions never writes it.
+    public virtual void UpdateListButtonLabel() {
+
+        if(GameWorldsList.kind == listButtonLabelKind) {
+            return;
+        }
+
+        listButtonLabelKind = GameWorldsList.kind;
+
+        string key = "game_ui_worlds_view_missions";
+
+        if(listButtonLabelKind == GameWorldsListKind.arcade) {
+            key = "game_ui_game_mode_arcade";
+        }
+        else if(listButtonLabelKind == GameWorldsListKind.created) {
+            key = "game_ui_create_my_levels";
+        }
+
+        UIUtil.UpdateLabelObject(viewRoot, "LabelView", Locos.Get(key));
     }
 
     public virtual void ChangeState(GameWorldsState stateTo) {
@@ -310,6 +349,56 @@ public class BaseGameUIPanelWorlds : GameUIPanelBase {
         else if(UIUtil.IsButtonClicked(buttonGamePlay, buttonName)) {
             Messenger.Broadcast(GameWorldsMessages.gameWorldSelect);
         }
+        else if(UIUtil.IsButtonClickedLike(buttonDeleteCreated + "$", buttonName)) {
+            DeleteCreated(buttonName.Substring(buttonName.IndexOf('$') + 1));
+        }
+    }
+
+    // First tap arms the row (its label asks for a second); a second tap on the same row within
+    // BaseGameUIPanelGameModeCreate's 3 seconds deletes the level and rebuilds the list.
+    public virtual void DeleteCreated(string code) {
+
+        if(deleteArmed != code) {
+
+            DisarmDelete();
+
+            deleteArmed = code;
+            SetDeleteLabel(code, BaseGameUIPanelGameModeCreate.locDeleteConfirm);
+
+            Invoke("DisarmDelete", 3f);
+            return;
+        }
+
+        CancelInvoke("DisarmDelete");
+        deleteArmed = null;
+
+        GameLevelCodes.DeleteCreated(code);
+
+        loadData();
+    }
+
+    void DisarmDelete() {
+
+        CancelInvoke("DisarmDelete");
+
+        if(deleteArmed != null) {
+            SetDeleteLabel(deleteArmed, BaseGameUIPanelGameModeCreate.locDelete);
+            deleteArmed = null;
+        }
+    }
+
+    void SetDeleteLabel(string code, string key) {
+
+        if(!isToolkitPanel) {
+            return;
+        }
+
+        Engine.UI.UIRef button = UIUtil.ResolveDeep(viewRoot, buttonDeleteCreated + "$" + code);
+
+        if(button.alive) {
+            UIUtil.SetLabelValue(
+                UIUtil.ResolveDeep(button, BaseGameUIPanelGameModeCreate.elementLabelDelete), Locos.Get(key));
+        }
     }
 
     public virtual void loadData() {
@@ -330,7 +419,7 @@ public class BaseGameUIPanelWorlds : GameUIPanelBase {
             }
 
             if(isToolkitPanel) {
-                loadDataMissionsToolkit();
+                loadDataListToolkit();
                 HandleStateChange();
                 yield break;
             }
@@ -382,6 +471,50 @@ public class BaseGameUIPanelWorlds : GameUIPanelBase {
     // world, mirroring loadDataMissions below — name/action rows/star states/score, and the
     // row's ButtonAction renamed to the $-encoded play payload (elements have no
     // GameObjectData, so the name carries it; BaseUIController's play handler parses it).
+    public virtual void loadDataListToolkit() {
+
+        if(GameWorldsList.kind == GameWorldsListKind.arcade) {
+            UpdateMetaLabels();
+            UIUtil.ClearListItems(viewRoot, listWorld);
+            GameWorldsListRows.FillArcade(viewRoot, listWorld, templateArcade);
+            UIUtil.ScrollToTop(UIUtil.ResolveDeep(viewRoot, listWorld), false);
+            return;
+        }
+
+        if(GameWorldsList.kind == GameWorldsListKind.created) {
+            UpdateMetaLabels();
+            loadDataCreatedToolkit();
+            return;
+        }
+
+        loadDataMissionsToolkit();
+    }
+
+    // NEW LEVEL, then this planet's created levels, or the "no levels yet" line.
+    public virtual void loadDataCreatedToolkit() {
+
+        int worldNum = GameWorlds.Current != null && GameWorlds.Current.data != null
+            ? GameWorlds.Current.data.world_num : 1;
+
+        DisarmDelete();
+
+        UIUtil.ClearListItems(viewRoot, listWorld);
+
+        Engine.UI.UIRef newRow = UIUtil.AddListItem(viewRoot, listWorld, templateCreateNew, "WorldCreateNew");
+
+        UIUtil.UpdateLabelObject(newRow, "LabelNewWorld",
+            L10n.TrOrDefault("game_ui_create_in_world", "IN WORLD {0}", worldNum));
+
+        int added = GameWorldsListRows.FillCreated(
+            viewRoot, listWorld, templateCreated, buttonDeleteCreated, worldNum);
+
+        if(added == 0) {
+            UIUtil.AddListItem(viewRoot, listWorld, templateCreateEmpty, "WorldCreateEmpty");
+        }
+
+        UIUtil.ScrollToTop(UIUtil.ResolveDeep(viewRoot, listWorld), false);
+    }
+
     public virtual void loadDataMissionsToolkit() {
 
         UpdateMetaLabels();
@@ -770,6 +903,12 @@ public class BaseGameUIPanelWorlds : GameUIPanelBase {
     public override void AnimateIn() {
 
         base.AnimateIn();
+
+        // a mode-select tile always starts on the planet picker
+        if(GameWorldsList.pickPlanet) {
+            GameWorldsList.pickPlanet = false;
+            gameWorldsState = GameWorldsState.selection;
+        }
 
         loadData();
     }

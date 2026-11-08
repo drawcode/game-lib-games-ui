@@ -151,7 +151,6 @@ public class BaseGameUIPanelGameModeArcade : GameUIPanelBase {
     public virtual void loadDataToolkit() {
 
         GameWorld world = GameWorlds.Current;
-        string worldCode = world != null ? world.code : null;
         int worldNum = world != null && world.data != null ? world.data.world_num : 1;
 
         UIUtil.UpdateLabelObject(viewRoot, "LabelWorld",
@@ -159,55 +158,7 @@ public class BaseGameUIPanelGameModeArcade : GameUIPanelBase {
 
         UIUtil.ClearListItems(viewRoot, listArcade);
 
-        List<AppContentCollect> teasers = new List<AppContentCollect>();
-
-        int i = 0;
-
-        // a row behind a FeatureGates key that is off (zombie waves, P5) is not listed at all
-        List<AppContentCollect> rows = new List<AppContentCollect>();
-
-        foreach(AppContentCollect row in AppContentCollects.GetByTypeAndWorld(GameArcadeLevelKeys.arcade, worldCode)) {
-            if(!GameArcadeLevels.IsGatedOff(row)) {
-                rows.Add(row);
-            }
-        }
-
-        foreach(AppContentCollect row in GameContentGate.Visible(rows, teasers)) {
-
-            Engine.UI.UIRef item = UIUtil.AddListItem(
-                viewRoot, listArcade, listItemTemplate, "ArcadeItem" + i);
-
-            i++;
-
-            UIUtil.UpdateLabelObject(item, "LabelName", row.display_name);
-
-            Engine.UI.UIRef play = UIUtil.ResolveDeep(item, "ButtonAction");
-
-            // locked: greyed, no play payload, no input (opacity alone still clicks)
-            if(teasers.Contains(row)) {
-                UIUtil.SetClass(item, "ar-row--teaser", true);
-                UIUtil.UpdateLabelObject(item, "LabelGoal",
-                    L10n.TrOrDefault("game_ui_worlds_more_to_come", "More to come"));
-                UIUtil.UpdateLabelObject(item, "LabelStage", "");
-                UIUtil.SetElementName(play, "ButtonActionTeaser");
-                UIUtil.SetElementEnabled(play, false);
-                continue;
-            }
-
-            int stage = GameArcadeLevels.Stage(row, worldCode);
-
-            GameArcadeLevels.ApplyGoal(row, stage);
-
-            List<AppContentCollectItem> actions = row.GetItemsData();
-
-            UIUtil.UpdateLabelObject(item, "LabelGoal",
-                actions.Count > 0 && actions[0].data != null ? actions[0].data.display_name : "");
-            UIUtil.UpdateLabelObject(item, "LabelStage",
-                L10n.TrOrDefault("game_ui_arcade_stage", "STAGE {0}", stage + 1));
-
-            UIUtil.SetElementName(play,
-                BaseUIButtonNames.buttonGamePlay + "$" + AppContentStateMeta.appContentStateGameArcade + "$" + row.code);
-        }
+        GameWorldsListRows.FillArcade(viewRoot, listArcade, listItemTemplate);
 
         UIUtil.ScrollToTop(UIUtil.ResolveDeep(viewRoot, listArcade), false);
     }
