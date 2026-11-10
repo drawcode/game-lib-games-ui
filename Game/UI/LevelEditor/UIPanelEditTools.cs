@@ -164,8 +164,8 @@ public class UIPanelEditTools : UIAppPanel, IUIPanelLevelEditorView {
 
         bool undo = GameDraggableEditor.resetUndoAvailable;
 
-        UIUtil.SetLabelValue(editorView.Resolve(elementLabelReset),
-            Locos.Get(undo ? locoUndo : locoReset));
+        // Registered, not pushed: the toolbar stays up across a language switch.
+        UIUtil.SetLabelLocalized(editorView.Resolve(elementLabelReset), undo ? locoUndo : locoReset);
         UIUtil.SetClass(editorView.Resolve(elementButtonReset), classResetUndo, undo);
     }
 

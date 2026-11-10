@@ -155,6 +155,14 @@ public class UIPanelDialogEditItemsFilter {
 		return group != null && groupIcons.TryGetValue(group, out icon) ? icon : defaultIcon;
 	}
 
+	// The locale key behind LabelOf, or null for a group that has none.
+	public static string LabelKeyOf(string group) {
+
+		string key;
+
+		return group != null && groupLabelKeys.TryGetValue(group, out key) ? key : null;
+	}
+
 	public static string LabelOf(string group) {
 
 		string key;
@@ -711,7 +719,15 @@ public class UIPanelDialogEditItems : UIAppPanelBaseList {
             Engine.UI.UIRef tab = UIUtil.AddListItem(
                 viewRoot, elementTabList, elementTabTemplate, buttonTabPrefix + group);
 
-            UIUtil.UpdateLabelObject(tab, elementTabLabel, UIPanelDialogEditItemsFilter.LabelOf(group));
+            string tabKey = UIPanelDialogEditItemsFilter.LabelKeyOf(group);
+
+            if(!string.IsNullOrEmpty(tabKey)) {
+                // Registered, not pushed: an open picker follows a language switch.
+                UIUtil.SetLabelLocalized(UIUtil.ResolveDeep(tab, elementTabLabel), tabKey);
+            }
+            else {
+                UIUtil.UpdateLabelObject(tab, elementTabLabel, UIPanelDialogEditItemsFilter.LabelOf(group));
+            }
             UIUtil.SetClass(tab, tabOnClass, group == typeTab);
         }
     }

@@ -232,7 +232,7 @@ public class UICustomizeProfileCharacters : UICustomizeSelectObject {
 
             if(index == -1) {
 
-                UIUtil.SetLabelValue(labelCurrentDisplayName, "Previous");
+                UIUtil.SetLabelValue(labelCurrentDisplayName, Engine.Game.App.BaseApp.L10n.Tr("game_ui_worlds_previous"));
                 UIUtil.SetLabelValue(labelCurrentType, "");
 
 
