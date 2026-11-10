@@ -25,6 +25,12 @@ public static class UIThemeBacker {
     public static bool startupBlack = true;
     public static int startupSceneBuildIndex = 0;
 
+    // What the start-up paints while startupBlack is on. Black by default; a game whose loader
+    // should already wear its theme sets its colour here before the first scene loads, because
+    // AppColors data is not loaded yet at boot (Action Bots, owner 2026-11-10: black brand-logo
+    // launch screen, red loader).
+    public static Color startupColor = Color.black;
+
     static bool inStartup = true;
 
     // Quads painted black during start-up, repainted in the theme colour when it ends (the
@@ -43,7 +49,7 @@ public static class UIThemeBacker {
     public static bool TryGetColor(out Color color) {
 
         if (enabled && startupBlack && inStartup) {
-            color = Color.black;
+            color = startupColor;
             return true;
         }
 
