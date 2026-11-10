@@ -125,7 +125,8 @@ public class UICustomizeTexturePresets : UICustomizeSelectObject {
 
                 GameCustomController.SaveCustomItem(currentProfileCustomItem);
 
-                SetCurrentDisplayName(preset.display_name);
+                SetCurrentDisplayName(Engine.Game.App.BaseApp.L10n.TrOrDefault(
+                    "game_texture_preset_" + preset.code.Replace('-', '_') + "_name", preset.display_name));
             }
         }
     }

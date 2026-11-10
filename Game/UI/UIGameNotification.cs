@@ -231,28 +231,28 @@ public class UIGameNotification
             UIUtil.SetLabelValue(labelScore, notificationItem.score);
 
             if(notificationItem.notificationType == GameNotificationType.Achievement) {
-                UIUtil.SetLabelValue(labelTitle, "ACHIEVEMENT");
+                UIUtil.SetLabelValue(labelTitle, Engine.Game.App.BaseApp.L10n.Tr("game_ui_notification_achievement"));
                 UIUtil.ShowLabel(labelScore);
                 if(iconObject != null) {
                     iconObject.Show();
                 }
             }
             else if(notificationItem.notificationType == GameNotificationType.Info) {
-                UIUtil.SetLabelValue(labelTitle, "INFORMATION");
+                UIUtil.SetLabelValue(labelTitle, Engine.Game.App.BaseApp.L10n.Tr("game_ui_notification_info"));
                 UIUtil.HideLabel(labelScore);
                 if(iconObject != null) {
                     iconObject.Hide();
                 }
             }
             else if(notificationItem.notificationType == GameNotificationType.Tip) {
-                UIUtil.SetLabelValue(labelTitle, "TIP");
+                UIUtil.SetLabelValue(labelTitle, Engine.Game.App.BaseApp.L10n.Tr("game_ui_notification_tip"));
                 UIUtil.HideLabel(labelScore);
                 if(iconObject != null) {
                     iconObject.Hide();
                 }
             }
             else if(notificationItem.notificationType == GameNotificationType.Error) {
-                UIUtil.SetLabelValue(labelTitle, "ERROR");
+                UIUtil.SetLabelValue(labelTitle, Engine.Game.App.BaseApp.L10n.Tr("game_ui_notification_error"));
                 UIUtil.HideLabel(labelScore);
                 if(iconObject != null) {
                     iconObject.Hide();

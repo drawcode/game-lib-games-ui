@@ -820,7 +820,7 @@ public class UIPanelModeTypeChoice : UIPanelModeTypeBase {
 
         //LogUtil.Log("UIPanelModeTypeChoice:DisplayStateResults:flowState:" + flowState);
 
-        UIUtil.SetLabelValue(labelResultsStatus, "Results");
+        UIUtil.SetLabelValue(labelResultsStatus, Engine.Game.App.BaseApp.L10n.Tr("game_ui_title_results"));
         SetViewLabel(UIPanelModeTypeViews.labelResultsStatus, "Results");
 
         UpdateDisplayStateResultsData();
@@ -834,7 +834,7 @@ public class UIPanelModeTypeChoice : UIPanelModeTypeBase {
 
         UIColors.UpdateColors();
 
-        UIUtil.SetLabelValue(labelResultsStatus, "Results");
+        UIUtil.SetLabelValue(labelResultsStatus, Engine.Game.App.BaseApp.L10n.Tr("game_ui_title_results"));
         SetViewLabel(UIPanelModeTypeViews.labelResultsStatus, "Results");
 
         GameAudioController.PlaySoundPlayerActionGood();
