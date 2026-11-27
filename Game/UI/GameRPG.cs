@@ -209,8 +209,13 @@ public class GameRPGMonitor {
     public void SyncTotalScore() {
 
         //CoroutineUtil.Start(UpdateTotalScoreCo());
+#if UNITY_WEBGL
+        // WebGL has no threads (new Thread throws): run on the main thread.
+        UpdateTotalScore();
+#else
         syncThread = new Thread(UpdateTotalScore);
         syncThread.Start();
+#endif
     }
         
     public void UpdateTotalScore() {    
